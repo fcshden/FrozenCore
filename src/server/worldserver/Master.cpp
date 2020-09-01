@@ -31,6 +31,7 @@
 #include "BigNumber.h"
 #include "OpenSSLCrypto.h"
 #include <ace/Sig_Handler.h>
+#pragma execution_character_set("utf-8")
 
 #ifdef _WIN32
 #include "ServiceWin32.h"
@@ -118,23 +119,25 @@ int Master::Run()
     BigNumber seed1;
     seed1.SetRand(16 * 8);
 
-    sLog->outString("%s (worldserver-daemon)", GitRevision::GetFullVersion());
-    sLog->outString("<Ctrl-C> to stop.\n");
 
-    sLog->outString("   â–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ•— â–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ•—â–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ•—â–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ•—  â–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ•— â–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ•—â–ˆâ–ˆâ•—  â–ˆâ–ˆâ•—");
-    sLog->outString("  â–ˆâ–ˆâ•”â•â•â–ˆâ–ˆâ•—â•šâ•â•â–ˆâ–ˆâ–ˆâ•”â•â–ˆâ–ˆâ•”â•â•â•â•â•â–ˆâ–ˆâ•”â•â•â–ˆâ–ˆâ•—â–ˆâ–ˆâ•”â•â•â•â–ˆâ–ˆâ•—â•šâ•â•â–ˆâ–ˆâ•”â•â•â•â–ˆâ–ˆâ•‘  â–ˆâ–ˆâ•‘");
-    sLog->outString("  â–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ•‘  â–ˆâ–ˆâ–ˆâ•”â• â–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ•—  â–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ•”â•â–ˆâ–ˆâ•‘   â–ˆâ–ˆâ•‘   â–ˆâ–ˆâ•‘   â–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ•‘");
-    sLog->outString("  â–ˆâ–ˆâ•”â•â•â–ˆâ–ˆâ•‘ â–ˆâ–ˆâ–ˆâ•”â•  â–ˆâ–ˆâ•”â•â•â•  â–ˆâ–ˆâ•”â•â•â–ˆâ–ˆâ•—â–ˆâ–ˆâ•‘   â–ˆâ–ˆâ•‘   â–ˆâ–ˆâ•‘   â–ˆâ–ˆâ•”â•â•â–ˆâ–ˆâ•‘");
-    sLog->outString("  â–ˆâ–ˆâ•‘  â–ˆâ–ˆâ•‘â–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ•—â–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ•—â–ˆâ–ˆâ•‘  â–ˆâ–ˆâ•‘â•šâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ•”â•   â–ˆâ–ˆâ•‘   â–ˆâ–ˆâ•‘  â–ˆâ–ˆâ•‘");
-    sLog->outString("  â•šâ•â•  â•šâ•â•â•šâ•â•â•â•â•â•â•â•šâ•â•â•â•â•â•â•â•šâ•â•  â•šâ•â• â•šâ•â•â•â•â•â•    â•šâ•â•   â•šâ•â•  â•šâ•â•");
-    sLog->outString("                                â–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ•— â–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ•— â–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ•— â–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ•—");
-    sLog->outString("                                â–ˆâ–ˆâ•”â•â•â•â•â•â–ˆâ–ˆâ•”â•â•â•â–ˆâ–ˆâ•—â–ˆâ–ˆâ•”â•â•â–ˆâ–ˆâ•—â–ˆâ–ˆâ•”â•â•â•â•");
-    sLog->outString("                                â–ˆâ–ˆâ•‘     â–ˆâ–ˆâ•‘   â–ˆâ–ˆâ•‘â–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ•”â•â–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ•—");
-    sLog->outString("                                â–ˆâ–ˆâ•‘     â–ˆâ–ˆâ•‘   â–ˆâ–ˆâ•‘â–ˆâ–ˆâ•”â•â•â–ˆâ–ˆâ•—â–ˆâ–ˆâ•”â•â•â•");
-    sLog->outString("                                â•šâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ•—â•šâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ•”â•â–ˆâ–ˆâ•‘  â–ˆâ–ˆâ•‘â–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ•—");
-    sLog->outString("                                 â•šâ•â•â•â•â•â• â•šâ•â•â•â•â•â• â•šâ•â•  â•šâ•â•â•šâ•â•â•â•â•â•â•\n");
-
-    sLog->outString("  	  AzerothCore 3.3.5a  -  www.azerothcore.org\n");
+    sLog->outString("\n                ¿ì½Ý¼ü<Ctrl-C> ¹Ø±ÕWorldServer·þÎñÆ÷");
+    sLog->outString(("¨X¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨["));
+    sLog->outString(("¨U                                                               ¨€       ¨U"));
+    sLog->outString(("¨U     ¨€¨€¨€¨[ ¨€¨€¨€¨[   ¨€¨€¨€¨€¨[ ¨€¨€¨€¨€¨[¨€¨€¨€¨€¨[¨€¨€¨€¨€¨[      ¨U"));
+    sLog->outString(("¨U     ¨€¨X¨T¨a¨€¨X ¨€¨€¨[¨€¨X¨T¨T¨€¨[¨^¨T¨€¨X¨a¨€¨X¨T¨T¨a¨€¨X¨T¨€¨U      ¨U"));
+    sLog->outString(("¨U     ¨€¨€¨€¨U¨€¨€¨€¨€¨X ¨€¨U    ¨€¨U   ¨€ ¨a  ¨€¨€¨€¨[  ¨€¨U  ¨€¨U      ¨U"));
+    sLog->outString(("¨U     ¨€¨X¨T¨a¨€¨X¨T¨€¨U ¨€¨U    ¨€¨U  ¨€ ¨a   ¨€¨T¨T¨a  ¨€¨U  ¨€¨U      ¨U"));
+    sLog->outString(("¨U     ¨€¨U    ¨€¨U  ¨€¨U ¨^¨€¨€¨€¨X¨a¨€¨€¨€¨€¨[¨€¨€¨€¨€¨[¨€¨U  ¨€¨U      ¨U"));
+    sLog->outString(("¨U     ¨^¨a    ¨^¨a  ¨^¨a   ¨^¨T¨T¨a  ¨^¨T¨T¨T¨a¨^¨T¨T¨T¨a¨^¨a  ¨^¨a      ¨U"));
+    sLog->outString(("¨U                       ¨€¨€¨€¨€¨[ ¨€¨€¨€¨€¨[  ¨€¨€¨€¨[  ¨€¨€¨€¨€¨[      ¨U"));
+    sLog->outString(("¨U                       ¨€¨X¨T¨T¨a¨€¨X¨T¨T¨€¨[¨€¨X ¨€¨€¨[¨€¨X¨T¨T¨a      ¨U"));
+    sLog->outString(("¨U                       ¨€¨U      ¨€¨U    ¨€¨U¨€¨€¨€¨€¨X ¨€¨€¨€¨[        ¨U"));
+    sLog->outString(("¨U                       ¨€¨U      ¨€¨U    ¨€¨U¨€¨X¨T¨€¨U ¨€¨X¨T¨a        ¨U"));
+    sLog->outString(("¨U                       ¨€¨€¨€¨€¨[¨^¨€¨€¨€¨X¨a¨€¨U  ¨€¨U ¨€¨€¨€¨€¨[      ¨U"));
+    sLog->outString(("¨U                       ¨^¨T¨T¨T¨a  ¨^¨T¨T¨a  ¨^¨a  ¨^¨a ¨^¨T¨T¨T¨a      ¨U"));
+    sLog->outString(("¨U  	                     FrozenCore With CustomScripts 3.3.5a         ¨U"));
+    sLog->outString(("¨^¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨a"));
+    sLog->outString("   WorldServer°æ±¾£º%s ", GitRevision::GetFileVersionStr());
 
     /// worldserver PID file creation
     std::string pidFile = sConfigMgr->GetStringDefault("PidFile", "");
