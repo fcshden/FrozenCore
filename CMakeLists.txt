@@ -11,7 +11,7 @@
 #
 
 # Set projectname (must be done AFTER setting configurationtypes)
-project(AzerothCore)
+project(Frozen2020Az)
 
 # Require a min version Cmake
 cmake_minimum_required(VERSION 3.8)
