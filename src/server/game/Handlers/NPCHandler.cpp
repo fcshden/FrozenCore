@@ -26,6 +26,7 @@
 #include "CreatureAI.h"
 #include "SpellInfo.h"
 #include "GameGraveyard.h"
+#include "../game/AI/NpcBots/bothelper.h"
 
 enum StableResultCode
 {
@@ -310,6 +311,34 @@ void WorldSession::HandleGossipHelloOpcode(WorldPacket & recvData)
 
     uint64 guid;
     recvData >> guid;
+
+    // NPCBOT
+    if (guid == _player->GetGUID())
+    {
+        if (_player->GetBotHelper())
+        {
+            _player->GetBotHelper()->OnGossipHello(_player);
+            return;
+        }
+    }
+    else if (IS_CREATURE_GUID(guid))
+    {
+        if (Creature* qBot = ObjectAccessor::GetCreatureOrPetOrVehicle(*_player, guid))
+        {
+            if (qBot->IsQuestBot() &&
+                (_player->IsAlive() || qBot->GetCreatureTemplate()->type_flags & CREATURE_TYPE_FLAG_GHOST_VISIBLE) &&
+                (qBot->IsAlive() || (qBot->GetCreatureTemplate()->type_flags & CREATURE_TYPE_FLAG_CAN_INTERACT_WHILE_DEAD)))
+            {
+                if (!sScriptMgr->OnGossipHello(_player, qBot))
+                {
+                    sLog->outString("WORLD: HandleGossipHelloOpcode - qBot %s (Entry: %u) returned false on gossip hello.",
+                        qBot->GetName().c_str(), qBot->GetEntry());
+                }
+                return;
+            }
+        }
+    }
+    // NPCBOT
 
     Creature* unit = GetPlayer()->GetNPCIfCanInteractWith(guid, UNIT_NPC_FLAG_NONE);
     if (!unit)

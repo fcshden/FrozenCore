@@ -77,6 +77,12 @@
 #include "TicketMgr.h"
 #include "ScriptMgr.h"
 #include "GameGraveyard.h"
+#include "Config.h"
+
+ // NPCBOT
+#include "bothelper.h"
+#include "BotSystem.h"
+// NPCBOT
 
 #ifdef ELUNA
 #include "LuaEngine.h"
@@ -541,6 +547,19 @@ inline void KillRewarder::_RewardXP(Player* player, float rate)
         for (Unit::AuraEffectList::const_iterator i = auras.begin(); i != auras.end(); ++i)
             AddPct(xp, (*i)->GetAmount());
 
+        // NPCBOT
+        if (player->HaveBot() && player->GetNpcBotsCount() > 1)
+        {
+            if (uint8 xp_rate = player->GetNpcBotXpReduction())
+            {
+                int32 ratePct = 100 - (player->GetNpcBotsCount() - 1) * xp_rate;
+                ratePct = std::max<int32>(ratePct, 10); // minimum
+                //ratePct = std::min<int32>(ratePct, 100); // maximum // dead code
+                xp = xp * ratePct / 100;
+            }
+        }
+        // NPCBOT
+
         // 4.2.3. Give XP to player.
         player->GiveXP(xp, _victim, _groupRate);
         if (Pet* pet = player->GetPet())
@@ -937,6 +956,30 @@ Player::Player(WorldSession* session): Unit(true), m_mover(this)
     m_applyResilience = true;
 
     m_isInstantFlightOn = true;
+
+    // NPCBOT
+    _botHlpr = NULL;
+    m_botTimer = 500;
+    m_botCreateTimer = 500;
+    m_bot = NULL;
+    m_enableNpcBots = sConfigMgr->GetBoolDefault("Bot.EnableNpcBots", true);
+    m_followdist = sConfigMgr->GetIntDefault("Bot.BaseFollowDistance", 30);
+    m_maxNpcBots = std::min<uint8>(sConfigMgr->GetIntDefault("Bot.MaxNpcBots", 1), MAX_NPCBOTS);
+    uint8 maxcbots = sConfigMgr->GetIntDefault("Bot.MaxNpcBotsPerClass", 1);
+    m_maxClassNpcBots = maxcbots > 0 ? maxcbots : MAX_NPCBOTS;
+    m_xpReductionNpcBots = std::min<uint8>(sConfigMgr->GetIntDefault("Bot.XpReductionPercent", 0), 100);
+    m_enableNpcBotsArenas = sConfigMgr->GetBoolDefault("Bot.EnableInArenas", true);
+    m_enableNpcBotsBGs = sConfigMgr->GetBoolDefault("Bot.EnableInBGs", true);
+    m_enableNpcBotsDungeons = sConfigMgr->GetBoolDefault("Bot.EnableInDungeons", true);
+    m_enableNpcBotsRaids = sConfigMgr->GetBoolDefault("Bot.EnableInRaids", true);
+    m_limitNpcBotsDungeons = sConfigMgr->GetBoolDefault("Bot.InstanceLimit.Dungeons", false);
+    m_limitNpcBotsRaids = sConfigMgr->GetBoolDefault("Bot.InstanceLimit.Raids", false);
+    m_NpcBotsCost = sConfigMgr->GetIntDefault("Bot.Cost", 0);
+    for (uint8 i = 0; i != GetMaxNpcBots(); ++i)
+        m_botmap[i] = new NpcBotMap();
+    m_botInfo.clear();
+    // NPCBOT
+
 }
 
 Player::~Player()
@@ -970,6 +1013,18 @@ Player::~Player()
     delete m_runes;
     delete m_achievementMgr;
     delete m_reputationMgr;
+
+    // NPCBOT
+    if (_botHlpr)
+    {
+        delete _botHlpr;
+        _botHlpr = NULL;
+    }
+
+    for (uint8 i = 0; i != GetMaxNpcBots(); ++i)
+        delete m_botmap[i];
+    // NPCBOT
+
 
     sWorld->DecreasePlayerCount();
 
@@ -1895,6 +1950,10 @@ void Player::Update(uint32 p_time)
         TeleportTo(teleportStore_dest, teleportStore_options);
     }
 
+    // NPCBOT
+    UpdateNpcBot(p_time);
+    // NPCBOT
+
     if (!IsBeingTeleported() && bRequestForcedVisibilityUpdate)
     {
         bRequestForcedVisibilityUpdate = false;
@@ -2331,6 +2390,12 @@ bool Player::TeleportTo(uint32 mapid, float x, float y, float z, float orientati
         // this check not dependent from map instance copy and same for all instance copies of selected map
         if (!(options & TELE_TO_GM_MODE) && !sMapMgr->CanPlayerEnter(mapid, this, false))
             return false;
+
+        // NPCBOT
+        if (GetMapId() != mapid)
+            for (uint8 i = 0; i != GetMaxNpcBots(); ++i)
+                RemoveBot(m_botmap[i]->m_guid);
+        // NPCBOT
 
         // if CanPlayerEnter -> CanEnter: checked above
         {
@@ -2904,6 +2969,13 @@ Creature* Player::GetNPCIfCanInteractWith(uint64 guid, uint32 npcflagmask)
     if (creature->GetReactionTo(this) <= REP_UNFRIENDLY)
         return nullptr;
 
+    // NPCBOT
+    if (creature->IsHostileTo(this))
+        if (!creature->IsQuestBot())
+            return NULL;
+    // NPCBOT
+
+
     // xinef: not needed, CORRECTLY checked above including forced reputations etc
     // not unfriendly
     //if (FactionTemplateEntry const* factionTemplate = sFactionTemplateStore.LookupEntry(creature->getFaction()))
@@ -3144,6 +3216,29 @@ void Player::RemoveFromGroup(Group* group, uint64 guid, RemoveMethod method /* =
 {
     if (group)
     {
+        // NPCBOT
+        if (Player* player = ObjectAccessor::FindPlayer(guid))
+        {
+            if (player->HaveBot())
+            {
+                uint8 players = 0;
+                Group::MemberSlotList const& members = group->GetMemberSlots();
+                for (Group::member_citerator itr = members.begin(); itr != members.end(); ++itr)
+                {
+                    if (Player* pl = ObjectAccessor::FindPlayer(itr->guid))
+                        ++players;
+                }
+
+                //remove npcbots so group will be disbanded if only 1 player
+                for (uint8 i = 0; i != player->GetMaxNpcBots(); ++i)
+                    player->RemoveBot(player->GetBotMap(i)->m_guid, false);
+                group = player->GetGroup();
+                if (!group)
+                    return; //group has been disbanded
+            }
+        }
+        // NPCBOT
+
         group->RemoveMember(guid, method, kicker, reason);
         group = nullptr;
     }
@@ -5049,6 +5144,10 @@ void Player::DeleteFromDB(uint64 playerguid, uint32 accountId, bool updateRealmC
             trans->Append(stmt);
 
             stmt = CharacterDatabase.GetPreparedStatement(CHAR_DEL_CHAR_SKILLS);
+            stmt->setUInt32(0, guid);
+            trans->Append(stmt);
+
+            stmt = CharacterDatabase.GetPreparedStatement(CHAR_DEL_NPCBOTS);
             stmt->setUInt32(0, guid);
             trans->Append(stmt);
 

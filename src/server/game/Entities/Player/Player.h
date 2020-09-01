@@ -44,6 +44,24 @@ class PlayerSocial;
 class SpellCastTargets;
 class UpdateMask;
 
+// NPCBOT
+struct NpcBotMap;
+#define MAX_NPCBOTS 20
+class BotHelper;
+
+struct BotInfo
+{
+    uint32 entry;
+    uint32 race;
+    uint32 bclass;
+    uint32 roles;
+    uint32 equips[18];
+    uint32 active;
+};
+typedef std::unordered_map<uint32, BotInfo>BotInfoMap;
+
+// NPCBOT
+
 typedef std::deque<Mail*> PlayerMails;
 typedef void(*bgZoneRef)(Battleground*, WorldPacket&);
 
@@ -1139,6 +1157,51 @@ class Player : public Unit, public GridObject<Player>
     public:
         explicit Player(WorldSession* session);
         ~Player();
+
+        // NPCBOT
+        BotInfoMap m_botInfo;
+        void LoadBotInfo();
+        void SaveBotInfo();
+        BotInfo const* GetBotInfo(uint32 entry) const;
+        uint32 GetPlayerBotRoles(uint32 entry);
+        void SetBotInfo(uint32 entry, uint32 race, uint32 pclass, uint32 roles, uint32 * equips, uint32 active);
+        void SetBotActive(uint32 entry, uint32 active);
+        void SetBotRoles(uint32 entry, uint32 roles);
+        void SetBotQquips(uint32 entry, uint32 * equips);
+
+        void UpdateNpcBot(uint32 p_time);
+
+        void SetBotHelper(BotHelper* hlpr) { ASSERT(!_botHlpr); _botHlpr = hlpr; }
+        BotHelper* GetBotHelper() const { return _botHlpr; }
+        void RefreshBot(uint32 p_time);
+        void CreateBot(uint32 botentry, uint8 botrace, uint8 botclass, bool revive = false);
+        void CreateNPCBot(uint8 botclass);
+        void CreateEntryBot(uint32 BotId);
+        int8 GetNpcBotSlot(uint64 guid) const;
+        void SendBotCommandState(Creature* cre, CommandStates state);
+        bool HaveBot() const;
+        void RemoveBot(uint64 guid, bool final = false, bool eraseFromDB = true);
+        void SetBot(Creature* cre) { m_bot = cre; }
+        uint8 GetNpcBotsCount() const;
+        void SetBotMustBeCreated(uint32 m_entry, uint8 m_race, uint8 m_class, uint32 *equips);
+        void ClearBotMustBeCreated(uint64 value, bool guid = true, bool fully = false);
+        bool GetBotMustBeCreated();
+        uint8 GetBotFollowDist() const { return m_followdist; }
+        void SetBotFollowDist(int8 dist) { m_followdist = dist; }
+        void SetNpcBotDied(uint64 guid);
+        NpcBotMap const* GetBotMap(uint8 pos) const { return m_botmap[pos]; }
+        uint8 GetMaxNpcBots() const;
+        uint8 GetNpcBotXpReduction() const { return m_xpReductionNpcBots; }
+        bool RestrictBots() const;
+        uint32 GetNpcBotCost() const;
+        std::string GetNpcBotCostStr() const;
+        void InitBotEquips(Creature* bot);
+        void UpdateBotEquips(Creature* bot, uint8 slot, uint32 itemId);
+        uint32 GetBotEquip(Creature* bot, uint8 slot) const;
+        void SetBotRace(uint32 pos, uint32 race);
+        void UpdateBotModelid(Creature* bot);
+
+        // NPCBOT
 
         void CleanupsBeforeDelete(bool finalCleanup = true) override;
 
@@ -2943,8 +3006,28 @@ class Player : public Unit, public GridObject<Player>
         uint8 m_grantableLevels;
 
         AchievementMgr* GetAchievementMgr() const { return m_achievementMgr; }
-
+        
     private:
+        // NPCBOT
+        BotHelper* _botHlpr;
+        Creature* m_bot;
+        int8 m_followdist;
+        uint8 m_maxNpcBots;
+        uint8 m_maxClassNpcBots;
+        uint8 m_xpReductionNpcBots;
+        bool m_enableNpcBots;
+        bool m_enableNpcBotsArenas;
+        bool m_enableNpcBotsBGs;
+        bool m_enableNpcBotsDungeons;
+        bool m_enableNpcBotsRaids;
+        bool m_limitNpcBotsDungeons;
+        bool m_limitNpcBotsRaids;
+        uint32 m_NpcBotsCost;
+        uint32 m_botTimer;
+        uint32 m_botCreateTimer;
+        NpcBotMap* m_botmap[MAX_NPCBOTS];
+        // NPCBOT
+
         // internal common parts for CanStore/StoreItem functions
         InventoryResult CanStoreItem_InSpecificSlot(uint8 bag, uint8 slot, ItemPosCountVec& dest, ItemTemplate const* pProto, uint32& count, bool swap, Item* pSrcItem) const;
         InventoryResult CanStoreItem_InBag(uint8 bag, ItemPosCountVec& dest, ItemTemplate const* pProto, uint32& count, bool merge, bool non_specialized, Item* pSrcItem, uint8 skip_bag, uint8 skip_slot) const;

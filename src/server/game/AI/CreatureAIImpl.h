@@ -22,6 +22,36 @@ static inline First const& RAND(First const& first, Second const& second, Rest c
     return pack[urand(0, sizeof...(rest) + 1)].get();
 }
 
+template<class T>
+inline
+const T& RANDCHAR(const T& v1, const T& v2, const T& v3, const T& v4)
+{
+    switch (urand(0, 3))
+    {
+    default:
+    case 0: return v1;
+    case 1: return v2;
+    case 2: return v3;
+    case 3: return v4;
+    }
+}
+
+template<class T>
+inline
+const T& RANDCHAR(const T& v1, const T& v2, const T& v3, const T& v4, const T& v5, const T& v6)
+{
+    switch (urand(0, 5))
+    {
+    default:
+    case 0: return v1;
+    case 1: return v2;
+    case 2: return v3;
+    case 3: return v4;
+    case 4: return v5;
+    case 5: return v6;
+    }
+}
+
 enum AITarget
 {
     AITARGET_SELF,

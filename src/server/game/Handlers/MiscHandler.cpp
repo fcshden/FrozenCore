@@ -44,6 +44,7 @@
 #include "Spell.h"
 #include "WhoListCache.h"
 
+#include "../game/AI/NpcBots/bothelper.h"
 #ifdef ELUNA
 #include "LuaEngine.h"
 #endif
@@ -209,7 +210,10 @@ void WorldSession::HandleGossipSelectOptionOpcode(WorldPacket & recv_data)
         }
         else
         {
-            sScriptMgr->OnGossipSelect(_player, menuId, _player->PlayerTalkClass->GetGossipOptionSender(gossipListId), _player->PlayerTalkClass->GetGossipOptionAction(gossipListId));
+            if (_player->GetBotHelper())// NPCBOT
+                _player->GetBotHelper()->OnGossipSelect(_player, _player->PlayerTalkClass->GetGossipOptionSender(gossipListId), _player->PlayerTalkClass->GetGossipOptionAction(gossipListId));
+            else
+                sScriptMgr->OnGossipSelect(_player, menuId, _player->PlayerTalkClass->GetGossipOptionSender(gossipListId), _player->PlayerTalkClass->GetGossipOptionAction(gossipListId));
         }
     }
 }

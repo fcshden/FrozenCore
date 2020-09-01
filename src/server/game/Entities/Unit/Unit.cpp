@@ -399,6 +399,19 @@ void Unit::Update(uint32 p_time)
         }
     }
 
+    // NPCBOT
+    if (IsInCombat() && GetTypeId() == TYPEID_UNIT && !GetVictim() && (ToCreature()->GetIAmABot() || ToCreature()->GetIAmABotsPet()))
+    {
+        if (m_HostileRefManager.isEmpty())
+        {
+            if (m_CombatTimer <= p_time)
+                ClearInCombat();
+            else
+                m_CombatTimer -= p_time;
+        }
+    }
+    // NPCBOT
+
     // not implemented before 3.0.2
     // xinef: if attack time > 0, reduce by diff
     // if on next update, attack time < 0 assume player didnt attack - set to 0
@@ -702,6 +715,13 @@ uint32 Unit::DealDamage(Unit* attacker, Unit* victim, uint32 damage, CleanDamage
 
         if (pet && pet->IsAlive())
             pet->AI()->OwnerAttackedBy(attacker);
+
+        // NPCBOT
+        for (ControlSet::const_iterator itr = victim->ToPlayer()->m_Controlled.begin(); itr != victim->ToPlayer()->m_Controlled.end(); ++itr)
+            if (Creature* cre = (*itr)->ToCreature())
+                if (cre->GetIAmABot() && cre->IsAIEnabled)
+                    cre->AI()->OwnerAttackedBy(attacker);
+        // NPCBOT
     }
 
     // Signal the pet it was attacked so the AI can respond if needed
@@ -1131,6 +1151,12 @@ void Unit::CalculateSpellDamageTaken(SpellNonMeleeDamage* damageInfo, int32 dama
         case SPELL_DAMAGE_CLASS_RANGED:
         case SPELL_DAMAGE_CLASS_MELEE:
         {
+            // NPCBOT
+            if (Creature* bot = ToCreature())
+                if (bot->GetIAmABot() || bot->GetIAmABotsPet())
+                    bot->ApplyBotDamageMultiplierMelee(damage, *damageInfo, spellInfo, attackType, crit);
+            // NPCBOT
+
             // Physical Damage
             if (damageSchoolMask & SPELL_SCHOOL_MASK_NORMAL)
             {
@@ -1191,6 +1217,12 @@ void Unit::CalculateSpellDamageTaken(SpellNonMeleeDamage* damageInfo, int32 dama
         case SPELL_DAMAGE_CLASS_NONE:
         case SPELL_DAMAGE_CLASS_MAGIC:
         {
+            // NPCBOT
+            if (Creature* bot = ToCreature())
+                if (bot->GetIAmABot() || bot->GetIAmABotsPet())
+                    bot->ApplyBotDamageMultiplierSpell(damage, *damageInfo, spellInfo, attackType, crit);
+            // NPCBOT
+
             // If crit add critical bonus
             if (crit)
             {
@@ -1307,6 +1339,12 @@ void Unit::CalculateMeleeDamage(Unit* victim, uint32 damage, CalcDamageInfo* dam
 
     // Script Hook For CalculateMeleeDamage -- Allow scripts to change the Damage pre class mitigation calculations
     sScriptMgr->ModifyMeleeDamage(damageInfo->target, damageInfo->attacker, damage);
+
+    // NPCBOT
+    if (Creature* bot = ToCreature())
+        if (bot->GetIAmABot() || bot->GetIAmABotsPet())
+            bot->ApplyBotDamageMultiplierMelee(damage, *damageInfo);
+    // NPCBOT
 
     // Calculate armor reduction
     if (IsDamageReducedByArmor((SpellSchoolMask)(damageInfo->damageSchoolMask)))
@@ -10984,7 +11022,8 @@ float Unit::SpellDoneCritChance(Unit const* /*victim*/, SpellInfo const* spellPr
 {
     // Mobs can't crit with spells.
     if (GetTypeId() == TYPEID_UNIT && !GetSpellModOwner())
-        return -100.0f;
+        if (!ToCreature()->GetIAmABot())// NPCBOT
+            return -100.0f;
 
     // not critting spell
     if (spellProto->HasAttribute(SPELL_ATTR2_CANT_CRIT))
@@ -14017,6 +14056,13 @@ bool Unit::HandleStatModifier(UnitMods unitMod, UnitModifierType modifierType, f
         default:
             break;
     }
+
+    // NPCBOT
+    if (Player* master = ToPlayer())
+        for (uint8 i = 0; i != master->GetMaxNpcBots(); ++i)
+            if (Creature* bot = master->GetBotMap(i)->_Cre())
+                bot->SetBotShouldUpdateStats();
+    // NPCBOT
 
     return true;
 }
@@ -17963,6 +18009,184 @@ uint32 Unit::GetModelForForm(ShapeshiftForm form) const
                 break;
         }
     }
+    // NPCBOT
+    else if (ToCreature() && ToCreature()->GetIAmABot())
+    {
+    Player const *player = ToCreature()->GetBotOwner();
+    //let's make druids alike for each player
+    switch (form)
+    {
+    case FORM_CAT:
+        // Based on master's Hair color
+        if (player->getRace() == RACE_NIGHTELF)
+        {
+            uint8 hairColor = player->GetByteValue(PLAYER_BYTES, 3);
+            switch (hairColor)
+            {
+            case 7: // Violet
+            case 8:
+                return 29405;
+            case 3: // Light Blue
+                return 29406;
+            case 0: // Green
+            case 1: // Light Green
+            case 2: // Dark Green
+                return 29407;
+            case 4: // White
+                return 29408;
+            default: // original - Dark Blue
+                return 892;
+            }
+        }
+        // Based on master's Skin color
+        else if (player->getRace() == RACE_TAUREN)
+        {
+            uint8 skinColor = player->GetByteValue(PLAYER_BYTES, 0);
+            // Male master
+            if (player->getGender() == GENDER_MALE)
+            {
+                switch (skinColor)
+                {
+                case 12: // White
+                case 13:
+                case 14:
+                case 18: // Completly White
+                    return 29409;
+                case 9: // Light Brown
+                case 10:
+                case 11:
+                    return 29410;
+                case 6: // Brown
+                case 7:
+                case 8:
+                    return 29411;
+                case 0: // Dark
+                case 1:
+                case 2:
+                case 3: // Dark Grey
+                case 4:
+                case 5:
+                    return 29412;
+                default: // original - Grey
+                    return 8571;
+                }
+            }
+            // Female master
+            else switch (skinColor)
+            {
+            case 10: // White
+                return 29409;
+            case 6: // Light Brown
+            case 7:
+                return 29410;
+            case 4: // Brown
+            case 5:
+                return 29411;
+            case 0: // Dark
+            case 1:
+            case 2:
+            case 3:
+                return 29412;
+            default: // original - Grey
+                return 8571;
+            }
+        }
+        else if (Player::TeamIdForRace(player->getRace()) == TEAM_ALLIANCE)
+            return 892;
+        else
+            return 8571;
+    case FORM_DIREBEAR:
+    case FORM_BEAR:
+        // Based on Hair color
+        if (player->getRace() == RACE_NIGHTELF)
+        {
+            uint8 hairColor = player->GetByteValue(PLAYER_BYTES, 3);
+            switch (hairColor)
+            {
+            case 0: // Green
+            case 1: // Light Green
+            case 2: // Dark Green
+                return 29413; // 29415?
+            case 6: // Dark Blue
+                return 29414;
+            case 4: // White
+                return 29416;
+            case 3: // Light Blue
+                return 29417;
+            default: // original - Violet
+                return 2281;
+            }
+        }
+        // Based on Skin color
+        else if (player->getRace() == RACE_TAUREN)
+        {
+            uint8 skinColor = player->GetByteValue(PLAYER_BYTES, 0);
+            // Male
+            if (player->getGender() == GENDER_MALE)
+            {
+                switch (skinColor)
+                {
+                case 0: // Dark (Black)
+                case 1:
+                case 2:
+                    return 29418;
+                case 3: // White
+                case 4:
+                case 5:
+                case 12:
+                case 13:
+                case 14:
+                    return 29419;
+                case 9: // Light Brown/Grey
+                case 10:
+                case 11:
+                case 15:
+                case 16:
+                case 17:
+                    return 29420;
+                case 18: // Completly White
+                    return 29421;
+                default: // original - Brown
+                    return 2289;
+                }
+            }
+            // Female
+            else switch (skinColor)
+            {
+            case 0: // Dark (Black)
+            case 1:
+                return 29418;
+            case 2: // White
+            case 3:
+                return 29419;
+            case 6: // Light Brown/Grey
+            case 7:
+            case 8:
+            case 9:
+                return 29420;
+            case 10: // Completly White
+                return 29421;
+            default: // original - Brown
+                return 2289;
+            }
+        }
+        else if (Player::TeamIdForRace(player->getRace()) == TEAM_ALLIANCE)
+            return 2281;
+        else
+            return 2289;
+    case FORM_FLIGHT:
+        if (Player::TeamIdForRace(player->getRace()) == TEAM_ALLIANCE)
+            return 20857;
+        return 20872;
+    case FORM_FLIGHT_EPIC:
+        if (Player::TeamIdForRace(player->getRace()) == TEAM_ALLIANCE)
+            return 21243;
+        return 21244;
+    default:
+        break;
+    }
+    }
+    // NPCBOT
 
     uint32 modelid = 0;
     SpellShapeshiftEntry const* formEntry = sSpellShapeshiftStore.LookupEntry(form);

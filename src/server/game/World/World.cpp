@@ -78,6 +78,7 @@
 #include "ServerMotd.h"
 #include "GameGraveyard.h"
 #include <VMapManager2.h>
+#include "BYcustom.h"
 
 #ifdef ELUNA
 #include "LuaEngine.h"
@@ -2008,6 +2009,7 @@ void World::SetInitialWorldSettings()
     mgr = ChannelMgr::forTeam(TEAM_HORDE);
     mgr->LoadChannels();
 
+    sCustomMgr->LoadAllCustomData();
 #ifdef ELUNA
     ///- Run eluna scripts.
     // in multithread foreach: run scripts

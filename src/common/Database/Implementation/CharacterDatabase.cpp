@@ -552,6 +552,15 @@ void CharacterDatabaseConnection::DoPrepareStatements()
     PrepareStatement(CHAR_DEL_CHAR_PET_BY_SLOT, "DELETE FROM character_pet WHERE owner = ? AND (slot = ? OR slot > ?)", CONNECTION_ASYNC);
     PrepareStatement(CHAR_REP_CHAR_PET, "REPLACE INTO character_pet (id, entry, owner, modelid, CreatedBySpell, PetType, level, exp, Reactstate, name, renamed, slot, curhealth, curmana, curhappiness, savetime, abdata) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", CONNECTION_ASYNC);
 
+
+    // NPCBOT
+    PrepareStatement(CHAR_SEL_NPCBOTS, "SELECT entry, race, class, roles, equipMhEx, equipOhEx, equipRhEx, "
+        "equipHead, equipShoulders, equipChest, equipWaist, equipLegs, equipFeet, equipWrist, equipHands, equipBack, equipBody, equipFinger1, equipFinger2, equipTrinket1, equipTrinket2, equipNeck FROM character_npcbot WHERE owner = ? AND active = 1", CONNECTION_SYNCH);
+    PrepareStatement(CHAR_DEL_NPCBOTS, "DELETE FROM character_npcbot WHERE owner = ?", CONNECTION_ASYNC);
+    PrepareStatement(CHAR_INS_NPCBOT, "REPLACE INTO character_npcbot (owner, entry, race, class, roles, equipMhEx, equipOhEx, equipRhEx, "
+        "equipHead, equipShoulders, equipChest, equipWaist, equipLegs, equipFeet, equipWrist, equipHands, equipBack, equipBody, equipFinger1, equipFinger2, equipTrinket1, equipTrinket2, equipNeck, active) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", CONNECTION_ASYNC);
+    // NPCBOT
+
     // PvPstats
     PrepareStatement(CHAR_SEL_PVPSTATS_MAXID, "SELECT MAX(id) FROM pvpstats_battlegrounds", CONNECTION_SYNCH);
     PrepareStatement(CHAR_INS_PVPSTATS_BATTLEGROUND, "INSERT INTO pvpstats_battlegrounds (id, winner_faction, bracket_id, type, date) VALUES (?, ?, ?, ?, NOW())", CONNECTION_ASYNC);

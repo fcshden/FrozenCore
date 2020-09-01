@@ -82,4 +82,7 @@ void WorldDatabaseConnection::DoPrepareStatements()
     PrepareStatement(WORLD_UPD_GAMEOBJECT_ZONE_AREA_DATA, "UPDATE gameobject SET zoneId = ?, areaId = ? WHERE guid = ?", CONNECTION_ASYNC);
     // 0: uint8
     PrepareStatement(WORLD_SEL_REQ_XP, "SELECT Experience FROM player_xp_for_level WHERE Level = ?", CONNECTION_SYNCH);
+
+    // NPCBOT
+    PrepareStatement(WORLD_SEL_NPCBOT_PET_LEVELSTATS, "SELECT hp, mana, armor, str, agi, sta, inte, spi FROM pet_levelstats WHERE creature_entry = ? AND level = ?", CONNECTION_SYNCH);
 }

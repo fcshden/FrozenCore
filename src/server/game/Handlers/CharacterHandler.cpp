@@ -1203,6 +1203,10 @@ void WorldSession::HandlePlayerLoginFromDB(LoginQueryHolder* holder)
         sScriptMgr->OnFirstLogin(pCurrChar);
     }
 
+    // NPCBOT
+    pCurrChar->LoadBotInfo();
+    // NPCBOT
+
     delete holder;
 }
 

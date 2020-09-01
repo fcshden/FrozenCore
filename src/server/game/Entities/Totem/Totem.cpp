@@ -140,6 +140,13 @@ void Totem::UnSummon(uint32 msTime)
         }
     }
 
+    // NPCBOT
+    if (IS_CREATURE_GUID(GetCreatorGUID()))
+        if (Unit* bot = sObjectAccessor->FindUnit(GetCreatorGUID()))
+            if (bot->ToCreature()->GetIAmABot())
+                bot->ToCreature()->OnBotDespawn(this);
+    // NPCBOT
+
     AddObjectToRemoveList();
 }
 

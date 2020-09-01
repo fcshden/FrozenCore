@@ -582,6 +582,21 @@ void AddSC_chat_log();
 void AddSC_character_creation();
 void AddSC_action_ip_logger();
 
+// NPCBOT
+void AddSC_death_knight_bot();
+void AddSC_druid_bot();
+void AddSC_hunter_bot();
+void AddSC_mage_bot();
+void AddSC_paladin_bot();
+void AddSC_priest_bot();
+void AddSC_rogue_bot();
+void AddSC_shaman_bot();
+void AddSC_warlock_bot();
+void AddSC_warrior_bot();
+void AddSC_script_bot_commands();
+void AddSC_BotQuests_chapter1();
+// NPCBOT
+
 #endif
 
 void AddSpellScripts()
@@ -660,6 +675,21 @@ void AddWorldScripts()
     AddSC_chat_log(); // location: scripts\World\chat_log.cpp
     AddSC_character_creation();
     AddSC_action_ip_logger(); // location: scripts\World\action_ip_logger.cpp
+
+    // NPCBOT
+    AddSC_death_knight_bot();
+    AddSC_druid_bot();
+    AddSC_hunter_bot();
+    AddSC_mage_bot();
+    AddSC_paladin_bot();
+    AddSC_priest_bot();
+    AddSC_rogue_bot();
+    AddSC_shaman_bot();
+    AddSC_warlock_bot();
+    AddSC_warrior_bot();
+    AddSC_script_bot_commands();
+    AddSC_BotQuests_chapter1();
+    // NPCBOT
 #endif
 }
 

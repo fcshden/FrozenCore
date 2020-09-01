@@ -43,6 +43,8 @@
 
 #include "Transport.h"
 
+#include "../game/AI/NpcBots/bot_ai.h"
+
 #ifdef ELUNA
 #include "LuaEngine.h"
 #endif
@@ -185,6 +187,15 @@ m_homePosition(), m_transportHomePosition(), m_creatureInfo(nullptr), m_creature
     TriggerJustRespawned = false;
     m_isTempWorldObject = false;
     _focusSpell = nullptr;
+
+    // NPCBOT
+    m_bot_owner = NULL;
+    m_creature_owner = NULL;
+    m_bots_pet = NULL;
+    m_bot_class = CLASS_NONE;
+    bot_AI = NULL;
+    m_canUpdate = true;
+    // NPCBOT
 }
 
 Creature::~Creature()
@@ -268,6 +279,11 @@ void Creature::RemoveCorpse(bool setSpawnTime, bool skipVisibility)
 { 
     if (getDeathState() != CORPSE)
         return;
+
+    // NPCBOT
+    if (bot_AI)
+        return;
+    // NPCBOT
 
     m_corpseRemoveTime = time(nullptr);
     setDeathState(DEAD);
@@ -486,7 +502,12 @@ bool Creature::UpdateEntry(uint32 Entry, const CreatureData* data, bool changele
 }
 
 void Creature::Update(uint32 diff)
-{ 
+{
+    // NPCBOT
+    if (!m_canUpdate && bot_AI)
+        return;
+    // NPCBOT
+
     if (IsAIEnabled && TriggerJustRespawned)
     {
         TriggerJustRespawned = false;
@@ -1398,7 +1419,13 @@ void Creature::SetCanDualWield(bool value)
 }
 
 void Creature::LoadEquipment(int8 id, bool force /*= false*/)
-{ 
+{
+
+    // NPCBOT
+    if (GetEntry() >= BOT_ENTRY_BEGIN && GetEntry() <= BOT_ENTRY_END) //temp hack
+        return;
+    // NPCBOT
+
     if (id == 0)
     {
         if (force)

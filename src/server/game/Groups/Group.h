@@ -307,6 +307,10 @@ class Group
             _difficultyChangePreventionType = type;
         }
 
+        // NPCBOT
+        uint64 const *GetTargetIcons() const { return m_targetIcons; }
+        // NPCBOT
+
     protected:
         void _homebindIfInstance(Player* player);
         void _cancelHomebindIfInstance(Player* player);
