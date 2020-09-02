@@ -352,9 +352,6 @@ Player* Group::GetInvited(const std::string& name) const
 
 bool Group::AddMember(Player* player)
 {
-    if (!player)
-        return false;
-
     // Get first not-full group
     uint8 subGroup = 0;
     if (m_subGroupsCounts)
@@ -505,14 +502,14 @@ bool Group::AddMember(Player* player)
                 m_maxEnchantingLevel = player->GetSkillValue(SKILL_ENCHANTING);
         }
     }
-
+    UpdatePetFaction();
     return true;
 }
 
 bool Group::RemoveMember(uint64 guid, const RemoveMethod &method /*= GROUP_REMOVEMETHOD_DEFAULT*/, uint64 kicker /*= 0*/, const char* reason /*= NULL*/)
 {
     BroadcastGroupUpdate();
-
+    UpdatePetFaction();
     // LFG group vote kick handled in scripts
     if (isLFGGroup() && method == GROUP_REMOVEMETHOD_KICK)
     {
@@ -2351,4 +2348,24 @@ void Group::ToggleGroupMemberFlag(member_witerator slot, uint8 flag, bool apply)
         slot->flags |= flag;
     else
         slot->flags &= ~flag;
+}
+
+void Group::UpdatePetFaction()
+{
+    for (member_witerator itr = m_memberSlots.begin(); itr != m_memberSlots.end(); ++itr)
+    {
+        if (Player* m = ObjectAccessor::FindPlayerInOrOutOfWorld(itr->guid))
+        {
+            m->CombatStop();
+            m->ForceValuesUpdateAtIndex(UNIT_FIELD_BYTES_2);
+            m->ForceValuesUpdateAtIndex(UNIT_FIELD_FACTIONTEMPLATE);
+
+            if (Pet* pet = m->GetPet())
+            {
+                pet->CombatStop();
+                pet->ForceValuesUpdateAtIndex(UNIT_FIELD_BYTES_2);
+                pet->ForceValuesUpdateAtIndex(UNIT_FIELD_FACTIONTEMPLATE);
+            }
+        }
+    }
 }

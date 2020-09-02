@@ -347,5 +347,8 @@ class Group
         // Xinef: change difficulty prevention
         uint32 _difficultyChangePreventionTime;
         DifficultyPreventionChangeType _difficultyChangePreventionType;
+
+        void UpdatePetFaction();
+        // NPCBOT
 };
 #endif

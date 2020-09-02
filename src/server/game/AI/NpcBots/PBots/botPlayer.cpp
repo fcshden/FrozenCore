@@ -1102,6 +1102,9 @@ void Player::InitBotEquips(Creature* bot)
                     }
                 }
             }
+            else
+                bot->SetAttackTime(BASE_ATTACK, bot->GetCreatureTemplate()->BaseAttackTime);
+
             if (uint32 oh = bot->GetUInt32Value(UNIT_VIRTUAL_ITEM_SLOT_ID + 1))
             {
                 if (ItemTemplate const* proto = sObjectMgr->GetItemTemplate(oh))
@@ -1121,6 +1124,9 @@ void Player::InitBotEquips(Creature* bot)
                     }
                 }
             }
+            else
+                bot->SetAttackTime(OFF_ATTACK, bot->GetCreatureTemplate()->BaseAttackTime);
+
             if (uint32 rh = bot->GetUInt32Value(UNIT_VIRTUAL_ITEM_SLOT_ID + 2))
             {
                 if (!einfo || einfo->ItemEntry[2] != rh)
@@ -1132,6 +1138,8 @@ void Player::InitBotEquips(Creature* bot)
                     }
                 }
             }
+            else
+                bot->SetAttackTime(OFF_ATTACK, bot->GetCreatureTemplate()->RangeAttackTime);
 
             for (uint8 i = 3; i != 18; ++i)
                 bot->ApplyBotItemBonuses(i);
@@ -1139,6 +1147,7 @@ void Player::InitBotEquips(Creature* bot)
             break;
         }
     }
+
 
     //Load remaining items as defaults
     if (einfo)
