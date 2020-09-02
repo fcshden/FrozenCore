@@ -3383,6 +3383,7 @@ bool bot_minion_ai::OnGossipHello(Player* player, Creature* creature)
             break;
     }
 
+    player->ADD_GOSSIP_ITEM(GOSSIP_ICON_CHAT, ("属性查看　"), 7000, GOSSIP_ACTION_INFO_DEF + 1);
     player->ADD_GOSSIP_ITEM(GOSSIP_ICON_CHAT, ("没什么事　"), 0, GOSSIP_ACTION_INFO_DEF + 1);
     player->PlayerTalkClass->SendGossipMenu(GOSSIP_SERVE_MASTER, creature->GetGUID());
     return true;
@@ -3402,6 +3403,11 @@ bool bot_minion_ai::OnGossipSelect(Player* player, Creature* creature, uint32 se
 
     switch (sender)
     {
+    case 7000: //stat
+    {
+        ReceiveEmote(player, 13);
+        break;
+    }
         case 0: //any kind of fail
         {
             me->MonsterSay("...", LANG_UNIVERSAL, player);
