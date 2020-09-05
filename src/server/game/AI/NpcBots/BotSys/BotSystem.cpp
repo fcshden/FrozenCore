@@ -31,7 +31,7 @@
 #include "World.h"
 #include "BotSystem.h"
 #include "Player.h"
-
+#pragma execution_character_set("utf-8")
 
 NPCBotTemplate::NPCBotTemplate()
 {
@@ -63,7 +63,7 @@ void NPCBotTemplate::LoadData()
             m_sunBot[itr.entry] = itr;
         } while (result->NextRow());
     }
-    sLog->outString(">> Loaded `creature_template` Data. %u", count);
+    sLog->outString(">> 读取功能数据表[_NPCBOT_],共%u条数据读取加载...", count);
 }
 
 NpcBotsDataTemplate  NPCBotTemplate::GetNPCBotTemplate(uint32 bclass, std::string scriptname, uint32 brace1, uint32 brace2, uint32 brace3, uint32 brace4, uint32 brace5)

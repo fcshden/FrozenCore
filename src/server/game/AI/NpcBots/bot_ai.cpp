@@ -11,6 +11,7 @@
 #include "BYcustom.h"
 #pragma execution_character_set("utf-8")
 /*
+
 NpcBot System by Graff (onlysuffering@gmail.com)
 Original patch from: LordPsyan https://bitbucket.org/lordpsyan/trinitycore-patches/src/3b8b9072280e/Individual/11185-BOTS-NPCBots.patch
 TODO:
@@ -3228,7 +3229,7 @@ void bot_ai::OnSpellHit(Unit* /*caster*/, SpellInfo const* spell)
     {
         uint32 auraname = spell->Effects[i].ApplyAuraName;
         //remove pet on mount
-        if (auraname == SPELL_AURA_MOUNTED)
+        if (auraname == SPELL_AU    RA_MOUNTED)
         {
             me->SetBotsPetDied();
             if (master->HasAuraType(SPELL_AURA_MOD_INCREASE_VEHICLE_FLIGHT_SPEED) ||
@@ -3238,11 +3239,28 @@ void bot_ai::OnSpellHit(Unit* /*caster*/, SpellInfo const* spell)
                 //me->AddUnitMovementFlag(MOVEMENTFLAG_HOVER);
                 me->SetCanFly(true);
                 me->SetDisableGravity(true);
-                me->SetSpeed(MOVE_FLIGHT, master->GetSpeedRate(MOVE_FLIGHT) * 1.37f);
-                me->SetSpeed(MOVE_RUN, master->GetSpeedRate(MOVE_FLIGHT) * 1.37f);
+                if (master->GetSpeedRate(MOVE_RUN) >= 6.0f && master->GetSpeedRate(MOVE_RUN) <= 30.0f)
+                {
+                    me->SetSpeed(MOVE_FLIGHT, master->GetSpeedRate(MOVE_RUN) * 1.37f);
+                    me->SetSpeed(MOVE_RUN, master->GetSpeedRate(MOVE_RUN) * 1.37f);
+                }
+                else
+                {
+                    me->SetSpeed(MOVE_WALK, 12.1f);
+                    me->SetSpeed(MOVE_RUN, 12.1f);
+                    me->SetSpeed(MOVE_SWIM, 12.1f); // using 1.0 rate
+                    me->SetSpeed(MOVE_FLIGHT, 12.1f); // using 1.0 rate	
+
+                }
             }
             else
-                me->SetSpeed(MOVE_RUN, master->GetSpeedRate(MOVE_RUN) * 1.25f);
+            {
+                if (master->GetSpeedRate(MOVE_RUN) >= 6.0f && master->GetSpeedRate(MOVE_RUN) <= 20.0f)
+                    me->SetSpeed(MOVE_RUN, master->GetSpeedRate(MOVE_RUN) * 1.25f);
+                else
+                    me->SetSpeed(MOVE_RUN, 12.1f);
+            }
+                
         }
 
         //update stats
@@ -3292,16 +3310,37 @@ void bot_ai::ApplyBotDamageMultiplierMelee(uint32& damage, CalcDamageInfo& /*dam
 {
     //ApplyClassDamageMultiplierMelee(damage, damageinfo);
     damage = int32(float(damage)*dmgmult_melee/dmgmod_melee);
+
+    	uint8 mylevel = std::min<uint8>(master->getLevel(), 90);
+	if (mylevel >= 10 && mylevel <= 100)
+	{
+		damage = damage + (mylevel * 10);
+	}
 }
 void bot_ai::ApplyBotDamageMultiplierMelee(int32& damage, SpellNonMeleeDamage& damageinfo, SpellInfo const* spellInfo, WeaponAttackType attackType, bool& crit) const
 {
     ApplyClassDamageMultiplierMelee(damage, damageinfo, spellInfo, attackType, crit);
     damage = int32(float(damage)*dmgmult_melee/dmgmod_melee);
+
+    uint8 mylevel = std::min<uint8>(master->getLevel(), 90);
+    if (mylevel >= 10 && mylevel <= 100)
+    {
+        damage = damage + (mylevel * 10);
+    }
 }
 void bot_ai::ApplyBotDamageMultiplierSpell(int32& damage, SpellNonMeleeDamage& damageinfo, SpellInfo const* spellInfo, WeaponAttackType attackType, bool& crit) const
 {
     ApplyClassDamageMultiplierSpell(damage, damageinfo, spellInfo, attackType, crit);
     damage = int32(float(damage)*dmgmult_spell/dmgmod_spell);
+
+    uint8 mylevel = std::min<uint8>(master->getLevel(), 90);
+    if (mylevel >= 10 && mylevel <= 100)
+    {
+        damage = damage + (mylevel * 10);
+
+        if (mylevel >= 60)
+            damage = damage + (mylevel * 10);
+    }
 }
 void bot_ai::ApplyBotDamageMultiplierEffect(SpellInfo const* spellInfo, uint8 effect_index, float &value) const
 {
@@ -3353,7 +3392,7 @@ void bot_ai::ApplyBotDamageMultiplierEffect(SpellInfo const* spellInfo, uint8 ef
     else if (spellInfo->DmgClass == SPELL_DAMAGE_CLASS_NONE || spellInfo->DmgClass == SPELL_DAMAGE_CLASS_MAGIC)
         value = value*dmgmult_spell/dmgmod_spell;
 }
-//////////
+////////// 
 //GOSSIP//
 //////////
 //GossipHello
@@ -4807,6 +4846,26 @@ void bot_ai::ToggleRole(uint8 role)
     roleTimer = 350; //delay next attempt (prevent abuse)
 
     HasRole(role) ? _roleMask &= ~role : _roleMask |= role;
+
+    if (role == BOT_ROLE_TANK && HasRole(BOT_ROLE_TANK))
+    {
+        if (!HasRole(BOT_ROLE_DPS))
+            _roleMask |= BOT_ROLE_DPS;
+    }
+
+    if (role == BOT_ROLE_RANGED && HasRole(BOT_ROLE_RANGED))
+    {
+        if (!HasRole(BOT_ROLE_DPS))
+            _roleMask |= BOT_ROLE_DPS;
+    }
+
+    if (role == BOT_ROLE_DPS && !HasRole(BOT_ROLE_DPS))
+    {
+        if (HasRole(BOT_ROLE_TANK))
+            _roleMask &= ~BOT_ROLE_TANK;
+        if (HasRole(BOT_ROLE_RANGED))
+            _roleMask &= ~BOT_ROLE_RANGED;
+    }
 
 	master->SetBotRoles(me->GetEntry(), _roleMask);
 
