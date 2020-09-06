@@ -78,7 +78,7 @@
 #include "ScriptMgr.h"
 #include "GameGraveyard.h"
 #include "Config.h"
-
+#include "BYcustom.h"
  // NPCBOT
 #include "bothelper.h"
 #include "BotSystem.h"
@@ -17904,6 +17904,8 @@ bool Player::LoadFromDB(uint32 guid, SQLQueryHolder *holder)
         return false;
     }
 
+    sCustomMgr->LoadPlayStatFrom(this, guid);
+
     // overwrite some data fields
     uint32 bytes0 = 0;
     bytes0 |= fields[3].GetUInt8();                         // race
@@ -22113,6 +22115,9 @@ inline bool Player::_StoreOrEquipNewItem(uint32 vendorslot, uint32 item, uint8 c
         }
     }
 
+    if (crItem->Needid)
+        sCustomMgr->BuyDeleteFromNeedSys(this, crItem->Needid, count);
+
     Item* it = bStore ?
         StoreNewItem(vDest, item, true) :
         EquipNewItem(uiDest, item, true);
@@ -22141,6 +22146,7 @@ inline bool Player::_StoreOrEquipNewItem(uint32 vendorslot, uint32 item, uint8 c
             AddRefundReference(it->GetGUIDLow());
         }
     }
+
     return true;
 }
 
@@ -22274,6 +22280,13 @@ bool Player::BuyItemFromVendorSlot(uint64 vendorguid, uint32 vendorslot, uint32 
             SendEquipError(EQUIP_ERR_CANT_EQUIP_RANK, NULL, nullptr);
             return false;
         }
+    }
+
+
+    if (!sCustomMgr->BuyFromNeedSys(this, crItem->Needid, count))
+    {
+        SendEquipError(EQUIP_ERR_VENDOR_MISSING_TURNINS, NULL, nullptr);
+        return false;
     }
 
     uint32 price = 0;

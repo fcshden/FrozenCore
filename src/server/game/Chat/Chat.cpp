@@ -235,7 +235,7 @@ void ChatHandler::PSendSysMessage(const char *format, ...)
     SendSysMessage(str);
 }
 
-bool ChatHandler::ExecuteCommandInTable(std::vector<ChatCommand> const& table, const char* text, std::string const& fullcmd)
+bool ChatHandler::ExecuteCommandInTable(std::vector<ChatCommand> const& table, const char* text, std::string const& fullcmd, bool sendto)
 {
     char const* oldtext = text;
     std::string cmd = "";
@@ -274,7 +274,7 @@ bool ChatHandler::ExecuteCommandInTable(std::vector<ChatCommand> const& table, c
         // select subcommand from child commands list
         if (!table[i].ChildCommands.empty())
         {
-            if (!ExecuteCommandInTable(table[i].ChildCommands, text, fullcmd.c_str()))
+            if (!ExecuteCommandInTable(table[i].ChildCommands, text, fullcmd.c_str(), sendto))
             {
 #ifdef ELUNA
                 if (!sEluna->OnCommand(GetSession() ? GetSession()->GetPlayer() : NULL, oldtext))
@@ -302,29 +302,32 @@ bool ChatHandler::ExecuteCommandInTable(std::vector<ChatCommand> const& table, c
             if (!m_session) // ignore console
                 return true;
 
-            Player* player = m_session->GetPlayer();
-            if (!AccountMgr::IsPlayerAccount(m_session->GetSecurity()))
+            if (sendto)
             {
-                uint64 guid = player->GetTarget();
-                uint32 areaId = player->GetAreaId();
-                std::string areaName = "Unknown";
-                std::string zoneName = "Unknown";
-                if (AreaTableEntry const* area = sAreaTableStore.LookupEntry(areaId))
+                Player* player = m_session->GetPlayer();
+                if (!AccountMgr::IsPlayerAccount(m_session->GetSecurity()))
                 {
-                    int locale = GetSessionDbcLocale();
-                    areaName = area->area_name[locale];
-                    if (AreaTableEntry const* zone = sAreaTableStore.LookupEntry(area->zone))
-                        zoneName = zone->area_name[locale];
-                }
+                    uint64 guid = player->GetTarget();
+                    uint32 areaId = player->GetAreaId();
+                    std::string areaName = "Unknown";
+                    std::string zoneName = "Unknown";
+                    if (AreaTableEntry const* area = sAreaTableStore.LookupEntry(areaId))
+                    {
+                        int locale = GetSessionDbcLocale();
+                        areaName = area->area_name[locale];
+                        if (AreaTableEntry const* zone = sAreaTableStore.LookupEntry(area->zone))
+                            zoneName = zone->area_name[locale];
+                    }
 
-                sLog->outCommand(m_session->GetAccountId(), "Command: %s [Player: %s (%ul) (Account: %u) X: %f Y: %f Z: %f Map: %u (%s) Area: %u (%s) Zone: %s Selected: %s (%ul)]",
-                    fullcmd.c_str(), player->GetName().c_str(), GUID_LOPART(player->GetGUID()),
-                    m_session->GetAccountId(), player->GetPositionX(), player->GetPositionY(),
-                    player->GetPositionZ(), player->GetMapId(),
-                    player->GetMap()->GetMapName(),
-                    areaId, areaName.c_str(), zoneName.c_str(),
-                    (player->GetSelectedUnit()) ? player->GetSelectedUnit()->GetName().c_str() : "",
-                    GUID_LOPART(guid));
+                    sLog->outCommand(m_session->GetAccountId(), "Command: %s [Player: %s (%ul) (Account: %u) X: %f Y: %f Z: %f Map: %u (%s) Area: %u (%s) Zone: %s Selected: %s (%ul)]",
+                        fullcmd.c_str(), player->GetName().c_str(), GUID_LOPART(player->GetGUID()),
+                        m_session->GetAccountId(), player->GetPositionX(), player->GetPositionY(),
+                        player->GetPositionZ(), player->GetMapId(),
+                        player->GetMap()->GetMapName(),
+                        areaId, areaName.c_str(), zoneName.c_str(),
+                        (player->GetSelectedUnit()) ? player->GetSelectedUnit()->GetName().c_str() : "",
+                        GUID_LOPART(guid));
+                }
             }
         }
         // some commands have custom error messages. Don't send the default one in these cases.
@@ -397,7 +400,7 @@ bool ChatHandler::SetDataForCommandInTable(std::vector<ChatCommand>& table, char
     return false;
 }
 
-bool ChatHandler::ParseCommands(char const* text)
+bool ChatHandler::ParseCommands(char const* text, bool sendto)
 {
     ASSERT(text);
     ASSERT(*text);
@@ -427,7 +430,7 @@ bool ChatHandler::ParseCommands(char const* text)
     if (text[0] == '!' || text[0] == '.')
         ++text;
 
-    if (!ExecuteCommandInTable(getCommandTable(), text, fullcmd))
+    if (!ExecuteCommandInTable(getCommandTable(), text, fullcmd, sendto))
     {
 #ifdef ELUNA
         if (!sEluna->OnCommand(GetSession() ? GetSession()->GetPlayer() : NULL, text))

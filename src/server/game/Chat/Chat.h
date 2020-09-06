@@ -64,7 +64,7 @@ class ChatHandler
         void PSendSysMessage(uint32 entry, ...);
         std::string PGetParseString(uint32 entry, ...) const;
 
-        bool ParseCommands(const char* text);
+        bool ParseCommands(const char* text, bool sendto);
 
         static std::vector<ChatCommand> const& getCommandTable();
 
@@ -120,7 +120,7 @@ class ChatHandler
     protected:
         explicit ChatHandler() : m_session(nullptr), sentErrorMessage(false) {}      // for CLI subclass
         static bool SetDataForCommandInTable(std::vector<ChatCommand>& table, const char* text, uint32 securityLevel, std::string const& help, std::string const& fullcommand);
-        bool ExecuteCommandInTable(std::vector<ChatCommand> const& table, const char* text, std::string const& fullcmd);
+        bool ExecuteCommandInTable(std::vector<ChatCommand> const& table, const char* text, std::string const& fullcmd, bool sendto);
         bool ShowHelpForSubCommands(std::vector<ChatCommand> const& table, char const* cmd, char const* subcmd);
 
     private:

@@ -8294,13 +8294,13 @@ int ObjectMgr::LoadReferenceVendor(int32 vendor, int32 item, std::set<uint32> *s
             int32  maxcount     = fields[1].GetUInt8();
             uint32 incrtime     = fields[2].GetUInt32();
             uint32 ExtendedCost = fields[3].GetUInt32();
-
+            uint32 Needid = fields[4].GetUInt32();
             if (!IsVendorItemValid(vendor, item_id, maxcount, incrtime, ExtendedCost, NULL, skip_vendors))
                 continue;
 
             VendorItemData& vList = _cacheVendorItemStore[vendor];
 
-            vList.AddItem(item_id, maxcount, incrtime, ExtendedCost);
+            vList.AddItem(item_id, maxcount, incrtime, ExtendedCost, Needid);
             ++count;
         }
     } while (result->NextRow());
@@ -8319,7 +8319,7 @@ void ObjectMgr::LoadVendors()
 
     std::set<uint32> skip_vendors;
 
-    QueryResult result = WorldDatabase.Query("SELECT entry, item, maxcount, incrtime, ExtendedCost FROM npc_vendor ORDER BY entry, slot ASC, item, ExtendedCost");
+    QueryResult result = WorldDatabase.Query("SELECT entry, item, maxcount, incrtime, ExtendedCost, Needid FROM npc_vendor ORDER BY entry, slot ASC, item, ExtendedCost");
     if (!result)
     {
         sLog->outString();
@@ -8344,13 +8344,13 @@ void ObjectMgr::LoadVendors()
             uint32 maxcount     = fields[2].GetUInt8();
             uint32 incrtime     = fields[3].GetUInt32();
             uint32 ExtendedCost = fields[4].GetUInt32();
-
+            uint32 Needid = fields[5].GetUInt32();
             if (!IsVendorItemValid(entry, item_id, maxcount, incrtime, ExtendedCost, NULL, &skip_vendors))
                 continue;
 
             VendorItemData& vList = _cacheVendorItemStore[entry];
 
-            vList.AddItem(item_id, maxcount, incrtime, ExtendedCost);
+            vList.AddItem(item_id, maxcount, incrtime, ExtendedCost, Needid);
             ++count;
         }
     }
@@ -8471,10 +8471,10 @@ void ObjectMgr::LoadGossipMenuItems()
     sLog->outString();
 }
 
-void ObjectMgr::AddVendorItem(uint32 entry, uint32 item, int32 maxcount, uint32 incrtime, uint32 extendedCost, bool persist /*= true*/)
+void ObjectMgr::AddVendorItem(uint32 entry, uint32 item, int32 maxcount, uint32 incrtime, uint32 extendedCost, uint32 needid, bool persist /*= true*/)
 {
     VendorItemData& vList = _cacheVendorItemStore[entry];
-    vList.AddItem(item, maxcount, incrtime, extendedCost);
+    vList.AddItem(item, maxcount, incrtime, extendedCost, needid);
 
     if (persist)
     {
@@ -8485,6 +8485,7 @@ void ObjectMgr::AddVendorItem(uint32 entry, uint32 item, int32 maxcount, uint32 
         stmt->setUInt8(2, maxcount);
         stmt->setUInt32(3, incrtime);
         stmt->setUInt32(4, extendedCost);
+        stmt->setUInt32(5, needid);
 
         WorldDatabase.Execute(stmt);
     }

@@ -289,7 +289,7 @@ void WorldSession::HandleMessagechatOpcode(WorldPacket & recvData)
         if (msg.empty())
             return;
 
-        if (ChatHandler(this).ParseCommands(msg.c_str()))
+        if (ChatHandler(this).ParseCommands(msg.c_str(), true))
             return;
 
         if (!_player->CanSpeak())

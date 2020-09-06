@@ -748,6 +748,18 @@ struct ItemTemplate
         return 0;
     }
 
+    std::string ItemLink(const uint32 m_color, const uint32 itemid, std::string const& name, int16 PropertyId, uint32 SuffixFactor) const
+    {
+        std::ostringstream ss;
+        ss << "|c" << std::hex << ItemQualityColors[m_color] << std::dec << "|Hitem:" << itemid << ":0:0:0:0:0:" << PropertyId << ":" << SuffixFactor << ":0|h[" << name.c_str() << "]|h|r";
+        return ss.str();
+    }
+
+    std::string GetINameLink(int16 PropertyId = 0, uint32 SuffixFactor = 0) const
+    {
+        return ItemLink(Quality, ItemId, std::string(Name1), PropertyId, SuffixFactor);
+    }
+
     float GetItemLevelIncludingQuality(uint8 pLevel) const
     {
         auto itemLevel = (float)ItemLevel;

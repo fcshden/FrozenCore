@@ -1202,7 +1202,21 @@ class Player : public Unit, public GridObject<Player>
         void UpdateBotModelid(Creature* bot);
 
         // NPCBOT
+        // CUSTOM PLAYER STATS
 
+        // 玩家的自定义等级
+        uint32 viplevel; uint32 dqlevel;
+        uint32 jftoken;
+        // CUSTOM PLAYER STATS
+
+        // CUSTOM 函数
+        void ModifyJf(int32 jfcost) { jftoken += jfcost; }
+
+        AchievementMgr* getAchievementMgr() const { return m_achievementMgr; }
+
+
+
+        // CUSTOM 函数
         void CleanupsBeforeDelete(bool finalCleanup = true) override;
 
         void AddToWorld() override;

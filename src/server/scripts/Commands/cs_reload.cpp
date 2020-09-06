@@ -30,6 +30,7 @@ EndScriptData */
 #include "WardenCheckMgr.h"
 #include "WaypointManager.h"
 #include "GameGraveyard.h"
+#include "BYcustom.h"
 
 class reload_commandscript : public CommandScript
 {
@@ -140,18 +141,25 @@ public:
             { "spell_target_position",        SEC_ADMINISTRATOR, true,  &HandleReloadSpellTargetPositionCommand,        "" },
             { "spell_threats",                SEC_ADMINISTRATOR, true,  &HandleReloadSpellThreatsCommand,               "" },
             { "spell_group_stack_rules",      SEC_ADMINISTRATOR, true,  &HandleReloadSpellGroupStackRulesCommand,       "" },
-            { "acore_string",                 SEC_ADMINISTRATOR, true,  &HandleReloadAcoreStringCommand,              "" },
+            { "acore_string",                 SEC_ADMINISTRATOR, true,  &HandleReloadAcoreStringCommand,                "" },
             { "warden_action",                SEC_ADMINISTRATOR, true,  &HandleReloadWardenactionCommand,               "" },
             { "waypoint_scripts",             SEC_ADMINISTRATOR, true,  &HandleReloadWpScriptsCommand,                  "" },
             { "waypoint_data",                SEC_ADMINISTRATOR, true,  &HandleReloadWpCommand,                         "" },
             { "vehicle_accessory",            SEC_ADMINISTRATOR, true,  &HandleReloadVehicleAccessoryCommand,           "" },
-            { "vehicle_template_accessory",   SEC_ADMINISTRATOR, true,  &HandleReloadVehicleTemplateAccessoryCommand,   "" }
+            { "vehicle_template_accessory",   SEC_ADMINISTRATOR, true,  &HandleReloadVehicleTemplateAccessoryCommand,   "" },
+            { "_all",                         SEC_ADMINISTRATOR, true,  &HandleReloadCustomCommand,                     "" }
         };
         static std::vector<ChatCommand> commandTable =
         {
             { "reload",         SEC_ADMINISTRATOR,  true,  nullptr,                                                     "", reloadCommandTable }
         };
         return commandTable;
+    }
+
+    static bool HandleReloadCustomCommand(ChatHandler* /*handler*/, const char* /*args*/)
+    {
+        sCustomMgr->LoadAllCustomData();
+        return true;
     }
 
     //reload commands

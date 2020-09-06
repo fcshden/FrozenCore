@@ -337,6 +337,7 @@ int Master::Run()
 
     if (cliThread)
     {
+        /*
         #ifdef _WIN32
 
         // this only way to terminate CLI thread exist at Win32 (alt. way exist only in Windows Vista API)
@@ -381,7 +382,7 @@ int Master::Run()
         cliThread->destroy();
 
         #endif
-
+        */
         delete cliThread;
     }
 
