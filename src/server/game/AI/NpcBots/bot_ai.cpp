@@ -1,4 +1,4 @@
-#include "bot_ai.h"
+ï»¿#include "bot_ai.h"
 #include "bot_GridNotifiers.h"
 #include "CellImpl.h"
 #include "Chat.h"
@@ -278,22 +278,8 @@ void bot_minion_ai::_calculatePos(Position& pos)
     pos.m_positionX = x;
     pos.m_positionY = y;
     pos.m_positionZ = z;
-
-    //            T
-    //           TTT
-    //    mmmmmmmm mmmmmmmm
-    //   mmmmmmm MMM mmmmmmm
-    //   mmmmm rrrrrrr mmmmm
-    //    ddd rrrrrrrrr ddd
-    //     ddddddddddddddd
-    //       ddddddddddd
-    //
-    //MMM - player
-    //TTT - bot tank
-    //m - melee (warrior, paladin, deathknight, ench shaman)
-    //d - default (druid, rogue, hunter)
-    //r - ranged/support (priest, warlock, mage, elem shaman)
 }
+
 // Movement set
 void bot_minion_ai::SetBotCommandState(CommandStates st, bool force, Position* newpos)
 {
@@ -476,7 +462,7 @@ void bot_minion_ai::RezGroup(uint32 REZZ, Player* gPlayer)
 
         if (doCast(target, REZZ))//rezzing it
         {
-            me->MonsterWhisper(("ÕıÔÚ¸´»îÄã¡¡"), master);
+            me->MonsterWhisper(("æ­£åœ¨å¤æ´»ä½ ã€€"), master);
             rezz_cd = 60;
         }
         return;
@@ -503,10 +489,10 @@ void bot_minion_ai::RezGroup(uint32 REZZ, Player* gPlayer)
 
         if (doCast(target, REZZ))//rezzing it
         {
-            me->MonsterWhisper(("ÕıÔÚ¸´»îÄã¡¡"), tPlayer);
+            me->MonsterWhisper(("æ­£åœ¨å¤æ´»ä½ ã€€"), tPlayer);
             if (tPlayer != master)
             {
-                std::string rezstr = ("¸´»î¡¡");
+                std::string rezstr = ("å¤æ´»ã€€");
                 rezstr += tPlayer->GetName();
                 me->MonsterWhisper(rezstr.c_str(), master);
             }
@@ -691,12 +677,12 @@ void bot_ai::_listAuras(Player* player, Unit* unit) const
     ChatHandler ch(player->GetSession());
     std::ostringstream botstring;
     if (unit->GetTypeId() == TYPEID_PLAYER)
-        botstring << ("Íæ¼Ò¡¡");
+        botstring << ("ç©å®¶ã€€");
     else if (unit->GetTypeId() == TYPEID_UNIT)
     {
         if (unit->ToCreature()->GetIAmABot())
         {
-            botstring << ("Ğ¡»ï°é¡¡, Ö÷ÈË¡¡: ");
+            botstring << ("å°ä¼™ä¼´ã€€, ä¸»äººã€€: ");
             std::string const& ownername = unit->ToCreature()->GetBotOwner()->GetName();
             botstring << ownername;
         }
@@ -704,17 +690,17 @@ void bot_ai::_listAuras(Player* player, Unit* unit) const
         {
             Player* owner = unit->ToCreature()->GetBotOwner();
             Creature* creowner = unit->ToCreature()->GetBotPetAI()->GetCreatureOwner();
-            std::string const& ownername = owner ? owner->GetName() : ("ÎŞ¡¡");
-            std::string const& creownername = creowner ? creowner->GetName() : ("ÎŞ¡¡");
-            botstring << ("Ğ¡»ï°éµÄ³èÎï¡¡, Ö÷ÈË¡¡: ");
+            std::string const& ownername = owner ? owner->GetName() : ("æ— ã€€");
+            std::string const& creownername = creowner ? creowner->GetName() : ("æ— ã€€");
+            botstring << ("å°ä¼™ä¼´çš„å® ç‰©ã€€, ä¸»äººã€€: ");
             botstring << ownername;
-            botstring << (", Ğ¡»ï°éµÄÖ÷ÈË¡¡: ");
+            botstring << (", å°ä¼™ä¼´çš„ä¸»äººã€€: ");
             botstring << creownername;
             if (creowner)
                 botstring << " (" << creowner->GetGUIDLow() << ')';
         }
     }
-	ch.PSendSysMessage(sCustomMgr->Format(("%sµÄÊôĞÔÁĞ±í¡¡, %s"), unit->GetName().c_str(), botstring.str().c_str()).c_str());
+	ch.PSendSysMessage(sCustomMgr->Format(("%sçš„å±æ€§åˆ—è¡¨ã€€, %s"), unit->GetName().c_str(), botstring.str().c_str()).c_str());
 
 	if (unit == me)
     {
@@ -723,57 +709,57 @@ void bot_ai::_listAuras(Player* player, Unit* unit) const
 			std::string mystat;
 			switch (i)
 			{
-			case STAT_STRENGTH:	 mystat = ("Á¦Á¿"); break;
-			case STAT_AGILITY:	 mystat = ("Ãô½İ"); break;
-			case STAT_STAMINA:	 mystat = ("ÄÍÁ¦"); break;
-			case STAT_INTELLECT: mystat = ("ÖÇÁ¦"); break;
-			case STAT_SPIRIT:	 mystat = ("¾«Éñ"); break;
-			default: mystat = ("Î´ÖªÊôĞÔ¡¡"); break;
+			case STAT_STRENGTH:	 mystat = ("åŠ›é‡"); break;
+			case STAT_AGILITY:	 mystat = ("æ•æ·"); break;
+			case STAT_STAMINA:	 mystat = ("è€åŠ›"); break;
+			case STAT_INTELLECT: mystat = ("æ™ºåŠ›"); break;
+			case STAT_SPIRIT:	 mystat = ("ç²¾ç¥"); break;
+			default: mystat = ("æœªçŸ¥å±æ€§ã€€"); break;
 			}
 			ch.PSendSysMessage("%s: %.1f", mystat.c_str(), unit->GetTotalStatValue(Stats(i)));
 		}
-		ch.PSendSysMessage(sCustomMgr->Format(("»¤¼×: %u"), unit->GetArmor()).c_str());
-		ch.PSendSysMessage(sCustomMgr->Format(("±©»÷: %0.1f"), unit->GetUnitCriticalChance(BASE_ATTACK, me)).c_str());
-		ch.PSendSysMessage(sCustomMgr->Format(("¶ãÉÁ: %0.1f"), unit->GetUnitDodgeChance()).c_str());
-		ch.PSendSysMessage(sCustomMgr->Format(("ÕĞ¼Ü: %0.1f"), unit->GetUnitParryChance()).c_str());
-		ch.PSendSysMessage(sCustomMgr->Format(("¸ñµ²: %0.1f"), unit->GetUnitBlockChance()).c_str());
-		ch.PSendSysMessage(sCustomMgr->Format(("¸ñµ²Öµ: %u"), unit->GetShieldBlockValue()).c_str());
-		ch.PSendSysMessage(sCustomMgr->Format(("½üÕ½¹¥»÷Ç¿¶È: %0.1f"), unit->GetTotalAttackPowerValue(BASE_ATTACK)).c_str());
-		ch.PSendSysMessage(sCustomMgr->Format(("Ô¶³Ì¹¥»÷Ç¿¶È: %0.1f"), unit->GetTotalAttackPowerValue(RANGED_ATTACK)).c_str());
-		ch.PSendSysMessage(sCustomMgr->Format(("ÆÕÍ¨ÉËº¦¼Ó³É: %0.3f"), unit->GetTotalAuraMultiplierByMiscMask(SPELL_AURA_MOD_DAMAGE_PERCENT_TAKEN, SPELL_SCHOOL_MASK_NORMAL)).c_str());
-		ch.PSendSysMessage(sCustomMgr->Format(("·¨ÊõÉËº¦¼Ó³É: %0.3f"), unit->GetTotalAuraMultiplierByMiscMask(SPELL_AURA_MOD_DAMAGE_PERCENT_TAKEN, SPELL_SCHOOL_MASK_MAGIC)).c_str());
-		ch.PSendSysMessage(sCustomMgr->Format(("Ö÷ÊÖÉËº¦·¶Î§: ×îĞ¡: %0.1f, ×î´ó: %0.1f"), unit->GetFloatValue(UNIT_FIELD_MINDAMAGE), unit->GetFloatValue(UNIT_FIELD_MAXDAMAGE)).c_str());
-		ch.PSendSysMessage(sCustomMgr->Format(("¸±ÊÖÉËº¦·¶Î§: ×îĞ¡: %0.1f, ×î´ó: %0.1f"), unit->GetFloatValue(UNIT_FIELD_MINOFFHANDDAMAGE), unit->GetFloatValue(UNIT_FIELD_MAXOFFHANDDAMAGE)).c_str());
-		ch.PSendSysMessage(sCustomMgr->Format(("Ô¶³ÌÉËº¦·¶Î§: ×îĞ¡: %0.1f, ×î´ó: %0.1f"), unit->GetFloatValue(UNIT_FIELD_MINRANGEDDAMAGE), unit->GetFloatValue(UNIT_FIELD_MAXRANGEDDAMAGE)).c_str());
-		ch.PSendSysMessage(sCustomMgr->Format(("Ö÷ÊÖÉËº¦¼Ó³É: %0.3f"), unit->GetModifierValue(UNIT_MOD_DAMAGE_MAINHAND, BASE_PCT)*unit->GetModifierValue(UNIT_MOD_DAMAGE_MAINHAND, TOTAL_PCT)).c_str());
-		ch.PSendSysMessage(sCustomMgr->Format(("¸±ÊÖÉËº¦¼Ó³É: %0.3f"), unit->GetModifierValue(UNIT_MOD_DAMAGE_OFFHAND, BASE_PCT)*unit->GetModifierValue(UNIT_MOD_DAMAGE_OFFHAND, TOTAL_PCT)).c_str());
-		ch.PSendSysMessage(sCustomMgr->Format(("Ô¶³ÌÉËº¦¼Ó³É: %0.3f"), unit->GetModifierValue(UNIT_MOD_DAMAGE_RANGED, BASE_PCT)*unit->GetModifierValue(UNIT_MOD_DAMAGE_RANGED, TOTAL_PCT)).c_str());
-		ch.PSendSysMessage(sCustomMgr->Format(("Ö÷ÊÖ¹¥»÷ËÙ¶È: %0.2f"), float(unit->GetAttackTime(BASE_ATTACK)) / 1000.f).c_str());
-		ch.PSendSysMessage(sCustomMgr->Format(("¸±ÊÖ¹¥»÷ËÙ¶È: %0.2f"), float(unit->GetAttackTime(OFF_ATTACK)) / 1000.f).c_str());
-		ch.PSendSysMessage(sCustomMgr->Format(("Ô¶³Ì¹¥»÷ËÙ¶È: %0.2f"), float(unit->GetAttackTime(RANGED_ATTACK)) / 1000.f).c_str());
+		ch.PSendSysMessage(sCustomMgr->Format(("æŠ¤ç”²: %u"), unit->GetArmor()).c_str());
+		ch.PSendSysMessage(sCustomMgr->Format(("æš´å‡»: %0.1f"), unit->GetUnitCriticalChance(BASE_ATTACK, me)).c_str());
+		ch.PSendSysMessage(sCustomMgr->Format(("èº²é—ª: %0.1f"), unit->GetUnitDodgeChance()).c_str());
+		ch.PSendSysMessage(sCustomMgr->Format(("æ‹›æ¶: %0.1f"), unit->GetUnitParryChance()).c_str());
+		ch.PSendSysMessage(sCustomMgr->Format(("æ ¼æŒ¡: %0.1f"), unit->GetUnitBlockChance()).c_str());
+		ch.PSendSysMessage(sCustomMgr->Format(("æ ¼æŒ¡å€¼: %u"), unit->GetShieldBlockValue()).c_str());
+		ch.PSendSysMessage(sCustomMgr->Format(("è¿‘æˆ˜æ”»å‡»å¼ºåº¦: %0.1f"), unit->GetTotalAttackPowerValue(BASE_ATTACK)).c_str());
+		ch.PSendSysMessage(sCustomMgr->Format(("è¿œç¨‹æ”»å‡»å¼ºåº¦: %0.1f"), unit->GetTotalAttackPowerValue(RANGED_ATTACK)).c_str());
+		ch.PSendSysMessage(sCustomMgr->Format(("æ™®é€šä¼¤å®³åŠ æˆ: %0.3f"), unit->GetTotalAuraMultiplierByMiscMask(SPELL_AURA_MOD_DAMAGE_PERCENT_TAKEN, SPELL_SCHOOL_MASK_NORMAL)).c_str());
+		ch.PSendSysMessage(sCustomMgr->Format(("æ³•æœ¯ä¼¤å®³åŠ æˆ: %0.3f"), unit->GetTotalAuraMultiplierByMiscMask(SPELL_AURA_MOD_DAMAGE_PERCENT_TAKEN, SPELL_SCHOOL_MASK_MAGIC)).c_str());
+		ch.PSendSysMessage(sCustomMgr->Format(("ä¸»æ‰‹ä¼¤å®³èŒƒå›´: æœ€å°: %0.1f, æœ€å¤§: %0.1f"), unit->GetFloatValue(UNIT_FIELD_MINDAMAGE), unit->GetFloatValue(UNIT_FIELD_MAXDAMAGE)).c_str());
+		ch.PSendSysMessage(sCustomMgr->Format(("å‰¯æ‰‹ä¼¤å®³èŒƒå›´: æœ€å°: %0.1f, æœ€å¤§: %0.1f"), unit->GetFloatValue(UNIT_FIELD_MINOFFHANDDAMAGE), unit->GetFloatValue(UNIT_FIELD_MAXOFFHANDDAMAGE)).c_str());
+		ch.PSendSysMessage(sCustomMgr->Format(("è¿œç¨‹ä¼¤å®³èŒƒå›´: æœ€å°: %0.1f, æœ€å¤§: %0.1f"), unit->GetFloatValue(UNIT_FIELD_MINRANGEDDAMAGE), unit->GetFloatValue(UNIT_FIELD_MAXRANGEDDAMAGE)).c_str());
+		ch.PSendSysMessage(sCustomMgr->Format(("ä¸»æ‰‹ä¼¤å®³åŠ æˆ: %0.3f"), unit->GetModifierValue(UNIT_MOD_DAMAGE_MAINHAND, BASE_PCT)*unit->GetModifierValue(UNIT_MOD_DAMAGE_MAINHAND, TOTAL_PCT)).c_str());
+		ch.PSendSysMessage(sCustomMgr->Format(("å‰¯æ‰‹ä¼¤å®³åŠ æˆ: %0.3f"), unit->GetModifierValue(UNIT_MOD_DAMAGE_OFFHAND, BASE_PCT)*unit->GetModifierValue(UNIT_MOD_DAMAGE_OFFHAND, TOTAL_PCT)).c_str());
+		ch.PSendSysMessage(sCustomMgr->Format(("è¿œç¨‹ä¼¤å®³åŠ æˆ: %0.3f"), unit->GetModifierValue(UNIT_MOD_DAMAGE_RANGED, BASE_PCT)*unit->GetModifierValue(UNIT_MOD_DAMAGE_RANGED, TOTAL_PCT)).c_str());
+		ch.PSendSysMessage(sCustomMgr->Format(("ä¸»æ‰‹æ”»å‡»é€Ÿåº¦: %0.2f"), float(unit->GetAttackTime(BASE_ATTACK)) / 1000.f).c_str());
+		ch.PSendSysMessage(sCustomMgr->Format(("å‰¯æ‰‹æ”»å‡»é€Ÿåº¦: %0.2f"), float(unit->GetAttackTime(OFF_ATTACK)) / 1000.f).c_str());
+		ch.PSendSysMessage(sCustomMgr->Format(("è¿œç¨‹æ”»å‡»é€Ÿåº¦: %0.2f"), float(unit->GetAttackTime(RANGED_ATTACK)) / 1000.f).c_str());
 		if (unit == me)
-			ch.PSendSysMessage(sCustomMgr->Format(("½üÕ½ÉËº¦±¶ÂÊ: %0.3f"), dmgmult_melee).c_str());
-		ch.PSendSysMessage(sCustomMgr->Format(("»ù´¡ÉúÃüÖµ: %u"), unit->GetCreateHealth()).c_str());
-		ch.PSendSysMessage(sCustomMgr->Format(("µ±Ç°ÉúÃüÖµ: %u"), unit->GetMaxHealth()).c_str());
-		ch.PSendSysMessage(sCustomMgr->Format(("»ù´¡·¨Á¦Öµ: %u"), unit->GetCreateMana()).c_str());
-		ch.PSendSysMessage(sCustomMgr->Format(("µ±Ç°·¨Á¦Öµ: %u"), unit->GetMaxPower(POWER_MANA)).c_str());
+			ch.PSendSysMessage(sCustomMgr->Format(("è¿‘æˆ˜ä¼¤å®³å€ç‡: %0.3f"), dmgmult_melee).c_str());
+		ch.PSendSysMessage(sCustomMgr->Format(("åŸºç¡€ç”Ÿå‘½å€¼: %u"), unit->GetCreateHealth()).c_str());
+		ch.PSendSysMessage(sCustomMgr->Format(("å½“å‰ç”Ÿå‘½å€¼: %u"), unit->GetMaxHealth()).c_str());
+		ch.PSendSysMessage(sCustomMgr->Format(("åŸºç¡€æ³•åŠ›å€¼: %u"), unit->GetCreateMana()).c_str());
+		ch.PSendSysMessage(sCustomMgr->Format(("å½“å‰æ³•åŠ›å€¼: %u"), unit->GetMaxPower(POWER_MANA)).c_str());
 
         for (uint8 i = SPELL_SCHOOL_HOLY; i != MAX_SPELL_SCHOOL; ++i)
         {
             const char* resist = NULL;
             switch (i)
             {
-			case 1: resist = ("ÉñÊ¥");   break;
-			case 2: resist = ("»ğÑæ");   break;
-			case 3: resist = ("×ÔÈ»"); break;
-			case 4: resist = ("±ùËª");  break;
-			case 5: resist = ("°µÓ°"); break;
-			case 6: resist = ("°ÂÊõ"); break;
+			case 1: resist = ("ç¥åœ£");   break;
+			case 2: resist = ("ç«ç„°");   break;
+			case 3: resist = ("è‡ªç„¶"); break;
+			case 4: resist = ("å†°éœœ");  break;
+			case 5: resist = ("æš—å½±"); break;
+			case 6: resist = ("å¥¥æœ¯"); break;
             }
-            ch.PSendSysMessage("%s¿¹ĞÔ: %u", resist, me->GetResistance(SpellSchools(i)));
+            ch.PSendSysMessage("%sæŠ—æ€§: %u", resist, me->GetResistance(SpellSchools(i)));
         }
-		//ch.PSendSysMessage(Format(("Ğ¡»ï°é¿ØÖÆ×´Ì¬¡¡: %s", m_botCommandState == COMMAND_FOLLOW ? "¸úËæ¡¡" : m_botCommandState == COMMAND_ATTACK ? "¹¥»÷¡¡" : m_botCommandState == COMMAND_STAY ? "Í£Áô¡¡" : m_botCommandState == COMMAND_ABANDON ? "ÖØÖÃ¡¡" : "ÎŞ¡¡")).c_str());
-		ch.PSendSysMessage(sCustomMgr->Format(("¸úËæ¾àÀë¡¡: %u"), master->GetBotFollowDist()).c_str());
+		//ch.PSendSysMessage(Format(("å°ä¼™ä¼´æ§åˆ¶çŠ¶æ€ã€€: %s", m_botCommandState == COMMAND_FOLLOW ? "è·Ÿéšã€€" : m_botCommandState == COMMAND_ATTACK ? "æ”»å‡»ã€€" : m_botCommandState == COMMAND_STAY ? "åœç•™ã€€" : m_botCommandState == COMMAND_ABANDON ? "é‡ç½®ã€€" : "æ— ã€€")).c_str());
+		ch.PSendSysMessage(sCustomMgr->Format(("è·Ÿéšè·ç¦»ã€€: %u"), master->GetBotFollowDist()).c_str());
     }
 }
 //SetStats
@@ -1468,7 +1454,7 @@ void bot_ai::ReceiveEmote(Player* player, uint32 emote)
                 return;
             }
             SetBotCommandState(COMMAND_STAY);
-            me->MonsterWhisper(("Ô­µØ´ıÃü£¡¡¡"), player);
+            me->MonsterWhisper(("åŸåœ°å¾…å‘½ï¼ã€€"), player);
             break;
         case TEXT_EMOTE_WAVE:
             if (!IsMinionAI())
@@ -1479,7 +1465,7 @@ void bot_ai::ReceiveEmote(Player* player, uint32 emote)
                 return;
             }
             SetBotCommandState(COMMAND_FOLLOW, true);
-            me->MonsterWhisper(("¸úÉÏ£¡¡¡"), player);
+            me->MonsterWhisper(("è·Ÿä¸Šï¼ã€€"), player);
             break;
         default:
             break;
@@ -1988,15 +1974,6 @@ void bot_ai::CheckAttackState()
 {
     if (me->GetVictim())
     {
-		if (Unit* mytar = me->GetVictim())
-		{
-			if (mytar->GetTypeId() == TYPEID_PLAYER || mytar->IsPet())
-				if (mytar->GetAreaId() == 3539)
-				{
-					Evade();
-					return;
-				}
-		}
         if (HasRole(BOT_ROLE_DPS))
             DoMeleeAttackIfReady();
     }
@@ -3229,7 +3206,7 @@ void bot_ai::OnSpellHit(Unit* /*caster*/, SpellInfo const* spell)
     {
         uint32 auraname = spell->Effects[i].ApplyAuraName;
         //remove pet on mount
-        if (auraname == SPELL_AU    RA_MOUNTED)
+        if (auraname == SPELL_AURA_MOUNTED)
         {
             me->SetBotsPetDied();
             if (master->HasAuraType(SPELL_AURA_MOD_INCREASE_VEHICLE_FLIGHT_SPEED) ||
@@ -3406,24 +3383,24 @@ bool bot_minion_ai::OnGossipHello(Player* player, Creature* creature)
 
     if (player == creature->GetBotOwner())
     {
-		//player->ADD_GOSSIP_ITEM(GOSSIP_ICON_TALK, ("|cFFFF0000(ÎïÆ·´æ´¢³öÏÖBUG,ĞŞ¸´Ç°ÇëÎğ½«Ç¿»¯¹ı»òÕß·ÅÖÃ±¦Ê¯µÄ×°±¸¸øBBÅå´÷-½ô¼±ĞŞ¸´ÖĞ)|r¡¡"), GOSSIP_SENDER_EQUIPMENT, GOSSIP_ACTION_INFO_DEF + 1);
-        player->ADD_GOSSIP_ITEM(GOSSIP_ICON_TALK, ("×°±¸¹ÜÀí¡¡"), GOSSIP_SENDER_EQUIPMENT, GOSSIP_ACTION_INFO_DEF + 1);
-        player->ADD_GOSSIP_ITEM(GOSSIP_ICON_TALK, ("Ö°Ôğ¹ÜÀí¡¡"), GOSSIP_SENDER_ROLES, GOSSIP_ACTION_INFO_DEF + 1);
-        player->ADD_GOSSIP_ITEM(GOSSIP_ICON_TALK, ("Ê¹ÓÃ¼¼ÄÜ¡¡"), GOSSIP_SENDER_ABILITIES, GOSSIP_ACTION_INFO_DEF + 1);
+		//player->ADD_GOSSIP_ITEM(GOSSIP_ICON_TALK, ("|cFFFF0000(ç‰©å“å­˜å‚¨å‡ºç°BUG,ä¿®å¤å‰è¯·å‹¿å°†å¼ºåŒ–è¿‡æˆ–è€…æ”¾ç½®å®çŸ³çš„è£…å¤‡ç»™BBä½©æˆ´-ç´§æ€¥ä¿®å¤ä¸­)|rã€€"), GOSSIP_SENDER_EQUIPMENT, GOSSIP_ACTION_INFO_DEF + 1);
+        player->ADD_GOSSIP_ITEM(GOSSIP_ICON_TALK, ("è£…å¤‡ç®¡ç†ã€€"), GOSSIP_SENDER_EQUIPMENT, GOSSIP_ACTION_INFO_DEF + 1);
+        player->ADD_GOSSIP_ITEM(GOSSIP_ICON_TALK, ("èŒè´£ç®¡ç†ã€€"), GOSSIP_SENDER_ROLES, GOSSIP_ACTION_INFO_DEF + 1);
+        player->ADD_GOSSIP_ITEM(GOSSIP_ICON_TALK, ("ä½¿ç”¨æŠ€èƒ½ã€€"), GOSSIP_SENDER_ABILITIES, GOSSIP_ACTION_INFO_DEF + 1);
     }
 
     switch (creature->GetBotClass())
     {
         case CLASS_MAGE:
-            player->ADD_GOSSIP_ITEM(GOSSIP_ICON_CHAT, ("ÎÒĞèÒªÊ³Îï¡¡"), GOSSIP_SENDER_CLASS, GOSSIP_ACTION_INFO_DEF + 1);
-            player->ADD_GOSSIP_ITEM(GOSSIP_ICON_CHAT, ("ÎÒĞèÒªºÈË®¡¡"), GOSSIP_SENDER_CLASS, GOSSIP_ACTION_INFO_DEF + 2);
+            player->ADD_GOSSIP_ITEM(GOSSIP_ICON_CHAT, ("æˆ‘éœ€è¦é£Ÿç‰©ã€€"), GOSSIP_SENDER_CLASS, GOSSIP_ACTION_INFO_DEF + 1);
+            player->ADD_GOSSIP_ITEM(GOSSIP_ICON_CHAT, ("æˆ‘éœ€è¦å–æ°´ã€€"), GOSSIP_SENDER_CLASS, GOSSIP_ACTION_INFO_DEF + 2);
             break;
         default:
             break;
     }
 
-    player->ADD_GOSSIP_ITEM(GOSSIP_ICON_CHAT, ("ÊôĞÔ²é¿´¡¡"), 7000, GOSSIP_ACTION_INFO_DEF + 1);
-    player->ADD_GOSSIP_ITEM(GOSSIP_ICON_CHAT, ("Ã»Ê²Ã´ÊÂ¡¡"), 0, GOSSIP_ACTION_INFO_DEF + 1);
+    player->ADD_GOSSIP_ITEM(GOSSIP_ICON_CHAT, ("å±æ€§æŸ¥çœ‹ã€€"), 7000, GOSSIP_ACTION_INFO_DEF + 1);
+    player->ADD_GOSSIP_ITEM(GOSSIP_ICON_CHAT, ("æ²¡ä»€ä¹ˆäº‹ã€€"), 0, GOSSIP_ACTION_INFO_DEF + 1);
     player->PlayerTalkClass->SendGossipMenu(GOSSIP_SERVE_MASTER, creature->GetGUID());
     return true;
 }
@@ -3477,9 +3454,9 @@ bool bot_minion_ai::OnGossipSelect(Player* player, Creature* creature, uint32 se
             }
             if (!food)
             {
-                std::string errorstr = ("ÎÒ»¹²»ÄÜÖÆÔì¡¡");
-				errorstr += iswater ? ("Ë®¡¡" ): ("Ê³Îï¡¡");
-                errorstr += ("Å¶¡£¡¡");
+                std::string errorstr = ("æˆ‘è¿˜ä¸èƒ½åˆ¶é€ ã€€");
+				errorstr += iswater ? ("æ°´ã€€" ): ("é£Ÿç‰©ã€€");
+                errorstr += ("å“¦ã€‚ã€€");
 				me->MonsterWhisper(errorstr.c_str(), player);
                 //player->PlayerTalkClass->ClearMenus();
                 //return OnGossipHello(player, me);
@@ -3495,13 +3472,13 @@ bool bot_minion_ai::OnGossipSelect(Player* player, Creature* creature, uint32 se
             {
                 foodspell->finish(false);
                 delete foodspell;
-                me->MonsterWhisper(("ÎÒÏÖÔÚ²»ÄÜÕâÃ´×ö¡£¡¡"), player);
+                me->MonsterWhisper(("æˆ‘ç°åœ¨ä¸èƒ½è¿™ä¹ˆåšã€‚ã€€"), player);
             }
             else
             {
                 aftercastTargetGuid = player->GetGUID();
                 foodspell->prepare(&targets);
-                me->MonsterWhisper(("¸øÄãµÄ¡£¡¡"), player);
+                me->MonsterWhisper(("ç»™ä½ çš„ã€‚ã€€"), player);
             }
             break;
         }
@@ -3510,7 +3487,7 @@ bool bot_minion_ai::OnGossipSelect(Player* player, Creature* creature, uint32 se
             subMenu = true;
 
             //general
-			player->ADD_GOSSIP_ITEM(GOSSIP_ICON_CHAT, ("²é¿´ÄãµÄ×°±¸¡¡"), GOSSIP_SENDER_EQUIPMENT_LIST, GOSSIP_ACTION_INFO_DEF + 1);
+			player->ADD_GOSSIP_ITEM(GOSSIP_ICON_CHAT, ("æŸ¥çœ‹ä½ çš„è£…å¤‡ã€€"), GOSSIP_SENDER_EQUIPMENT_LIST, GOSSIP_ACTION_INFO_DEF + 1);
             for (uint8 i = 0; i < 18; ++i)
             {
                 if (i + 1 == BOT_SLOT_OFFHAND && !CanUseOffHand())
@@ -3591,7 +3568,7 @@ bool bot_minion_ai::OnGossipSelect(Player* player, Creature* creature, uint32 se
                 }
                 player->ADD_GOSSIP_ITEM(GOSSIP_ICON_TALK, Str.str().c_str(), GOSSIP_SENDER_EQUIPMENT_SHOW, GOSSIP_ACTION_INFO_DEF + i + 1);
             }
-			player->ADD_GOSSIP_ITEM(GOSSIP_ICON_CHAT, ("·µ»Ø¡¡"), 1, GOSSIP_ACTION_INFO_DEF + 1);
+			player->ADD_GOSSIP_ITEM(GOSSIP_ICON_CHAT, ("è¿”å›ã€€"), 1, GOSSIP_ACTION_INFO_DEF + 1);
 
             break;
         }
@@ -3611,10 +3588,10 @@ bool bot_minion_ai::OnGossipSelect(Player* player, Creature* creature, uint32 se
                     if (ItemTemplate const* proto = sObjectMgr->GetItemTemplate(itemId))
                         _AddItemTemplateLink(master, proto, msg);
                     else
-                        msg << ("Î´ÖªÎïÆ·¡¡");
-                    msg << ("ÔÚÀ¸Î»¡¡") << uint32(i) << " (" << _getNameForSlot(i + 1) << ')';
+                        msg << ("æœªçŸ¥ç‰©å“ã€€");
+                    msg << ("åœ¨æ ä½ã€€") << uint32(i) << " (" << _getNameForSlot(i + 1) << ')';
                     if (i < BOT_SLOT_RANGED && einfo && einfo->ItemEntry[i] == itemId)
-                        msg << ("ÊÇ¡¡|cffe6cc80|h[¡¡³õÊ¼×°±¸¡¡]|h|r");
+                        msg << ("æ˜¯ã€€|cffe6cc80|h[ã€€åˆå§‹è£…å¤‡ã€€]|h|r");
                     me->MonsterWhisper(msg.str().c_str(), master);
                 }
             }
@@ -3633,12 +3610,12 @@ bool bot_minion_ai::OnGossipSelect(Player* player, Creature* creature, uint32 se
                 if (ItemTemplate const* proto = sObjectMgr->GetItemTemplate(itemId))
                     _AddItemTemplateLink(master, proto, msg);
                 else
-                    msg << ("Î´Öª¡¡");
+                    msg << ("æœªçŸ¥ã€€");
 
                 int8 id = 1;
                 EquipmentInfo const* einfo = sObjectMgr->GetEquipmentInfo(me->GetEntry(), id);
                 if (slot < BOT_SLOT_RANGED && einfo && einfo->ItemEntry[slot] == itemId)
-                    msg << ("ÊÇ¡¡|cffe6cc80|h[¡¡³õÊ¼×°±¸¡¡]|h|r");
+                    msg << ("æ˜¯ã€€|cffe6cc80|h[ã€€åˆå§‹è£…å¤‡ã€€]|h|r");
 
                 me->MonsterWhisper(msg.str().c_str(), master);
             }
@@ -3671,34 +3648,34 @@ bool bot_minion_ai::OnGossipSelect(Player* player, Creature* creature, uint32 se
             //s2.2.0 add current item (with return)
             uint8 slot = action - (GOSSIP_ACTION_INFO_DEF + 1);
             std::ostringstream str;
-            str << ("ÒÑ×°±¸£º¡¡");
+            str << ("å·²è£…å¤‡ï¼šã€€");
             if (uint32 itemId = master->GetBotEquip(me, slot))
             {
                 if (ItemTemplate const* proto = sObjectMgr->GetItemTemplate(itemId))
                     _AddItemTemplateLink(master, proto, str);
                 else
-                    str << ("Î´ÖªÎïÆ·¡¡");
+                    str << ("æœªçŸ¥ç‰©å“ã€€");
 
                 player->ADD_GOSSIP_ITEM(GOSSIP_ICON_CHAT, str.str().c_str(), GOSSIP_SENDER_EQUIPMENT_INFO, action);
             }
             else
             {
-                str << ("Ã»ÓĞÈÎºÎÎïÆ·¡¡");
+                str << ("æ²¡æœ‰ä»»ä½•ç‰©å“ã€€");
                 player->ADD_GOSSIP_ITEM(GOSSIP_ICON_CHAT, str.str().c_str(), GOSSIP_SENDER_EQUIPMENT_SHOW, action);
             }
 
             //s2.2.1 add unequip option if have weapon
             if (action - GOSSIP_ACTION_INFO_DEF <= BOT_SLOT_RANGED)
-                player->ADD_GOSSIP_ITEM(GOSSIP_ICON_CHAT, ("»¹Ô­³õÊ¼×°±¸¡¡"), GOSSIP_SENDER_EQUIP_RESET, action);
+                player->ADD_GOSSIP_ITEM(GOSSIP_ICON_CHAT, ("è¿˜åŸåˆå§‹è£…å¤‡ã€€"), GOSSIP_SENDER_EQUIP_RESET, action);
 
             //s2.2.2 add unequip option if have weapon
             if (master->GetBotEquip(me, action - (GOSSIP_ACTION_INFO_DEF + 1)))
-                player->ADD_GOSSIP_ITEM(GOSSIP_ICON_CHAT, ("Ğ¶ÏÂ×°±¸¡¡"), GOSSIP_SENDER_UNEQUIP, action);
+                player->ADD_GOSSIP_ITEM(GOSSIP_ICON_CHAT, ("å¸ä¸‹è£…å¤‡ã€€"), GOSSIP_SENDER_UNEQUIP, action);
 
             //s2.2.3a: add an empty submenu with info if no items are found
             if (itemList.empty())
             {
-                player->ADD_GOSSIP_ITEM(GOSSIP_ICON_CHAT, ("ÄÇ¸ö¡­¡­ÎÒÃ»ÓĞÈÎºÎ¶«Î÷¿ÉÒÔ¸øÄã¡¡"), 0, GOSSIP_ACTION_INFO_DEF + 1);
+                player->ADD_GOSSIP_ITEM(GOSSIP_ICON_CHAT, ("é‚£ä¸ªâ€¦â€¦æˆ‘æ²¡æœ‰ä»»ä½•ä¸œè¥¿å¯ä»¥ç»™ä½ ã€€"), 0, GOSSIP_ACTION_INFO_DEF + 1);
             }
             else
             {
@@ -3720,7 +3697,7 @@ bool bot_minion_ai::OnGossipSelect(Player* player, Creature* creature, uint32 se
                 }
             }
 
-            player->ADD_GOSSIP_ITEM(GOSSIP_ICON_CHAT, ("·µ»Ø¡¡"), GOSSIP_SENDER_EQUIPMENT, GOSSIP_ACTION_INFO_DEF + 2);
+            player->ADD_GOSSIP_ITEM(GOSSIP_ICON_CHAT, ("è¿”å›ã€€"), GOSSIP_SENDER_EQUIPMENT, GOSSIP_ACTION_INFO_DEF + 2);
 
             //////TC_LOG_ERROR("entities.player", "OnGossipSelect(bot): added %u item(s) to list of %s (requester: %s)",
             //    counter, me->GetName().c_str(), player->GetName().c_str());
@@ -3735,7 +3712,7 @@ bool bot_minion_ai::OnGossipSelect(Player* player, Creature* creature, uint32 se
                     me->GetBotClass() == CLASS_ROGUE || (me->GetBotClass() == CLASS_SHAMAN && IsMelee()) ||
                     me->GetBotClass() == CLASS_PALADIN || me->GetBotClass() == CLASS_HUNTER)
                 {
-                    me->MonsterSay(("Ê²Ã´£¬ÄãÈÃÎÒ³àÊÖ¿ÕÈ­£¿Ã»ÃÅ£¡¡¡"), LANG_UNIVERSAL, player);
+                    me->MonsterSay(("ä»€ä¹ˆï¼Œä½ è®©æˆ‘èµ¤æ‰‹ç©ºæ‹³ï¼Ÿæ²¡é—¨ï¼ã€€"), LANG_UNIVERSAL, player);
                     break;
                 }
             }
@@ -3743,7 +3720,7 @@ bool bot_minion_ai::OnGossipSelect(Player* player, Creature* creature, uint32 se
             {
                 if (me->GetBotClass() == CLASS_ROGUE)
                 {
-                    me->MonsterSay(("²»»á°É¡£¡¡"), LANG_UNIVERSAL, player);
+                    me->MonsterSay(("ä¸ä¼šå§ã€‚ã€€"), LANG_UNIVERSAL, player);
                     break;
                 }
             }
@@ -3751,7 +3728,7 @@ bool bot_minion_ai::OnGossipSelect(Player* player, Creature* creature, uint32 se
             {
                 if (me->GetBotClass() == CLASS_HUNTER)
                 {
-                    me->MonsterSay(("Ò®£¡·Ç³£ÓĞÈ¤¡£¡¡"), LANG_UNIVERSAL, player);
+                    me->MonsterSay(("è€¶ï¼éå¸¸æœ‰è¶£ã€‚ã€€"), LANG_UNIVERSAL, player);
                     break;
                 }
             }
@@ -3763,13 +3740,13 @@ bool bot_minion_ai::OnGossipSelect(Player* player, Creature* creature, uint32 se
                 uint32 itemId = me->GetUInt32Value(UNIT_VIRTUAL_ITEM_SLOT_ID + slot);
                 if (einfo && einfo->ItemEntry[slot] == itemId)
                 {
-					me->MonsterSay(("ÇëÎÊÔÚÄãĞÄÀïÎÒµÄÎäÆ÷ºÍÎÒÏà±ÈÊÇ²»ÊÇ¸ü¾ß÷ÈÁ¦ÄØ£¿¡¡"), LANG_UNIVERSAL, player);
+					me->MonsterSay(("è¯·é—®åœ¨ä½ å¿ƒé‡Œæˆ‘çš„æ­¦å™¨å’Œæˆ‘ç›¸æ¯”æ˜¯ä¸æ˜¯æ›´å…·é­…åŠ›å‘¢ï¼Ÿã€€"), LANG_UNIVERSAL, player);
                     break;
                 }
             }
 
             if (Unequip(action - (GOSSIP_ACTION_INFO_DEF + 1)))
-                me->MonsterSay(("ßÀ¡­¡­¡¡"), LANG_UNIVERSAL, player);
+                me->MonsterSay(("å‘ƒâ€¦â€¦ã€€"), LANG_UNIVERSAL, player);
             break;
         }
         case GOSSIP_SENDER_EQUIP_RESET: //equips change s4a: reset equipment
@@ -3817,7 +3794,7 @@ bool bot_minion_ai::OnGossipSelect(Player* player, Creature* creature, uint32 se
             for (; role != BOT_MAX_ROLE; role <<= 1)
                 player->ADD_GOSSIP_ITEM(_onOffIcon(role), GetRoleString(role), GOSSIP_SENDER_ROLES_TOGGLE, GOSSIP_ACTION_INFO_DEF + role);
 
-            player->ADD_GOSSIP_ITEM(GOSSIP_ICON_CHAT, ("·µ»Ø¡¡"), 1, GOSSIP_ACTION_INFO_DEF + role + 1);
+            player->ADD_GOSSIP_ITEM(GOSSIP_ICON_CHAT, ("è¿”å›ã€€"), 1, GOSSIP_ACTION_INFO_DEF + role + 1);
 
             break;
         }
@@ -3855,8 +3832,8 @@ bool bot_minion_ai::OnGossipSelect(Player* player, Creature* creature, uint32 se
                 player->ADD_GOSSIP_ITEM(GOSSIP_ICON_TRAINER, name.str().c_str(), GOSSIP_SENDER_ABILITIES_USE, GOSSIP_ACTION_INFO_DEF + basespell);
             }
 
-            player->ADD_GOSSIP_ITEM(GOSSIP_ICON_CHAT, ("Ë¢ĞÂ¡¡"), GOSSIP_SENDER_ABILITIES_USE, GOSSIP_ACTION_INFO_DEF);
-            player->ADD_GOSSIP_ITEM(GOSSIP_ICON_CHAT, ("·µ»Ø¡¡"), 1, GOSSIP_ACTION_INFO_DEF + 2);
+            player->ADD_GOSSIP_ITEM(GOSSIP_ICON_CHAT, ("åˆ·æ–°ã€€"), GOSSIP_SENDER_ABILITIES_USE, GOSSIP_ACTION_INFO_DEF);
+            player->ADD_GOSSIP_ITEM(GOSSIP_ICON_CHAT, ("è¿”å›ã€€"), 1, GOSSIP_ACTION_INFO_DEF + 2);
 
             break;
         }
@@ -3884,7 +3861,7 @@ void bot_minion_ai::SummonBotsPet(uint32 entry)
     if (!originalentry)
     {
         //annoy master
-        me->MonsterWhisper(("ÎªÊ²Ã´ÎÒÒª³¢ÊÔ×ÅÕÙ»½Ò»Ö»Î´ÖªµÄ³èÎï£¡£¿¡¡"), master);
+        me->MonsterWhisper(("ä¸ºä»€ä¹ˆæˆ‘è¦å°è¯•ç€å¬å”¤ä¸€åªæœªçŸ¥çš„å® ç‰©ï¼ï¼Ÿã€€"), master);
         return;
     }
     uint32 armor = 0;
@@ -3894,7 +3871,7 @@ void bot_minion_ai::SummonBotsPet(uint32 entry)
 
     if (!m_botsPet)
     {
-        me->MonsterWhisper(("ÕÙ»½³èÎïÊ§°Ü£¡¡¡"), master);
+        me->MonsterWhisper(("å¬å”¤å® ç‰©å¤±è´¥ï¼ã€€"), master);
         return;
     }
 
@@ -4471,7 +4448,7 @@ bool bot_minion_ai::Equip(uint32 itemId, uint8 slot)
         {
             if (!Unequip(slot))
             {
-                me->MonsterSay("ÄãÃ»ÓĞ×ã¹»µÄ±³°ü¿Õ¼äÀ´´æ·ÅÎÒµÄ×°±¸¡£¡¡", LANG_UNIVERSAL, master);
+                me->MonsterSay("ä½ æ²¡æœ‰è¶³å¤Ÿçš„èƒŒåŒ…ç©ºé—´æ¥å­˜æ”¾æˆ‘çš„è£…å¤‡ã€‚ã€€", LANG_UNIVERSAL, master);
                 return false;
             }
         }
@@ -4481,7 +4458,7 @@ bool bot_minion_ai::Equip(uint32 itemId, uint8 slot)
             if (!master->HasItemCount(itemId, 1))
             {
                 std::ostringstream msg;
-                msg << ("ÎŞ·¨ÕÒµ½¡¡");
+                msg << ("æ— æ³•æ‰¾åˆ°ã€€");
                 _AddItemTemplateLink(master, proto, msg);
                 msg << " (id: " << uint32(itemId) << ")!";
                 me->MonsterWhisper(msg.str().c_str(), master);
@@ -4525,14 +4502,14 @@ bool bot_minion_ai::Equip(uint32 itemId, uint8 slot)
     {
         if (!Unequip(slot))
         {
-            me->MonsterSay("ÄãÃ»ÓĞ×ã¹»µÄ±³°ü¿Õ¼äÀ´´æ·ÅÎÒµÄ×°±¸¡£¡¡", LANG_UNIVERSAL, master);
+            me->MonsterSay("ä½ æ²¡æœ‰è¶³å¤Ÿçš„èƒŒåŒ…ç©ºé—´æ¥å­˜æ”¾æˆ‘çš„è£…å¤‡ã€‚ã€€", LANG_UNIVERSAL, master);
             return false;
         }
 
         if (!master->HasItemCount(itemId, 1))
         {
             std::ostringstream msg;
-            msg << ("ÎŞ·¨ÕÒµ½¡¡");
+            msg << ("æ— æ³•æ‰¾åˆ°ã€€");
             _AddItemTemplateLink(master, proto, msg);
             msg << " (id: " << uint32(itemId) << ")!";
             me->MonsterWhisper(msg.str().c_str(), master);
@@ -4739,46 +4716,46 @@ char const* bot_minion_ai::_getNameForSlot(uint8 slot) const
     switch (slot)
     {
         case BOT_SLOT_MAINHAND:
-            return ("Ö÷ÊÖ¡¡");
+            return ("ä¸»æ‰‹ã€€");
         case BOT_SLOT_OFFHAND:
-            return ("¸±ÊÖ¡¡");
+            return ("å‰¯æ‰‹ã€€");
         case BOT_SLOT_RANGED:
             if (me->GetBotClass() == CLASS_PALADIN || me->GetBotClass() == CLASS_DRUID || me->GetBotClass() == CLASS_SHAMAN || me->GetBotClass() == CLASS_DEATH_KNIGHT)
-                return ("Ê¥Îï¡¡");
+                return ("åœ£ç‰©ã€€");
             else
-                return ("Ô¶³Ì¡¡");
+                return ("è¿œç¨‹ã€€");
         case BOT_SLOT_HEAD:
-            return ("Í·²¿¡¡");
+            return ("å¤´éƒ¨ã€€");
         case BOT_SLOT_SHOULDERS:
-            return ("¼ç²¿¡¡");
+            return ("è‚©éƒ¨ã€€");
         case BOT_SLOT_CHEST:
-            return ("ĞØ²¿¡¡");
+            return ("èƒ¸éƒ¨ã€€");
         case BOT_SLOT_WAIST:
-            return ("Ñü²¿¡¡");
+            return ("è…°éƒ¨ã€€");
         case BOT_SLOT_LEGS:
-            return ("ÍÈ²¿¡¡");
+            return ("è…¿éƒ¨ã€€");
         case BOT_SLOT_FEET:
-            return ("½Å¡¡");
+            return ("è„šã€€");
         case BOT_SLOT_WRIST:
-            return ("ÊÖÍó¡¡");
+            return ("æ‰‹è…•ã€€");
         case BOT_SLOT_HANDS:
-            return ("ÊÖ¡¡");
+            return ("æ‰‹ã€€");
         case BOT_SLOT_BACK:
-            return ("±³²¿¡¡");
+            return ("èƒŒéƒ¨ã€€");
         case BOT_SLOT_BODY:
-            return ("³ÄÒÂ¡¡");
+            return ("è¡¬è¡£ã€€");
         case BOT_SLOT_FINGER1:
-            return ("½äÖ¸Ò»¡¡");
+            return ("æˆ’æŒ‡ä¸€ã€€");
         case BOT_SLOT_FINGER2:
-            return ("½äÖ¸¶ş¡¡");
+            return ("æˆ’æŒ‡äºŒã€€");
         case BOT_SLOT_TRINKET1:
-            return ("ÊÎÆ·Ò»¡¡");
+            return ("é¥°å“ä¸€ã€€");
         case BOT_SLOT_TRINKET2:
-            return ("ÊÎÆ·¶ş¡¡");
+            return ("é¥°å“äºŒã€€");
         case BOT_SLOT_NECK:
-            return ("¾±²¿¡¡");
+            return ("é¢ˆéƒ¨ã€€");
         default:
-            return ("Î´Öª¡¡");
+            return ("æœªçŸ¥ã€€");
     }
 }
 
@@ -4802,21 +4779,21 @@ char const* bot_ai::GetRoleString(uint8 role) const
     switch (role)
     {
         case BOT_ROLE_NONE:
-            return ("ÎŞ¡¡");
+            return ("æ— ã€€");
         case BOT_ROLE_TANK:
-            return ("Ì¹¿Ë¡¡");
+            return ("å¦å…‹ã€€");
         case BOT_ROLE_DPS:
-            return ("ÉËº¦Êä³ö¡¡");
+            return ("ä¼¤å®³è¾“å‡ºã€€");
         case BOT_ROLE_HEAL:
-            return ("ÖÎÁÆ¡¡");
+            return ("æ²»ç–—ã€€");
         //case BOT_ROLE_MELEE:
         //    return "Melee";
         case BOT_ROLE_RANGED:
-            return ("Ô¶³ÌÉËº¦Êä³ö¡¡");
+            return ("è¿œç¨‹ä¼¤å®³è¾“å‡ºã€€");
         default:
         {
             std::ostringstream str;
-            str << ("Ö°Ôğ¡¡") << uint32(role);
+            str << ("èŒè´£ã€€") << uint32(role);
             return str.str().c_str();
         }
     }

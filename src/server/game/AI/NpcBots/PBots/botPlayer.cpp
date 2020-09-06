@@ -1,4 +1,4 @@
-#include "Player.h"
+﻿#include "Player.h"
 #include "AccountMgr.h"
 #include "AchievementMgr.h"
 #include "ArenaTeam.h"
@@ -761,6 +761,10 @@ void Player::CreateBot(uint32 botentry, uint8 botrace, uint8 botclass, bool revi
                 gr->RemoveMember(itr->guid);
         }
     }
+
+    // NPCBOT
+    m_bot->SetBotShouldUpdateStats();
+    // NPCBOT
 } //end Player::CreateBot
 
 uint8 Player::GetNpcBotsCount() const

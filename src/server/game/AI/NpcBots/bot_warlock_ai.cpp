@@ -44,51 +44,10 @@ public:
             return bot_ai::doCast(victim, spellId, triggered);
         }
 
-		void EnterCombat(Unit* u)
-		{
-			Aggro(u);
-		}
-		void Aggro(Unit* u)
-		{
-			if (!me->IsInWorld() || !u->IsInWorld() || !me->GetBotOwner())
-				return;
-			Player* owner = me->GetBotOwner();
-			if (!owner->IsInWorld())
-				return;
-			owner->DealDamage(owner,u, 1);
-			owner->SetInCombatWith(u);
-			u->SetInCombatWith(owner);
-			u->AddThreat(me, 0.0f);
-			u->AddThreat(owner, 0.0f);
-		}
-		void AttackStart(Unit*)
-		{
-			if (Unit* mytar = me->GetVictim())
-				if (mytar->GetAreaId() == 3539)
-				{
-					if (mytar->GetTypeId() == TYPEID_PLAYER || mytar->IsPet())
-						return;
-					if (mytar->GetTypeId() == TYPEID_UNIT && mytar->GetEntry() != 100000)
-						return;
-				}
-		}
-		void KilledUnit(Unit* u)
-		{
-			if (!me->IsInWorld() || !u->IsInWorld() || !me->GetBotOwner())
-				return;
-			Player* owner = me->GetBotOwner();
-			if (!owner->IsInWorld())
-				return;
-			if (me->getLevel() >= 5 && u->getLevel() + 9 >= me->getLevel())
-			{
-				temptimer = GC_Timer;
-				if (doCast(me, 32216, true))
-				{
-					GC_Timer = temptimer;
-					return;
-				}
-			}
-		}
+        void EnterCombat(Unit*) { }
+        void Aggro(Unit*) { }
+        void AttackStart(Unit*) { }
+        void KilledUnit(Unit*) { }
         void EnterEvadeMode() { }
         void MoveInLineOfSight(Unit*) { }
         void JustDied(Unit* u) { me->SetBotsPetDied(); bot_ai::JustDied(u); }

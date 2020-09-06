@@ -133,34 +133,10 @@ public:
             GetInPosition(force);
         }
 
-        void EnterCombat(Unit* u) 
-		{
-			Aggro(u);
-		}
-        void Aggro(Unit* u) 
-		{
-			if (!me->IsInWorld() || !u->IsInWorld() || !me->GetBotOwner())
-				return;
-			Player* owner = me->GetBotOwner();
-			if (!owner->IsInWorld())
-				return;
-			owner->DealDamage(owner,u, 1);
-			owner->SetInCombatWith(u);
-			u->SetInCombatWith(owner);
-			u->AddThreat(me, 0.0f);
-			u->AddThreat(owner, 0.0f);
-		}
-		void AttackStart(Unit*)
-		{
-			if (Unit* mytar = me->GetVictim())
-				if (mytar->GetAreaId() == 3539)
-				{
-					if (mytar->GetTypeId() == TYPEID_PLAYER || mytar->IsPet())
-						return;
-					if (mytar->GetTypeId() == TYPEID_UNIT && mytar->GetEntry() != 100000)
-						return;
-				}
-		}
+        void EnterCombat(Unit*) { }
+        void Aggro(Unit*) { }
+        void AttackStart(Unit*) { }
+
         void KilledUnit(Unit* u)
         {
 			if (!me->IsInWorld() || !u->IsInWorld() || !me->GetBotOwner())
@@ -229,6 +205,7 @@ public:
         void Attack(uint32 diff)
         {
             opponent = me->GetVictim();
+            uint8 lvl = master->getLevel();
             if (opponent)
             {
                 if (!IsCasting())
@@ -255,6 +232,13 @@ public:
 			Unit::AttackerSet b_attackers = me->getAttackers();
             float dist = me->GetExactDist(opponent);
             float meleedist = me->GetDistance(opponent);
+
+            if (_isnan(dist))
+                return;
+
+            if (_isnan(meleedist))
+                return;
+
             //charge + warbringer
             if (IsSpellReady(CHARGE_1, diff, false) && dist > 11 && dist < 25 && me->HasInArc(M_PI, opponent) &&
                 (me->getLevel() >= 50 ||
@@ -270,6 +254,34 @@ public:
                     return;
                 }
             }
+
+            if (irand(0, 8) == 1 && GetHealthPCT(me) < 20)
+            {
+                doCast(me, 60004);
+                return;
+            }
+            else if (irand(0, 28) == 3 && lvl >= 80)
+            {
+                doCast(opponent, 40728);
+                return;
+            }
+            else if (irand(0, 28) == 2 && lvl >= 80)
+            {
+                doCast(opponent, 65926);
+                return;
+            }
+            else if (irand(0, 28) == 1 && lvl >= 80)
+            {
+                doCast(opponent, 65936);
+                return;
+            }
+
+            else if (irand(0, 28) == 1 && lvl >= 80)
+            {
+                doCast(opponent, 65940);
+                return;
+            }
+
             //intercept
             if (IsSpellReady(INTERCEPT_1, diff, false) && !IsTank() &&
                 getrage() > 100 && dist > 11 && dist < 25 && me->HasInArc(M_PI, opponent) &&

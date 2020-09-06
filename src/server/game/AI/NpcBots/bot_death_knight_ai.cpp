@@ -90,21 +90,11 @@ public:
 
             if (result)
             {
-                //std::ostringstream str;
-                //str << "Casting " << spellInfo->SpellName[0] << " on " << victim->GetName();
-                //me->MonsterWhisper(str.str().c_str(), master->GetGUID());
-                //Set cooldown for runes
                 if (!triggered)
                 {
                     SpendRunes(runecost);
-                    ////debug
-                    //for (uint8 i = 0; i != NUM_RUNE_TYPES; ++i)
-                    //    if (runecost[i])
-                    //        //TC_LOG_FATAL("entities.player", "doCast():: DK bot %s has casted spell %u (%s) without %u rune(s) (type %u)!",
-                    //            me->GetName().c_str(), spellId, spellInfo->SpellName[0], runecost[i], i);
                 }
-                //runic power gain: all dk spells are instant but some have no unit target so
-                //we gain runic power here instead of SpellHitTarget()
+
                 if (SpellRuneCostEntry const* src = sSpellRuneCostStore.LookupEntry(spellInfo->RuneCostID))
                     if (int32 rp = int32(src->runePowerGain * runicpowerIncomeMult))
                         me->ModifyPower(POWER_RUNIC_POWER, int32(rp));
@@ -336,43 +326,13 @@ public:
 
         uint8 GetBotStance() const { return Presence; }
 
-		void EnterCombat(Unit* u)
-		{
-			Aggro(u);
-		}
-		void Aggro(Unit* u)
-		{
-			if (!me->IsInWorld() || !u->IsInWorld() || !me->GetBotOwner())
-				return;
-			Player* owner = me->GetBotOwner();
-			if (!owner->IsInWorld())
-				return;
-			owner->DealDamage(owner,u, 1);
-			owner->SetInCombatWith(u);
-			u->SetInCombatWith(owner);
-			u->AddThreat(me, 0.0f);
-			u->AddThreat(owner, 0.0f);
-		}
-		void AttackStart(Unit*)
-		{
-			if (Unit* mytar = me->GetVictim())
-				if (mytar->GetAreaId() == 3539)
-				{
-					if (mytar->GetTypeId() == TYPEID_PLAYER || mytar->IsPet())
-						return;
-					if (mytar->GetTypeId() == TYPEID_UNIT && mytar->GetEntry() != 100000)
-						return;
-				}
-		}
-		void KilledUnit(Unit* u)
-		{
-			if (!me->IsInWorld() || !u->IsInWorld() || !me->GetBotOwner())
-				return;
-
-			Player* owner = me->GetBotOwner();
-			if (!owner->IsInWorld())
-				return;
-		}
+        void EnterCombat(Unit*) { }
+        void Aggro(Unit*) { }
+        void AttackStart(Unit*) { }
+        void EnterEvadeMode() { }
+        void MoveInLineOfSight(Unit*) { }
+        void JustDied(Unit* u) { bot_ai::JustDied(u); }
+        void KilledUnit(Unit*) { }
 
         void DoNonCombatActions(uint32 diff)
         {
