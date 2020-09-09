@@ -1,4 +1,4 @@
-/*
+Ôªø/*
  * Copyright (C) 2016+     AzerothCore <www.azerothcore.org>, released under GNU GPL v2 license: https://github.com/azerothcore/azerothcore-wotlk/blob/master/LICENSE-GPL2
  * Copyright (C) 2008-2016 TrinityCore <http://www.trinitycore.org/>
  * Copyright (C) 2005-2009 MaNGOS <http://getmangos.com/>
@@ -120,24 +120,24 @@ int Master::Run()
     seed1.SetRand(16 * 8);
 
 
-    sLog->outString("\n                øÏΩ›º¸<Ctrl-C> πÿ±’WorldServer∑˛ŒÒ∆˜");
-    sLog->outString(("®X®T®T®T®T®T®T®T®T®T®T®T®T®T®T®T®T®T®T®T®T®T®T®T®T®T®T®T®T®T®T®T®T®T®T®T®T®["));
-    sLog->outString(("®U                                                               ®Ä       ®U"));
-    sLog->outString(("®U     ®Ä®Ä®Ä®[ ®Ä®Ä®Ä®[   ®Ä®Ä®Ä®Ä®[ ®Ä®Ä®Ä®Ä®[®Ä®Ä®Ä®Ä®[®Ä®Ä®Ä®Ä®[      ®U"));
-    sLog->outString(("®U     ®Ä®X®T®a®Ä®X ®Ä®Ä®[®Ä®X®T®T®Ä®[®^®T®Ä®X®a®Ä®X®T®T®a®Ä®X®T®Ä®U      ®U"));
-    sLog->outString(("®U     ®Ä®Ä®Ä®U®Ä®Ä®Ä®Ä®X ®Ä®U    ®Ä®U   ®Ä ®a  ®Ä®Ä®Ä®[  ®Ä®U  ®Ä®U      ®U"));
-    sLog->outString(("®U     ®Ä®X®T®a®Ä®X®T®Ä®U ®Ä®U    ®Ä®U  ®Ä ®a   ®Ä®T®T®a  ®Ä®U  ®Ä®U      ®U"));
-    sLog->outString(("®U     ®Ä®U    ®Ä®U  ®Ä®U ®^®Ä®Ä®Ä®X®a®Ä®Ä®Ä®Ä®[®Ä®Ä®Ä®Ä®[®Ä®U  ®Ä®U      ®U"));
-    sLog->outString(("®U     ®^®a    ®^®a  ®^®a   ®^®T®T®a  ®^®T®T®T®a®^®T®T®T®a®^®a  ®^®a      ®U"));
-    sLog->outString(("®U                       ®Ä®Ä®Ä®Ä®[ ®Ä®Ä®Ä®Ä®[  ®Ä®Ä®Ä®[  ®Ä®Ä®Ä®Ä®[      ®U"));
-    sLog->outString(("®U                       ®Ä®X®T®T®a®Ä®X®T®T®Ä®[®Ä®X ®Ä®Ä®[®Ä®X®T®T®a      ®U"));
-    sLog->outString(("®U                       ®Ä®U      ®Ä®U    ®Ä®U®Ä®Ä®Ä®Ä®X ®Ä®Ä®Ä®[        ®U"));
-    sLog->outString(("®U                       ®Ä®U      ®Ä®U    ®Ä®U®Ä®X®T®Ä®U ®Ä®X®T®a        ®U"));
-    sLog->outString(("®U                       ®Ä®Ä®Ä®Ä®[®^®Ä®Ä®Ä®X®a®Ä®U  ®Ä®U ®Ä®Ä®Ä®Ä®[      ®U"));
-    sLog->outString(("®U                       ®^®T®T®T®a  ®^®T®T®a  ®^®a  ®^®a ®^®T®T®T®a      ®U"));
-    sLog->outString(("®U  	                     FrozenCore With CustomScripts 3.3.5a         ®U"));
-    sLog->outString(("®^®T®T®T®T®T®T®T®T®T®T®T®T®T®T®T®T®T®T®T®T®T®T®T®T®T®T®T®T®T®T®T®T®T®T®T®T®a"));
-    sLog->outString("   WorldServer∞Ê±æ£∫%s ", GitRevision::GetFileVersionStr());
+    sLog->outString("\n                Âø´Êç∑ÈîÆ<Ctrl-C> ÂÖ≥Èó≠WorldServerÊúçÂä°Âô®");
+    sLog->outString(("‚ïî‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïó"));
+    sLog->outString(("‚ïë                                                               ‚ñà       ‚ïë"));
+    sLog->outString(("‚ïë     ‚ñà‚ñà‚ñà‚ïó ‚ñà‚ñà‚ñà‚ïó   ‚ñà‚ñà‚ñà‚ñà‚ïó ‚ñà‚ñà‚ñà‚ñà‚ïó‚ñà‚ñà‚ñà‚ñà‚ïó‚ñà‚ñà‚ñà‚ñà‚ïó      ‚ïë"));
+    sLog->outString(("‚ïë     ‚ñà‚ïî‚ïê‚ïù‚ñà‚ïî ‚ñà‚ñà‚ïó‚ñà‚ïî‚ïê‚ïê‚ñà‚ïó‚ïö‚ïê‚ñà‚ïî‚ïù‚ñà‚ïî‚ïê‚ïê‚ïù‚ñà‚ïî‚ïê‚ñà‚ïë      ‚ïë"));
+    sLog->outString(("‚ïë     ‚ñà‚ñà‚ñà‚ïë‚ñà‚ñà‚ñà‚ñà‚ïî ‚ñà‚ïë    ‚ñà‚ïë   ‚ñà ‚ïù  ‚ñà‚ñà‚ñà‚ïó  ‚ñà‚ïë  ‚ñà‚ïë      ‚ïë"));
+    sLog->outString(("‚ïë     ‚ñà‚ïî‚ïê‚ïù‚ñà‚ïî‚ïê‚ñà‚ïë ‚ñà‚ïë    ‚ñà‚ïë  ‚ñà ‚ïù   ‚ñà‚ïê‚ïê‚ïù  ‚ñà‚ïë  ‚ñà‚ïë      ‚ïë"));
+    sLog->outString(("‚ïë     ‚ñà‚ïë    ‚ñà‚ïë  ‚ñà‚ïë ‚ïö‚ñà‚ñà‚ñà‚ïî‚ïù‚ñà‚ñà‚ñà‚ñà‚ïó‚ñà‚ñà‚ñà‚ñà‚ïó‚ñà‚ïë  ‚ñà‚ïë      ‚ïë"));
+    sLog->outString(("‚ïë     ‚ïö‚ïù    ‚ïö‚ïù  ‚ïö‚ïù   ‚ïö‚ïê‚ïê‚ïù  ‚ïö‚ïê‚ïê‚ïê‚ïù‚ïö‚ïê‚ïê‚ïê‚ïù‚ïö‚ïù  ‚ïö‚ïù      ‚ïë"));
+    sLog->outString(("‚ïë                       ‚ñà‚ñà‚ñà‚ñà‚ïó ‚ñà‚ñà‚ñà‚ñà‚ïó  ‚ñà‚ñà‚ñà‚ïó  ‚ñà‚ñà‚ñà‚ñà‚ïó      ‚ïë"));
+    sLog->outString(("‚ïë                       ‚ñà‚ïî‚ïê‚ïê‚ïù‚ñà‚ïî‚ïê‚ïê‚ñà‚ïó‚ñà‚ïî ‚ñà‚ñà‚ïó‚ñà‚ïî‚ïê‚ïê‚ïù      ‚ïë"));
+    sLog->outString(("‚ïë                       ‚ñà‚ïë      ‚ñà‚ïë    ‚ñà‚ïë‚ñà‚ñà‚ñà‚ñà‚ïî ‚ñà‚ñà‚ñà‚ïó        ‚ïë"));
+    sLog->outString(("‚ïë                       ‚ñà‚ïë      ‚ñà‚ïë    ‚ñà‚ïë‚ñà‚ïî‚ïê‚ñà‚ïë ‚ñà‚ïî‚ïê‚ïù        ‚ïë"));
+    sLog->outString(("‚ïë                       ‚ñà‚ñà‚ñà‚ñà‚ïó‚ïö‚ñà‚ñà‚ñà‚ïî‚ïù‚ñà‚ïë  ‚ñà‚ïë ‚ñà‚ñà‚ñà‚ñà‚ïó      ‚ïë"));
+    sLog->outString(("‚ïë                       ‚ïö‚ïê‚ïê‚ïê‚ïù  ‚ïö‚ïê‚ïê‚ïù  ‚ïö‚ïù  ‚ïö‚ïù ‚ïö‚ïê‚ïê‚ïê‚ïù      ‚ïë"));
+    sLog->outString(("‚ïë  	                     FrozenCore With CustomScripts 3.3.5a         ‚ïë"));
+    sLog->outString(("‚ïö‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïù"));
+    sLog->outString("   WorldServerÁâàÊú¨Ôºö%s ", GitRevision::GetFileVersionStr());
 
     /// worldserver PID file creation
     std::string pidFile = sConfigMgr->GetStringDefault("PidFile", "");
@@ -337,7 +337,7 @@ int Master::Run()
 
     if (cliThread)
     {
-        /*
+        
         #ifdef _WIN32
 
         // this only way to terminate CLI thread exist at Win32 (alt. way exist only in Windows Vista API)
@@ -382,7 +382,7 @@ int Master::Run()
         cliThread->destroy();
 
         #endif
-        */
+        
         delete cliThread;
     }
 

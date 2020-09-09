@@ -1,4 +1,4 @@
-/* Copyright (C) 2016+     AzerothCore <www.azerothcore.org>, released under GNU GPL v2 license: https://github.com/azerothcore/azerothcore-wotlk/blob/master/LICENSE-GPL2 This program is free software; you can redistribute it and/or modify
+﻿/* Copyright (C) 2016+     AzerothCore <www.azerothcore.org>, released under GNU GPL v2 license: https://github.com/azerothcore/azerothcore-wotlk/blob/master/LICENSE-GPL2 This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
@@ -341,7 +341,7 @@ class npc_wg_queue : public CreatureScript
 
             void UpdateAI(uint32 diff) override
             {
-                if (CONFIG_WINTERGRASP_ENABLE == false)
+                if (!sWorld->getBoolConfig(CONFIG_WINTERGRASP_ENABLE))
                     return;
 
                 ScriptedAI::UpdateAI(diff);
