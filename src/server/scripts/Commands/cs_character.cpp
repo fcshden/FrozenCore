@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright (C) 2016+     AzerothCore <www.azerothcore.org>, released under GNU GPL v2 license: https://github.com/azerothcore/azerothcore-wotlk/blob/master/LICENSE-GPL2
  * Copyright (C) 2008-2016 TrinityCore <http://www.trinitycore.org/>
  * Copyright (C) 2005-2009 MaNGOS <http://getmangos.com/>
@@ -38,7 +38,7 @@ public:
             { "delete",        SEC_CONSOLE,         true,  &HandleCharacterDeletedDeleteCommand,  "" },
             { "list",          SEC_ADMINISTRATOR,   true,  &HandleCharacterDeletedListCommand,    "" },
             { "restore",       SEC_ADMINISTRATOR,   true,  &HandleCharacterDeletedRestoreCommand, "" },
-            { "old",           SEC_CONSOLE,         true,  &HandleCharacterDeletedOldCommand,     "" },
+            { "purge",         SEC_CONSOLE,         true,  &HandleCharacterDeletedPurgeCommand,   "" },
         };
 
         static std::vector<ChatCommand> characterCheckCommandTable =
@@ -647,7 +647,7 @@ public:
      *
      * @param args the search string which either contains a player GUID or a part of the character-name
      */
-    static bool HandleCharacterDeletedOldCommand(ChatHandler* /*handler*/, char const* args)
+    static bool HandleCharacterDeletedPurgeCommand(ChatHandler* /*handler*/, char const* args)
     {
         int32 keepDays = sWorld->getIntConfig(CONFIG_CHARDELETE_KEEP_DAYS);
 
