@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Originally written by Pussywizard - Copyright (C) 2016+ AzerothCore <www.azerothcore.org>, released under GNU AGPL v3 license: https://github.com/azerothcore/azerothcore-wotlk/blob/master/LICENSE-AGPL3
 */
 
@@ -198,6 +198,7 @@ class boss_prince_keleseth_icc : public CreatureScript
                     }
 
                     me->SetFlag(UNIT_DYNAMIC_FLAGS, UNIT_DYNFLAG_DEAD);
+                    me->SetFlag(UNIT_FIELD_FLAGS_2, UNIT_FLAG2_FEIGN_DEATH);
                     me->SetFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_IMMUNE_TO_PC|UNIT_FLAG_IMMUNE_TO_NPC);
                     me->SetReactState(REACT_PASSIVE);
                 }
@@ -355,6 +356,7 @@ class boss_prince_keleseth_icc : public CreatureScript
                         summons.DespawnEntry(WORLD_TRIGGER);
                         me->RemoveFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_UNK_29 | UNIT_FLAG_NOT_SELECTABLE | UNIT_FLAG_IMMUNE_TO_PC | UNIT_FLAG_IMMUNE_TO_NPC);
                         me->RemoveFlag(UNIT_DYNAMIC_FLAGS, UNIT_DYNFLAG_DEAD);
+                        me->RemoveFlag(UNIT_FIELD_FLAGS_2, UNIT_FLAG2_FEIGN_DEATH);
                         me->SetReactState(REACT_AGGRESSIVE);
                         me->ForceValuesUpdateAtIndex(UNIT_NPC_FLAGS);   // was in sniff. don't ask why
                         me->m_Events.AddEvent(new StandUpEvent(*me), me->m_Events.CalculateTime(1000));
@@ -455,6 +457,7 @@ class boss_prince_taldaram_icc : public CreatureScript
                     }
 
                     me->SetFlag(UNIT_DYNAMIC_FLAGS, UNIT_DYNFLAG_DEAD);
+                    me->SetFlag(UNIT_FIELD_FLAGS_2, UNIT_FLAG2_FEIGN_DEATH);
                     me->SetFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_IMMUNE_TO_PC|UNIT_FLAG_IMMUNE_TO_NPC);
                     me->SetReactState(REACT_PASSIVE);
                 }
@@ -622,6 +625,7 @@ class boss_prince_taldaram_icc : public CreatureScript
                         summons.DespawnEntry(WORLD_TRIGGER);
                         me->RemoveFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_UNK_29 | UNIT_FLAG_NOT_SELECTABLE | UNIT_FLAG_IMMUNE_TO_PC | UNIT_FLAG_IMMUNE_TO_NPC);
                         me->RemoveFlag(UNIT_DYNAMIC_FLAGS, UNIT_DYNFLAG_DEAD);
+                        me->RemoveFlag(UNIT_FIELD_FLAGS_2, UNIT_FLAG2_FEIGN_DEATH);
                         me->SetReactState(REACT_AGGRESSIVE);
                         me->ForceValuesUpdateAtIndex(UNIT_NPC_FLAGS);   // was in sniff. don't ask why
                         me->m_Events.AddEvent(new StandUpEvent(*me), me->m_Events.CalculateTime(1000));
@@ -737,6 +741,7 @@ class boss_prince_valanar_icc : public CreatureScript
                     }
 
                     me->SetFlag(UNIT_DYNAMIC_FLAGS, UNIT_DYNFLAG_DEAD);
+                    me->SetFlag(UNIT_FIELD_FLAGS_2, UNIT_FLAG2_FEIGN_DEATH);
                     me->SetFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_IMMUNE_TO_PC|UNIT_FLAG_IMMUNE_TO_NPC);
                     me->SetReactState(REACT_PASSIVE);
                 }
@@ -913,6 +918,7 @@ class boss_prince_valanar_icc : public CreatureScript
                         summons.DespawnEntry(WORLD_TRIGGER);
                         me->RemoveFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_UNK_29 | UNIT_FLAG_NOT_SELECTABLE | UNIT_FLAG_IMMUNE_TO_PC | UNIT_FLAG_IMMUNE_TO_NPC);
                         me->RemoveFlag(UNIT_DYNAMIC_FLAGS, UNIT_DYNFLAG_DEAD);
+                        me->RemoveFlag(UNIT_FIELD_FLAGS_2, UNIT_FLAG2_FEIGN_DEATH);
                         me->SetReactState(REACT_AGGRESSIVE);
                         me->ForceValuesUpdateAtIndex(UNIT_NPC_FLAGS);   // was in sniff. don't ask why
                         me->m_Events.AddEvent(new StandUpEvent(*me), me->m_Events.CalculateTime(1000));
@@ -1069,7 +1075,9 @@ class npc_blood_queen_lana_thel : public CreatureScript
                     _introDone = true;
                 }
                 else
+                {
                     me->SetVisible(true);
+                }
             }
 
             void MoveInLineOfSight(Unit* who)
@@ -1078,7 +1086,9 @@ class npc_blood_queen_lana_thel : public CreatureScript
                     return;
 
                 if (who->GetTypeId() != TYPEID_PLAYER || me->GetExactDist2d(who) > 100.0f)
+                {
                     return;
+                }
 
                 _introDone = true;
                 Talk(SAY_INTRO_1);
@@ -1097,13 +1107,17 @@ class npc_blood_queen_lana_thel : public CreatureScript
             void MovementInform(uint32 type, uint32 id)
             {
                 if (type == POINT_MOTION_TYPE && id == POINT_INTRO_DESPAWN)
+                {
                     me->SetVisible(false);
+                }
             }
 
             void UpdateAI(uint32 diff)
             {
                 if (!_events.GetPhaseMask())
+                {
                     return;
+                }
 
                 _events.Update(diff);
 

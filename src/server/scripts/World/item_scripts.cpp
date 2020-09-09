@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright (C) 2016+     AzerothCore <www.azerothcore.org>, released under GNU GPL v2 license: https://github.com/azerothcore/azerothcore-wotlk/blob/master/LICENSE-GPL2
  * Copyright (C) 2008-2016 TrinityCore <http://www.trinitycore.org/>
  * Copyright (C) 2005-2009 MaNGOS <http://getmangos.com/>
@@ -234,6 +234,30 @@ public:
     }
 };
 
+// Only used currently for
+// 19169: Nightfall
+class item_generic_limit_chance_above_60 : public ItemScript
+{
+public:
+    item_generic_limit_chance_above_60() : ItemScript("item_generic_limit_chance_above_60") { }
+
+    bool OnCastItemCombatSpell(Player* /*player*/, Unit* victim, SpellInfo const* /*spellInfo*/, Item* /*item*/) override
+    {
+        // spell proc chance gets severely reduced on victims > 60 (formula unknown)
+        if (victim->getLevel() > 60)
+        {
+            // gives ~0.1% proc chance at lvl 70
+            float const lvlPenaltyFactor = 9.93f;
+            float const failureChance = (victim->getLevel() - 60) * lvlPenaltyFactor;
+
+            // base ppm chance was already rolled, only roll success chance
+            return !roll_chance_f(failureChance);
+        }
+
+        return true;
+    }
+};
+
 void AddSC_item_scripts()
 {
     new item_only_for_flight();
@@ -244,4 +268,5 @@ void AddSC_item_scripts()
     new item_disgusting_jar();
     new item_petrov_cluster_bombs();
     new item_captured_frog();
+    new item_generic_limit_chance_above_60();
 }

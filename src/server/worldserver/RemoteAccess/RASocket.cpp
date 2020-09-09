@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright (C) 2016+     AzerothCore <www.azerothcore.org>, released under GNU GPL v2 license: https://github.com/azerothcore/azerothcore-wotlk/blob/master/LICENSE-GPL2
  * Copyright (C) 2008-2016 TrinityCore <http://www.trinitycore.org/>
  * Copyright (C) 2005-2009 MaNGOS <http://getmangos.com/>
@@ -48,7 +48,7 @@ int RASocket::handle_close(ACE_HANDLE /*handle*/, ACE_Reactor_Mask /*mask*/)
     // While the above wait() will wait for the ::svc() to finish, it will not wait for the async event
     // RASocket::commandfinished to be completed. Calling destroy() before the latter function ends
     // will lead to using a freed pointer -> crash.
-    while (_commandExecuting.value())
+    while (_commandExecuting)
         ACE_OS::sleep(1);
 
     destroy();

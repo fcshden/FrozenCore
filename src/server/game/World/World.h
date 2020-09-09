@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright (C) 2016+     AzerothCore <www.azerothcore.org>, released under GNU GPL v2 license: https://github.com/azerothcore/azerothcore-wotlk/blob/master/LICENSE-GPL2
  * Copyright (C) 2008-2016 TrinityCore <http://www.trinitycore.org/>
  * Copyright (C) 2005-2009 MaNGOS <http://getmangos.com/>
@@ -13,7 +13,6 @@
 
 #include "Common.h"
 #include "Timer.h"
-#include <ace/Atomic_Op.h>
 #include "SharedDefines.h"
 #include "QueryResult.h"
 #include "Callback.h"
@@ -21,6 +20,7 @@
 #include <map>
 #include <set>
 #include <list>
+#include <atomic>
 
 class Object;
 class WorldPacket;
@@ -723,7 +723,7 @@ class World
         void ShutdownMsg(bool show = false, Player* player = nullptr);
         static uint8 GetExitCode() { return m_ExitCode; }
         static void StopNow(uint8 exitcode) { m_stopEvent = true; m_ExitCode = exitcode; }
-        static bool IsStopped() { return m_stopEvent.value(); }
+        static bool IsStopped() { return m_stopEvent; }
 
         void Update(uint32 diff);
 
@@ -856,7 +856,7 @@ class World
         void CalendarDeleteOldEvents();
         void ResetGuildCap();
     private:
-        static ACE_Atomic_Op<ACE_Thread_Mutex, bool> m_stopEvent;
+        static std::atomic_long m_stopEvent;
         static uint8 m_ExitCode;
         uint32 m_ShutdownTimer;
         uint32 m_ShutdownMask;

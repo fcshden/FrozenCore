@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright (C) 2016+     AzerothCore <www.azerothcore.org>, released under GNU GPL v2 license: https://github.com/azerothcore/azerothcore-wotlk/blob/master/LICENSE-GPL2
  * Copyright (C) 2008-2016 TrinityCore <http://www.trinitycore.org/>
  * Copyright (C) 2005-2009 MaNGOS <http://getmangos.com/>
@@ -2904,6 +2904,21 @@ void WorldObject::PlayDirectSound(uint32 sound_id, Player* target /*= NULL*/)
     else
         SendMessageToSet(&data, true);
 }
+
+void WorldObject::PlayDirectMusic(uint32 music_id, Player* target /*= NULL*/)
+{
+    WorldPacket data(SMSG_PLAY_MUSIC, 4);
+    data << uint32(music_id);
+    if (target)
+    {
+        target->SendDirectMessage(&data);
+    }
+    else
+    {
+        SendMessageToSet(&data, true);
+    }
+}
+
 
 void WorldObject::DestroyForNearbyPlayers()
 {
