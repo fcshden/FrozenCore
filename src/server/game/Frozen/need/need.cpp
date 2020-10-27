@@ -154,8 +154,14 @@ bool NeedMgr::Candothis(Player* pl, uint32 needid, uint8 count)
     {
         if (!(needsys->classmask & pl->getClassMask()))
         {
+            std::ostringstream classnotin;
+            for (int32 i = 1; i < 12; i++)
+            {
+                if (!sCustomMgr->GetClassNameInMask(needsys->classmask, i).empty())
+                    classnotin << sCustomMgr->GetClassNameInMask(needsys->classmask, i) << "-";
+            }
             cando = false;
-            ChatHandler(pl->GetSession()).PSendSysMessage("你的职业不能购买此物品。");
+            ChatHandler(pl->GetSession()).PSendSysMessage("    ·需要职业：%s。", classnotin.str().c_str());;
         }
     }
 
@@ -163,33 +169,41 @@ bool NeedMgr::Candothis(Player* pl, uint32 needid, uint8 count)
     {
         if (!(needsys->racemask & pl->getRaceMask()))
         {
+            std::ostringstream racenotin;
+
+            for (int32 i = 1; i < 12; i++)
+            {
+                if (!sCustomMgr->GetRaceNameInMask(needsys->racemask, i).empty())
+                    racenotin << sCustomMgr->GetRaceNameInMask(needsys->racemask, i) << "-";
+            }
+
             cando = false;
-            ChatHandler(pl->GetSession()).PSendSysMessage("你的种族不能购买此物品。");
+            ChatHandler(pl->GetSession()).PSendSysMessage("    ·需要种族：%s。", racenotin.str().c_str());
         }
     }
 
     if (needsys->level > pl->getLevel())
     {
         cando = false;
-        ChatHandler(pl->GetSession()).PSendSysMessage("购买此物品至少需要等级%u。", needsys->level);
+        ChatHandler(pl->GetSession()).PSendSysMessage("    ·需要等级%u。", needsys->level);
     }
 
     if (needsys->viplevel > pl->viplevel)
     {
         cando = false;
-        ChatHandler(pl->GetSession()).PSendSysMessage("购买此物品至少需要会员等级%u。", needsys->viplevel);
+        ChatHandler(pl->GetSession()).PSendSysMessage("    ·会员等级%u。", needsys->viplevel);
     }
 
-    if (needsys->dqlevel > pl->dqlevel)
+    if (needsys->dqlevel > pl->dq_level)
     {
         cando = false;
-        ChatHandler(pl->GetSession()).PSendSysMessage("购买此物品至少需要斗气等级%u。", needsys->dqlevel);
+        ChatHandler(pl->GetSession()).PSendSysMessage("    ·斗气等级%u。", needsys->dqlevel);
     }
 
     if (needsys->achpoint > sCustomMgr->GetAchievementPoints(pl))
     {
         cando = false;
-        ChatHandler(pl->GetSession()).PSendSysMessage("购买此物品至少需要成就点数%u。", needsys->achpoint);
+        ChatHandler(pl->GetSession()).PSendSysMessage("    ·成就点数%u。", needsys->achpoint);
     }
 
     if (needsys->m_achneeds.size())
@@ -201,7 +215,7 @@ bool NeedMgr::Candothis(Player* pl, uint32 needid, uint8 count)
                 if (!pl->HasAchieved(needsys->m_achneeds[i]))
                 {
                     cando = false;
-                    ChatHandler(pl->GetSession()).PSendSysMessage("购买此物品需要完成成就|cffffff00|Hachievement:%u:0000000000000001:0:0:0:-1:0:0:0:0|h[%s]|h|r。", needsys->m_achneeds[i], sCustomMgr->GetAchievementName(needsys->m_achneeds[i]));
+                    ChatHandler(pl->GetSession()).PSendSysMessage("    ·未完成成就%s。", sCustomMgr->GetAchLink(pl, needsys->m_achneeds[i]).c_str());
                 }
             }
         }
@@ -211,16 +225,10 @@ bool NeedMgr::Candothis(Player* pl, uint32 needid, uint8 count)
     {
         for (int i = 0; i < needsys->m_spellneeds.size(); i++)
         {
-            if (SpellInfo const* spellInfo = sSpellMgr->GetSpellInfo(needsys->m_spellneeds[i]))
+            if (!pl->HasSpell(needsys->m_spellneeds[i]))
             {
-                char const* name = spellInfo->SpellName[LOCALE_zhCN];
-                std::ostringstream ss_name;
-                ss_name << "|cffffffff|Hspell:" << needsys->m_spellneeds[i] << "|h[" << name << "]|h|r";
-                if (!pl->HasSpell(needsys->m_spellneeds[i]))
-                {
-                    cando = false;
-                    ChatHandler(pl->GetSession()).PSendSysMessage("购买此物品需要学会技能%s。", ss_name.str().c_str());
-                }
+                cando = false;
+                ChatHandler(pl->GetSession()).PSendSysMessage("    ·未学会技能%s。", sCustomMgr->GetSpellLink(needsys->m_spellneeds[i]).c_str());
             }
         }
     }
@@ -229,16 +237,10 @@ bool NeedMgr::Candothis(Player* pl, uint32 needid, uint8 count)
     {
         for (int i = 0; i < needsys->m_auraneeds.size(); i++)
         {
-            if (SpellInfo const* spellInfo = sSpellMgr->GetSpellInfo(needsys->m_auraneeds[i]))
+            if (!pl->HasSpell(needsys->m_auraneeds[i]))
             {
-                char const* name = spellInfo->SpellName[LOCALE_zhCN];
-                std::ostringstream ss_name;
-                ss_name << "|cffffffff|Hspell:" << needsys->m_auraneeds[i] << "|h[" << name << "]|h|r";
-                if (!pl->HasSpell(needsys->m_auraneeds[i]))
-                {
-                    cando = false;
-                    ChatHandler(pl->GetSession()).PSendSysMessage("购买此物品需要BUFF%s。", ss_name.str().c_str());
-                }
+                cando = false;
+                ChatHandler(pl->GetSession()).PSendSysMessage("    ·无BUFF%s。", sCustomMgr->GetSpellLink(needsys->m_auraneeds[i]).c_str());
             }
         }
     }
@@ -250,7 +252,7 @@ bool NeedMgr::Candothis(Player* pl, uint32 needid, uint8 count)
             if (!sCustomMgr->HasQuestInCom(pl, needsys->m_questhasneeds[i]))
             {
                 cando = false;
-                ChatHandler(pl->GetSession()).PSendSysMessage("购买此物品需要接取任务%s。", sCustomMgr->GetQuestName(needsys->m_questhasneeds[i]).c_str());
+                ChatHandler(pl->GetSession()).PSendSysMessage("    ·未接取任务%s。", sCustomMgr->GetQuestLink(needsys->m_questhasneeds[i]).c_str());
             }
         }
     }
@@ -259,10 +261,10 @@ bool NeedMgr::Candothis(Player* pl, uint32 needid, uint8 count)
     {
         for (int i = 0; i < needsys->m_questcomneeds.size(); i++)
         {
-            if (pl->GetQuestStatus(needsys->m_questcomneeds[i]) != QUEST_STATUS_COMPLETE)
+            if (!pl->GetQuestRewardStatus(needsys->m_questcomneeds[i]))
             {
                 cando = false;
-                ChatHandler(pl->GetSession()).PSendSysMessage("购买此物品需要完成任务%s。", sCustomMgr->GetQuestName(needsys->m_questcomneeds[i]).c_str());
+                ChatHandler(pl->GetSession()).PSendSysMessage("    ·未完成任务%s。", sCustomMgr->GetQuestLink(needsys->m_questcomneeds[i]).c_str());
             }
         }
     }
@@ -274,7 +276,7 @@ bool NeedMgr::Candothis(Player* pl, uint32 needid, uint8 count)
             if (!pl->HasItemCount(needsys->m_haveitems[i], needsys->m_haveitemcounts[i], true))
             {
                 cando = false;
-                ChatHandler(pl->GetSession()).PSendSysMessage("购买此物品需要持有物品%s%u个。", sCustomMgr->GetItemName(needsys->m_haveitems[i]).c_str(), needsys->m_haveitemcounts[i]);
+                ChatHandler(pl->GetSession()).PSendSysMessage("    ·未持有物品%s%u个。", sCustomMgr->GetItemLink(needsys->m_haveitems[i]).c_str(), needsys->m_haveitemcounts[i]);
             }
         }
     }
@@ -282,25 +284,25 @@ bool NeedMgr::Candothis(Player* pl, uint32 needid, uint8 count)
     if (needsys->jfcost * count > pl->jftoken)
     {
         cando = false;
-        ChatHandler(pl->GetSession()).PSendSysMessage("购买此物品需要消耗积分%u。", needsys->jfcost * count);
+        ChatHandler(pl->GetSession()).PSendSysMessage("    ·消耗积分%u。", needsys->jfcost * count);
     }
 
     if (needsys->gbcost * GOLD  * count > pl->GetMoney())
     {
         cando = false;
-        ChatHandler(pl->GetSession()).PSendSysMessage("购买此物品需要消耗%u金。", needsys->gbcost * count);
+        ChatHandler(pl->GetSession()).PSendSysMessage("    ·消耗%u金。", needsys->gbcost * count);
     }
 
     if (needsys->honorcost * count > pl->GetHonorPoints())
     {
         cando = false;
-        ChatHandler(pl->GetSession()).PSendSysMessage("购买此物品需要消耗荣誉点%u。", needsys->honorcost * count);
+        ChatHandler(pl->GetSession()).PSendSysMessage("    ·消耗荣誉点%u。", needsys->honorcost * count);
     }
 
     if (needsys->arenacost * count > pl->GetArenaPoints())
     {
         cando = false;
-        ChatHandler(pl->GetSession()).PSendSysMessage("购买此物品需要消耗竞技点%u。", needsys->arenacost * count);
+        ChatHandler(pl->GetSession()).PSendSysMessage("    ·消耗竞技点%u。", needsys->arenacost * count);
     }
 
     if (needsys->m_itemcosts.size() && needsys->m_itemcosts.size() == needsys->m_itemcostcounts.size())
@@ -310,7 +312,7 @@ bool NeedMgr::Candothis(Player* pl, uint32 needid, uint8 count)
             if (!pl->HasItemCount(needsys->m_itemcosts[i], needsys->m_itemcostcounts[i] * count))
             {
                 cando = false;
-                ChatHandler(pl->GetSession()).PSendSysMessage("购买此物品需要消耗物品%s%u个。", sCustomMgr->GetItemName(needsys->m_itemcosts[i]).c_str(), needsys->m_itemcostcounts[i] * count);
+                ChatHandler(pl->GetSession()).PSendSysMessage("    ·消耗物品%s%u个。", sCustomMgr->GetItemLink(needsys->m_itemcosts[i]).c_str(), needsys->m_itemcostcounts[i] * count);
             }
         }
     }

@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright (C) 2016+     AzerothCore <www.azerothcore.org>, released under GNU GPL v2 license: https://github.com/azerothcore/azerothcore-wotlk/blob/master/LICENSE-GPL2
  * Copyright (C) 2008-2016 TrinityCore <http://www.trinitycore.org/>
  * Copyright (C) 2005-2009 MaNGOS <http://getmangos.com/>
@@ -2077,6 +2077,11 @@ bool Player::BuildEnumData(PreparedQueryResult result, WorldPacket* data)
     uint8 hairColor = fields[8].GetUInt8();
     uint8 facialStyle = fields[9].GetUInt8();
 
+    uint32 charFlags = 0;
+    uint32 playerFlags = fields[17].GetUInt32();
+    uint16 atLoginFlags = fields[18].GetUInt16();
+    uint32 zone = (atLoginFlags & AT_LOGIN_FIRST) != 0 ? 0 : fields[11].GetUInt16(); // if first login do not show the zone
+
     *data << uint8(skin);
     *data << uint8(face);
     *data << uint8(hairStyle);
@@ -2084,7 +2089,7 @@ bool Player::BuildEnumData(PreparedQueryResult result, WorldPacket* data)
     *data << uint8(facialStyle);
 
     *data << uint8(fields[10].GetUInt8());                   // level
-    *data << uint32(fields[11].GetUInt16());                 // zone
+    *data << uint32(zone);                                   // zone
     *data << uint32(fields[12].GetUInt16());                 // map
 
     *data << fields[13].GetFloat();                          // x
@@ -2093,9 +2098,7 @@ bool Player::BuildEnumData(PreparedQueryResult result, WorldPacket* data)
 
     *data << uint32(fields[16].GetUInt32());                 // guild id
 
-    uint32 charFlags = 0;
-    uint32 playerFlags = fields[17].GetUInt32();
-    uint16 atLoginFlags = fields[18].GetUInt16();
+
     if (playerFlags & PLAYER_FLAGS_HIDE_HELM)
         charFlags |= CHARACTER_FLAG_HIDE_HELM;
     if (playerFlags & PLAYER_FLAGS_HIDE_CLOAK)
@@ -3452,7 +3455,7 @@ void Player::InitStatsForLevel(bool reapplyMods)
 
     SetUInt32Value(PLAYER_FIELD_MAX_LEVEL, sWorld->getIntConfig(CONFIG_MAX_PLAYER_LEVEL));
     SetUInt32Value(PLAYER_NEXT_LEVEL_XP, sObjectMgr->GetXPForLevel(getLevel()));
-
+    sCustomMgr->OnPlayerUpdateDQXP(this);
     // reset before any aura state sources (health set/aura apply)
     SetUInt32Value(UNIT_FIELD_AURASTATE, 0);
 
@@ -4160,6 +4163,9 @@ void Player::learnSpell(uint32 spellId)
         return;
     }
 
+    if (!sCustomMgr->CheckSpellLearn(this, spellId))
+        return;
+
     uint32 firstRankSpellId = sSpellMgr->GetFirstSpellInChain(spellId);
     bool thisSpec = GetTalentSpellCost(firstRankSpellId) > 0 || sSpellMgr->IsAdditionalTalentSpell(firstRankSpellId);
     bool added = addSpell(spellId, thisSpec ? GetActiveSpecMask() : SPEC_MASK_ALL, true);
@@ -4170,6 +4176,8 @@ void Player::learnSpell(uint32 spellId)
         // pussywizard: a system message "you have learnt spell X (rank Y)"
         if (IsInWorld())
             SendLearnPacket(spellId, true);
+
+        sCustomMgr->DeleteAndRewSpellLearn(this, spellId);
     }
 
     // pussywizard: rank stuff at the end!
@@ -4225,6 +4233,11 @@ void Player::removeSpell(uint32 spellId, uint8 removeSpecMask, bool onlyTemporar
     itr = m_spells.find(spellId);
     if (itr == m_spells.end())
         return;
+
+    if (!sCustomMgr->CheckSpellUnLearn(this, spellId))
+        return;
+
+    sCustomMgr->DeleteAndRewSpellUnLearn(this, spellId);
 
     itr->second->specMask = (((uint8)itr->second->specMask) & ~removeSpecMask); // pussywizard: update specMask in map
 
@@ -8663,7 +8676,7 @@ void Player::CastItemCombatSpell(Unit* target, WeaponAttackType attType, uint32 
                 chance = GetWeaponProcChance();
             }
 
-            if (roll_chance_f(chance))
+            if (roll_chance_f(chance) && sScriptMgr->OnCastItemCombatSpell(this, target, spellInfo, item))
                 CastSpell(target, spellInfo->Id, TriggerCastFlags(TRIGGERED_FULL_MASK&~TRIGGERED_IGNORE_SPELL_AND_CATEGORY_CD), item);
         }
     }
@@ -18398,6 +18411,7 @@ bool Player::LoadFromDB(uint32 guid, SQLQueryHolder *holder)
 
     //apply all stat bonuses from items and auras
     SetCanModifyStats(true);
+    sCustomMgr->AppDQlevel(this, true);
     UpdateAllStats();
 
     // restore remembered power/health values (but not more max values)
@@ -19827,6 +19841,7 @@ void Player::SaveToDB(bool create, bool logout)
     if (Pet* pet = GetPet())
         pet->SavePetToDB(PET_SAVE_AS_CURRENT, logout);
 
+    sCustomMgr->SavePlayStatTo(this, GetGUIDLow());
     // our: saving system
     if (!create && !logout)
     {
@@ -22475,11 +22490,21 @@ void Player::AddSpellAndCategoryCooldowns(SpellInfo const* spellInfo, uint32 ite
     }
 
     // if no cooldown found above then base at DBC data
+    int32 cusCooltime = sCustomMgr->GetSpellModCooldown(spellInfo->Id);
+
     if (rec < 0 && catrec < 0)
     {
         cat = spellInfo->GetCategory();
-        rec = spellInfo->RecoveryTime;
-        catrec = spellInfo->CategoryRecoveryTime;
+        if (cusCooltime >= 0)
+        {
+            rec = cusCooltime;
+            catrec = spellInfo->CategoryRecoveryTime;
+        }
+        else
+        {
+            rec = spellInfo->RecoveryTime;
+            catrec = spellInfo->CategoryRecoveryTime;
+        }
     }
 
     time_t catrecTime;
@@ -22559,6 +22584,16 @@ void Player::AddSpellAndCategoryCooldowns(SpellInfo const* spellInfo, uint32 ite
             }
         }
     }
+
+    if (cusCooltime >= 0)
+    {
+        WorldPacket data(SMSG_SPELL_COOLDOWN, 8 + 1 + 4 + 4);
+        data << uint64(GetGUID());
+        data << uint8(SPELL_COOLDOWN_FLAG_NONE);
+        data << uint32(spellInfo->Id);
+        data << uint32(cusCooltime);
+        SendDirectMessage(&data);
+    }
 }
 
 void Player::AddSpellCooldown(uint32 spellid, uint32 itemid, uint32 end_time, bool needSendToClient, bool forceSendToSpectator)
@@ -22585,13 +22620,36 @@ void Player::ModifySpellCooldown(uint32 spellId, int32 cooldown)
     if (itr == m_spellCooldowns.end())
         return;
 
-    itr->second.end += cooldown;
+    uint32 now = World::GetGameTimeMS();
+    if (cooldown < 0)
+    {
+        if (abs(cooldown) > itr->second.end)
+            itr->second.end = now - 1000;
+        else
+            itr->second.end += cooldown;
 
-    WorldPacket data(SMSG_MODIFY_COOLDOWN, 4 + 8 + 4);
-    data << uint32(spellId);            // Spell ID
-    data << uint64(GetGUID());          // Player GUID
-    data << int32(cooldown);            // Cooldown mod in milliseconds
-    GetSession()->SendPacket(&data);
+        WorldPacket data(SMSG_MODIFY_COOLDOWN, 4 + 8 + 4);
+        data << uint32(spellId);            // Spell ID
+        data << uint64(GetGUID());          // Player GUID
+        data << int32(cooldown);            // Cooldown mod in milliseconds
+        GetSession()->SendPacket(&data);
+
+        if (now >= itr->second.end)
+            RemoveSpellCooldown(spellId, true);
+    }
+    else
+    {
+        itr->second.end += cooldown;
+        if (itr->second.end - now > 0)
+        {
+            WorldPacket data(SMSG_SPELL_COOLDOWN, 8 + 1 + 4 + 4);
+            data << uint64(GetGUID());
+            data << uint8(SPELL_COOLDOWN_FLAG_NONE);
+            data << uint32(spellId);
+            data << uint32(itr->second.end - now);
+            SendDirectMessage(&data);
+        }
+    }
 }
 
 void Player::SendCooldownEvent(SpellInfo const* spellInfo, uint32 itemId /*= 0*/, Spell* spell /*= NULL*/, bool setCooldown /*= true*/)

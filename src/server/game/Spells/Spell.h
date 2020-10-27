@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright (C) 2016+     AzerothCore <www.azerothcore.org>, released under GNU GPL v2 license: https://github.com/azerothcore/azerothcore-wotlk/blob/master/LICENSE-GPL2
  * Copyright (C) 2008-2016 TrinityCore <http://www.trinitycore.org/>
  * Copyright (C) 2005-2009 MaNGOS <http://getmangos.com/>
@@ -233,6 +233,8 @@ struct ChannelTargetData
     uint64 channelGUID;
     SpellDestination spellDst;
 };
+
+static const uint32 SPELL_INTERRUPT_NONPLAYER = 32747;
 
 class Spell
 {
@@ -566,7 +568,7 @@ class Spell
 
         bool m_autoRepeat;
         uint8 m_runesState;
-
+        bool isdelete;
         uint8 m_delayAtDamageCount;
         bool isDelayableNoMore()
         {

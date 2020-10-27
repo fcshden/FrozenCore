@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright (C) 2016+     AzerothCore <www.azerothcore.org>, released under GNU GPL v2 license: https://github.com/azerothcore/azerothcore-wotlk/blob/master/LICENSE-GPL2
  * Copyright (C) 2008-2016 TrinityCore <http://www.trinitycore.org/>
  * Copyright (C) 2005-2009 MaNGOS <http://getmangos.com/>
@@ -23,6 +23,7 @@
 #include "InstanceScript.h"
 #include "Player.h"
 #include "GameGraveyard.h"
+#include "BYcustom.h"
 
 bool IsPrimaryProfessionSkill(uint32 skill)
 {
@@ -6363,6 +6364,14 @@ void SpellMgr::LoadDbcDataCorrections()
             spellInfo->EffectImplicitTargetA[EFFECT_1] = TARGET_UNIT_TARGET_ANY;
             spellInfo->EffectImplicitTargetA[EFFECT_2] = TARGET_UNIT_TARGET_ANY;
             break;
+            // Check for SPELL_ATTR7_INTERRUPT_ONLY_NONPLAYER
+        case 47476: // Deathknight - Strangulate
+        case 15487: // Priest - Silence
+        case 5211:  // Druid - Bash  - R1
+        case 6798:  // Druid - Bash  - R2
+        case 8983:  // Druid - Bash  - R3
+            spellInfo->AttributesEx7 |= SPELL_ATTR7_INTERRUPT_ONLY_NONPLAYER;
+            break;
         }
 
         switch (spellInfo->SpellFamilyName)
@@ -6377,6 +6386,22 @@ void SpellMgr::LoadDbcDataCorrections()
                 if (spellInfo->SpellIconID == 2721 && spellInfo->SpellFamilyFlags[0] & 0x2)
                     spellInfo->SpellFamilyFlags[0] |= 0x40;
                 break;
+        }
+
+        //SpellCustomMod
+        {
+            if (sCustomMgr->FindSpellCustomMod(spellInfo->Id))
+            {
+                if (sCustomMgr->FindSpellCustomMod(spellInfo->Id)->procChance != 0)
+                    spellInfo->procChance = sCustomMgr->FindSpellCustomMod(spellInfo->Id)->procChance;
+
+                if (sCustomMgr->FindSpellCustomMod(spellInfo->Id)->cooldown != 0)
+                    spellInfo->RecoveryTime = sCustomMgr->FindSpellCustomMod(spellInfo->Id)->cooldown;
+
+                for (size_t i = 0; i < MAX_SPELL_EFFECTS; i++)
+                    if (sCustomMgr->FindSpellCustomMod(spellInfo->Id)->Periodic[i] != 0)
+                        spellInfo->EffectAmplitude[i] = sCustomMgr->FindSpellCustomMod(spellInfo->Id)->Periodic[i];
+            }
         }
     }
 

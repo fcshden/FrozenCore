@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright (C) 2016+     AzerothCore <www.azerothcore.org>, released under GNU GPL v2 license: https://github.com/azerothcore/azerothcore-wotlk/blob/master/LICENSE-GPL2
  * Copyright (C) 2008-2016 TrinityCore <http://www.trinitycore.org/>
  * Copyright (C) 2005-2009 MaNGOS <http://getmangos.com/>
@@ -24,6 +24,7 @@
 #include "SpellScript.h"
 #include "Vehicle.h"
 #include "ArenaSpectator.h"
+#include "BYcustom.h"
 
 // update aura target map every 500 ms instead of every update - reduce amount of grid searcher calls
 static constexpr int32 UPDATE_TARGET_MAP_INTERVAL = 500;
@@ -942,6 +943,19 @@ void Aura::SetStackAmount(uint8 stackAmount)
             HandleAuraSpecificMods(*apptItr, caster, true, true);
 
     SetNeedClientUpdateForTargets();
+
+    if (caster)
+    {
+        if (AuraStackTriggerMod const * auracustom = sCustomMgr->FindAuraStackMod(GetId()))
+        {
+            if (stackAmount == auracustom->Stacks)
+            {
+                SetStackAmount(stackAmount - auracustom->RemoveStacks);
+                for (auto i = auracustom->TriggerSpellVec.begin(); i != auracustom->TriggerSpellVec.end(); i++)
+                    caster->CastSpell(caster, *i, true);
+            }
+        }
+    }
 }
 
 bool Aura::ModStackAmount(int32 num, AuraRemoveMode removeMode, bool periodicReset /*= false*/)

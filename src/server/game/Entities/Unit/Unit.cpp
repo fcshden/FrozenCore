@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright (C) 2016+     AzerothCore <www.azerothcore.org>, released under GNU GPL v2 license: https://github.com/azerothcore/azerothcore-wotlk/blob/master/LICENSE-GPL2
  * Copyright (C) 2008-2016 TrinityCore <http://www.trinitycore.org/>
  * Copyright (C) 2005-2009 MaNGOS <http://getmangos.com/>
@@ -52,6 +52,7 @@
 #include "ArenaSpectator.h"
 #include "DynamicVisibility.h"
 #include "AccountMgr.h"
+#include "BYcustom.h"
 
 #ifdef ELUNA
 #include "LuaEngine.h"
@@ -895,6 +896,12 @@ uint32 Unit::DealDamage(Unit* attacker, Unit* victim, uint32 damage, CleanDamage
         sLog->outStaticDebug("DealDamage: victim just died");
 #endif
 
+        if (victim)
+        {
+            if (sCustomMgr->CheckAuraOnDeath(victim, attacker))
+                return 0;
+        }
+
         //if (attacker && victim->GetTypeId() == TYPEID_PLAYER && victim != attacker)
             //victim->ToPlayer()->UpdateAchievementCriteria(ACHIEVEMENT_CRITERIA_TYPE_TOTAL_DAMAGE_RECEIVED, health); // pussywizard: optimization
 
@@ -1577,6 +1584,7 @@ void Unit::DealMeleeDamage(CalcDamageInfo* damageInfo, bool durabilityLoss)
     // Do effect if any damage done to target
     if (damageInfo->damage)
     {
+        sCustomMgr->ShieldOnDamage(victim, this, nullptr, damageInfo->damage);
         // We're going to call functions which can modify content of the list during iteration over it's elements
         // Let's copy the list so we can prevent iterator invalidation
         AuraEffectList vDamageShieldsCopy(victim->GetAuraEffectsByType(SPELL_AURA_DAMAGE_SHIELD));
@@ -13676,7 +13684,7 @@ float Unit::ApplyEffectModifiers(SpellInfo const* spellProto, uint8 effect_index
 // function uses real base points (typically value - 1)
 int32 Unit::CalculateSpellDamage(Unit const* target, SpellInfo const* spellProto, uint8 effect_index, int32 const* basePoints) const
 {
-    return spellProto->Effects[effect_index].CalcValue(this, basePoints, target);
+    return spellProto->Effects[effect_index].CalcValue(this, basePoints, target) * sCustomMgr->GetSpellModDmg(spellProto->Id);
 }
 
 int32 Unit::CalcSpellDuration(SpellInfo const* spellProto)

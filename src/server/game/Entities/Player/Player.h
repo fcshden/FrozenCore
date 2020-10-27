@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright (C) 2016+     AzerothCore <www.azerothcore.org>, released under GNU GPL v2 license: https://github.com/azerothcore/azerothcore-wotlk/blob/master/LICENSE-GPL2
  * Copyright (C) 2008-2016 TrinityCore <http://www.trinitycore.org/>
  * Copyright (C) 2005-2009 MaNGOS <http://getmangos.com/>
@@ -1205,14 +1205,64 @@ class Player : public Unit, public GridObject<Player>
         // CUSTOM PLAYER STATS
 
         // 玩家的自定义等级
-        uint32 viplevel; uint32 dqlevel;
+        uint32 viplevel;
         uint32 jftoken;
+
+        //斗气等级
+        uint32 dq_level;
+        uint32 dq_shuxing;
+        uint32 dq_js, dq_bj, dq_rx, dq_jz, dq_ds, dq_zj, dq_hj, dq_ll, dq_mj, dq_zl, dq_nl, dq_js6, dq_xp, dq_wlct, dq_fsct;
+
+
+        //自定义购买弹窗
+        uint64 buy_vendor; uint32 buy_item; uint32 buy_count; uint32 buy_slot; uint8 buy_bag; uint8 buy_bagslot;
         // CUSTOM PLAYER STATS
 
         // CUSTOM 函数
         void ModifyJf(int32 jfcost) { jftoken += jfcost; }
 
         AchievementMgr* getAchievementMgr() const { return m_achievementMgr; }
+
+        std::string GetSNameLink() const
+        {
+
+            std::string color;
+            std::string CLASS_ICON;
+            switch (getClass())
+            {
+            case CLASS_DEATH_KNIGHT:
+                color = "|cffC41F3B";
+                break;
+            case CLASS_DRUID:
+                color = "|cffFF7D0A";
+                break;
+            case CLASS_HUNTER:
+                color = "|cffABD473";
+                break;
+            case CLASS_MAGE:
+                color = "|cff69CCF0";
+                break;
+            case CLASS_PALADIN:
+                color = "|cffF58CBA";
+                break;
+            case CLASS_PRIEST:
+                color = "|cffFFFFFF";
+                break;
+            case CLASS_ROGUE:
+                color = "|cffFFF569";
+                break;
+            case CLASS_SHAMAN:
+                color = "|cff0070DE";
+                break;
+            case CLASS_WARLOCK:
+                color = "|cff9482C9";
+                break;
+            case CLASS_WARRIOR:
+                color = "|cffC79C6E";
+                break;
+            }
+            return "|Hplayer:" + GetName() + "|h" + "|cffFFFFFF[" + color + GetName() + "|cffFFFFFF]|h|r";
+        }
 
 
 

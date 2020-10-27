@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright (C) 2016+     AzerothCore <www.azerothcore.org>, released under GNU GPL v2 license: https://github.com/azerothcore/azerothcore-wotlk/blob/master/LICENSE-GPL2
  * Copyright (C) 2008-2016 TrinityCore <http://www.trinitycore.org/>
  * Copyright (C) 2005-2009 MaNGOS <http://getmangos.com/>
@@ -15,6 +15,7 @@
 #include "UpdateData.h"
 #include "ObjectAccessor.h"
 #include "SpellInfo.h"
+#include "BYcustom.h"
 
 void WorldSession::HandleSplitItemOpcode(WorldPacket & recvData)
 {
@@ -848,7 +849,9 @@ void WorldSession::HandleBuyItemInSlotOpcode(WorldPacket & recvData)
     if (bag == NULL_BAG)
         return;
 
-    GetPlayer()->BuyItemFromVendorSlot(vendorguid, slot, item, count, bag, bagslot);
+    if (!sCustomMgr->CanSendBuyItemUI(GetPlayer(), vendorguid, item, count, slot, bag, bagslot))
+        GetPlayer()->BuyItemFromVendorSlot(vendorguid, slot, item, count, bag, bagslot);
+    
 }
 
 void WorldSession::HandleBuyItemOpcode(WorldPacket & recvData)
@@ -868,7 +871,8 @@ void WorldSession::HandleBuyItemOpcode(WorldPacket & recvData)
     else
         return; // cheating
 
-    GetPlayer()->BuyItemFromVendorSlot(vendorguid, slot, item, count, NULL_BAG, NULL_SLOT);
+    if (!sCustomMgr->CanSendBuyItemUI(GetPlayer(), vendorguid, item, count, slot, NULL_BAG, NULL_SLOT))
+        GetPlayer()->BuyItemFromVendorSlot(vendorguid, slot, item, count, NULL_BAG, NULL_SLOT);
 }
 
 void WorldSession::HandleListInventoryOpcode(WorldPacket & recvData)

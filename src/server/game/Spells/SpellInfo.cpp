@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright (C) 2016+     AzerothCore <www.azerothcore.org>, released under GNU GPL v2 license: https://github.com/azerothcore/azerothcore-wotlk/blob/master/LICENSE-GPL2
  * Copyright (C) 2008-2016 TrinityCore <http://www.trinitycore.org/>
  * Copyright (C) 2005-2009 MaNGOS <http://getmangos.com/>
@@ -14,6 +14,7 @@
 #include "Player.h"
 #include "Battleground.h"
 #include "Chat.h"
+#include "BYcustom.h"
 
 uint32 GetTargetFlagMask(SpellTargetObjectTypes objType)
 {
@@ -494,6 +495,9 @@ int32 SpellEffectInfo::CalcValue(Unit const* caster, int32 const* bp, Unit const
             }
         }
     }
+
+    if (Effect == SPELL_EFFECT_HEALTH_LEECH || Effect == SPELL_EFFECT_HEAL || ApplyAuraName == SPELL_AURA_PERIODIC_HEAL || ApplyAuraName == SPELL_AURA_PERIODIC_LEECH)
+        value = value * sCustomMgr->GetSpellModHeal(_spellInfo->Id);
 
     return int32(value);
 }
@@ -2268,6 +2272,9 @@ float SpellInfo::GetMaxRange(bool positive, Unit* caster, Spell* spell) const
 
 int32 SpellInfo::GetDuration() const
 {
+    if (sCustomMgr->GetSpellModDuration(Id))
+        return sCustomMgr->GetSpellModDuration(Id);
+
     if (!DurationEntry)
         return 0;
     return (DurationEntry->Duration[0] == -1) ? -1 : abs(DurationEntry->Duration[0]);
@@ -2282,11 +2289,12 @@ int32 SpellInfo::GetMaxDuration() const
 
 uint32 SpellInfo::CalcCastTime(Unit* caster, Spell* spell) const
 {
+    int32 custime = sCustomMgr->GetSpellModCastTime(Id);
     // not all spells have cast time index and this is all is pasiive abilities
-    if (!CastTimeEntry)
+    if (!CastTimeEntry || custime == 0)
         return 0;
 
-    int32 castTime = CastTimeEntry->CastTime;
+    int32 castTime = custime >0 ? custime : CastTimeEntry->CastTime;
     if (Attributes & SPELL_ATTR0_REQ_AMMO && (!IsAutoRepeatRangedSpell()))
         castTime += 500;
 

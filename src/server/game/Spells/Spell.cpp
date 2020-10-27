@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright (C) 2016+     AzerothCore <www.azerothcore.org>, released under GNU GPL v2 license: https://github.com/azerothcore/azerothcore-wotlk/blob/master/LICENSE-GPL2
  * Copyright (C) 2008-2016 TrinityCore <http://www.trinitycore.org/>
  * Copyright (C) 2005-2009 MaNGOS <http://getmangos.com/>
@@ -52,6 +52,7 @@
 #include "BattlegroundIC.h"
 #include "GameObjectAI.h"
 #include "ArenaSpectator.h"
+#include "BYcustom.h"
 
 extern pEffect SpellEffects[TOTAL_SPELL_EFFECTS];
 
@@ -660,6 +661,7 @@ m_caster((info->HasAttribute(SPELL_ATTR6_CAST_BY_CHARMER) && caster->GetCharmerO
 
     // xinef:
     _spellTargetsSelected = false;
+    isdelete = false;
 }
 
 Spell::~Spell()
@@ -2796,6 +2798,8 @@ void Spell::DoAllEffectOnTarget(TargetInfo* target)
             }
         }
 
+        sCustomMgr->HealOnDamage(m_caster, unitTarget, m_spellInfo, damageInfo.damage);
+        sCustomMgr->ShieldOnDamage(unitTarget, m_caster, m_spellInfo, damageInfo.damage);
         // Send log damage message to client
         caster->SendSpellNonMeleeDamageLog(&damageInfo);
         // Xinef: send info to target about reflect
@@ -2845,6 +2849,8 @@ void Spell::DoAllEffectOnTarget(TargetInfo* target)
             if (unitTarget->ToCreature()->IsAIEnabled)
                 unitTarget->ToCreature()->AI()->AttackStart(m_caster);
         }
+
+        sCustomMgr->HealOnDamage(m_caster, unitTarget, m_spellInfo, damageInfo.damage);
     }
 
     if (m_caster)
@@ -2860,6 +2866,10 @@ void Spell::DoAllEffectOnTarget(TargetInfo* target)
 
     if (missInfo != SPELL_MISS_EVADE && effectUnit != m_caster && m_caster->IsFriendlyTo(effectUnit) && m_spellInfo->IsPositive() && effectUnit->IsInCombat())
         m_caster->SetInCombatWith(effectUnit);
+
+    // Check for SPELL_ATTR7_INTERRUPT_ONLY_NONPLAYER
+    if (m_spellInfo->HasAttribute(SPELL_ATTR7_INTERRUPT_ONLY_NONPLAYER) && effectUnit->GetTypeId() != TYPEID_PLAYER)
+        caster->CastSpell(effectUnit, SPELL_INTERRUPT_NONPLAYER, true);
 
     if (spellHitTarget)
     {
@@ -3393,6 +3403,14 @@ void Spell::prepare(SpellCastTargets const* targets, AuraEffect const* triggered
         finish(false);
         return;
     }
+
+    if (m_caster && m_caster->GetTypeId() == TYPEID_PLAYER && sCustomMgr->CheckSpellDisable(m_caster->ToPlayer(), m_spellInfo->Id))
+    {
+        SendCastResult(SPELL_FAILED_SPELL_UNAVAILABLE);
+        finish(false);
+        return;
+    }
+
     LoadScripts();
 
     OnSpellLaunch();
@@ -3644,6 +3662,20 @@ void Spell::_cast(bool skipCheck)
     {
         cancel();
         return;
+    }
+
+    if (Player* playerCaster = m_caster->ToPlayer())
+    {
+        if (!isdelete)
+        {
+            if (!sCustomMgr->CheckSpellCast(playerCaster, GetSpellInfo()->Id))
+            {
+                cancel();
+                return;
+            }
+            sCustomMgr->DeleteAndRewSpellCast(playerCaster, GetSpellInfo()->Id);
+            isdelete = true;
+        }
     }
 
     // Xinef: implement attribute SPELL_ATTR1_DISMISS_PET, on spell cast current pet is dismissed and charms are removed
@@ -5304,6 +5336,14 @@ void Spell::HandleEffects(Unit* pUnitTarget, Item* pItemTarget, GameObject* pGOT
 
 SpellCastResult Spell::CheckCast(bool strict)
 {
+
+    if (Player* playerCaster = m_caster->ToPlayer())
+    {
+        if (!isdelete)
+            if (!sCustomMgr->CheckSpellCast(playerCaster, m_spellInfo->Id))
+                return SPELL_FAILED_NO_POWER;
+    }
+
     // check death state
     if (!m_caster->IsAlive() && !m_spellInfo->HasAttribute(SPELL_ATTR0_PASSIVE) && !(m_spellInfo->HasAttribute(SPELL_ATTR0_CASTABLE_WHILE_DEAD) || (IsTriggered() && !m_triggeredByAuraSpell)))
         return SPELL_FAILED_CASTER_DEAD;

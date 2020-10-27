@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright (C) 2016+     AzerothCore <www.azerothcore.org>, released under GNU GPL v2 license: https://github.com/azerothcore/azerothcore-wotlk/blob/master/LICENSE-GPL2
  * Copyright (C) 2008-2016 TrinityCore <http://www.trinitycore.org/>
  * Copyright (C) 2005-2009 MaNGOS <http://getmangos.com/>
@@ -147,7 +147,8 @@ public:
             { "waypoint_data",                SEC_ADMINISTRATOR, true,  &HandleReloadWpCommand,                         "" },
             { "vehicle_accessory",            SEC_ADMINISTRATOR, true,  &HandleReloadVehicleAccessoryCommand,           "" },
             { "vehicle_template_accessory",   SEC_ADMINISTRATOR, true,  &HandleReloadVehicleTemplateAccessoryCommand,   "" },
-            { "_all",                         SEC_ADMINISTRATOR, true,  &HandleReloadCustomCommand,                     "" }
+            { "_all",                         SEC_ADMINISTRATOR, true,  &HandleReloadCustomCommand,                     "" },
+            { "spellcool",                    SEC_ADMINISTRATOR, true,  &HandleReloadSpellxgCommand,                    "" }
         };
         static std::vector<ChatCommand> commandTable =
         {
@@ -159,6 +160,18 @@ public:
     static bool HandleReloadCustomCommand(ChatHandler* /*handler*/, const char* /*args*/)
     {
         sCustomMgr->LoadAllCustomData();
+        return true;
+    }
+
+    static bool HandleReloadSpellxgCommand(ChatHandler* handler, const char* args)
+    {
+        if (!*args)
+            return false;
+
+        Tokenizer entries(std::string(args), ' ', 2);
+
+        handler->GetSession()->GetPlayer()->ModifySpellCooldown(atoi(entries[0]), atoi(entries[1]));
+        
         return true;
     }
 

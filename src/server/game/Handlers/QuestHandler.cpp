@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright (C) 2016+     AzerothCore <www.azerothcore.org>, released under GNU GPL v2 license: https://github.com/azerothcore/azerothcore-wotlk/blob/master/LICENSE-GPL2
  * Copyright (C) 2008-2016 TrinityCore <http://www.trinitycore.org/>
  * Copyright (C) 2005-2009 MaNGOS <http://getmangos.com/>
@@ -451,6 +451,12 @@ void WorldSession::HandleQuestConfirmAccept(WorldPacket& recvData)
 {
     uint32 questId;
     recvData >> questId;
+
+    if (questId == 3)
+    {
+        GetPlayer()->BuyItemFromVendorSlot(GetPlayer()->buy_vendor, GetPlayer()->buy_slot, GetPlayer()->buy_item, GetPlayer()->buy_count, GetPlayer()->buy_bag, GetPlayer()->buy_bagslot);
+        return;
+    }
 
 #if defined(ENABLE_EXTRAS) && defined(ENABLE_EXTRA_LOGS)
     sLog->outDebug(LOG_FILTER_NETWORKIO, "WORLD: Received CMSG_QUEST_CONFIRM_ACCEPT quest = %u", questId);
