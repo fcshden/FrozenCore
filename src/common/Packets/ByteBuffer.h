@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright (C) 2016+     AzerothCore <www.azerothcore.org>, released under GNU GPL v2 license: https://github.com/azerothcore/azerothcore-wotlk/blob/master/LICENSE-GPL2
  * Copyright (C) 2008-2016 TrinityCore <http://www.trinitycore.org/>
  * Copyright (C) 2005-2009 MaNGOS <http://getmangos.com/>
@@ -9,16 +9,14 @@
 
 #include "Common.h"
 #include "Errors.h"
+#include "Util.h"
 #include "ByteConverter.h"
-
-#include <ace/OS_NS_time.h>
 #include <exception>
 #include <list>
 #include <map>
 #include <string>
 #include <vector>
 #include <cstring>
-#include <time.h>
 
 // Root of ByteBuffer exception hierarchy
 class ByteBufferException : public std::exception
@@ -489,7 +487,7 @@ class ByteBuffer
         void AppendPackedTime(time_t time)
         {
             tm lt;
-            ACE_OS::localtime_r(&time, &lt);
+            localtime_r(&time, &lt);
             append<uint32>((lt.tm_year - 100) << 24 | lt.tm_mon  << 20 | (lt.tm_mday - 1) << 14 | lt.tm_wday << 11 | lt.tm_hour << 6 | lt.tm_min);
         }
 

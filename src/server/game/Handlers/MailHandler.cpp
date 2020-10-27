@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright (C) 2016+     AzerothCore <www.azerothcore.org>, released under GNU GPL v2 license: https://github.com/azerothcore/azerothcore-wotlk/blob/master/LICENSE-GPL2
  * Copyright (C) 2008-2016 TrinityCore <http://www.trinitycore.org/>
  * Copyright (C) 2005-2009 MaNGOS <http://getmangos.com/>
@@ -584,12 +584,8 @@ void WorldSession::HandleGetMailList(WorldPacket & recvData)
 
     Player* player = _player;
 
-    //load players mails, and mailed items
-    if (!player->m_mailsLoaded)
-        player->_LoadMail();
-
+    player->_LoadMail();
     uint32 mailsCount = 0;                                 // real send to client mails amount
-    uint32 realCount  = 0;                                 // real mails amount
 
     WorldPacket data(SMSG_MAIL_LIST_RESULT, (200));         // guess size
     data << uint32(0);                                      // real mail's count
@@ -601,8 +597,7 @@ void WorldSession::HandleGetMailList(WorldPacket & recvData)
         // prevent client storage overflow
         if (mailsCount >= MAX_INBOX_CLIENT_CAPACITY)
         {
-            realCount += 1;
-            continue;
+            break;
         }
 
         // skip deleted or not delivered (deliver delay not expired) mails
@@ -615,7 +610,6 @@ void WorldSession::HandleGetMailList(WorldPacket & recvData)
 
         if (data.wpos() + next_mail_size > MAX_NETCLIENT_PACKET_SIZE)
         {
-            realCount += 1;
             continue;
         }
 
@@ -689,11 +683,10 @@ void WorldSession::HandleGetMailList(WorldPacket & recvData)
             data << uint8(0);
         }
 
-        ++realCount;
         ++mailsCount;
     }
 
-    data.put<uint32>(0, realCount);                         // this will display warning about undelivered mail to player if realCount > mailsCount
+    data.put<uint32>(0, player->totalMailCount);                         // this will display warning about undelivered mail to player if realCount > mailsCount
     data.put<uint8>(4, uint8(mailsCount));                  // set real send mails to client
     SendPacket(&data);
 
@@ -775,8 +768,7 @@ void WorldSession::HandleQueryNextMailTime(WorldPacket & /*recvData*/)
 {
     WorldPacket data(MSG_QUERY_NEXT_MAIL_TIME, 8);
 
-    if (!_player->m_mailsLoaded)
-        _player->_LoadMail();
+    _player->_LoadMail();
 
     if (_player->unReadMails > 0)
     {

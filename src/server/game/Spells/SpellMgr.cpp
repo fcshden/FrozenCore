@@ -3325,6 +3325,7 @@ void SpellMgr::LoadDbcDataCorrections()
             case 45257: // Using Steam Tonk Controller
             case 45440: // Steam Tonk Controller
             case 60256: // Collect Sample
+            case 45634: // Neural Needle
                 // Crashes client on pressing ESC
                 spellInfo->AttributesEx4 &= ~SPELL_ATTR4_CAN_CAST_WHILE_CASTING;
                 break;

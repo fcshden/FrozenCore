@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright (C) 2016+     AzerothCore <www.azerothcore.org>, released under GNU GPL v2 license: https://github.com/azerothcore/azerothcore-wotlk/blob/master/LICENSE-GPL2
  * Copyright (C) 2008-2016 TrinityCore <http://www.trinitycore.org/>
  * Copyright (C) 2005-2009 MaNGOS <http://getmangos.com/>
@@ -13,7 +13,6 @@
 #ifndef _WORLDSOCKET_H
 #define _WORLDSOCKET_H
 
-#include <ace/Basic_Types.h>
 #include <ace/Synch_Traits.h>
 #include <ace/Svc_Handler.h>
 #include <ace/SOCK_Stream.h>
@@ -28,6 +27,7 @@
 
 #include "Common.h"
 #include "AuthCrypt.h"
+#include "Duration.h"
 
 class ACE_Message_Block;
 class WorldPacket;
@@ -151,7 +151,7 @@ class WorldSocket : public WorldHandler
 
     private:
         /// Time in which the last ping was received
-        ACE_Time_Value m_LastPingTime;
+        SystemTimePoint m_LastPingTime;
 
         /// Keep track of over-speed pings, to prevent ping flood.
         uint32 m_OverSpeedPings;

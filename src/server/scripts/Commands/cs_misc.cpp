@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright (C) 2016+     AzerothCore <www.azerothcore.org>, released under GNU GPL v2 license: https://github.com/azerothcore/azerothcore-wotlk/blob/master/LICENSE-GPL2
  * Copyright (C) 2008-2016 TrinityCore <http://www.trinitycore.org/>
  * Copyright (C) 2005-2009 MaNGOS <http://getmangos.com/>
@@ -2370,7 +2370,7 @@ public:
             char buffer[80];
 
             // set it to string
-            ACE_OS::localtime_r(&sqlTime, &timeInfo);
+            localtime_r(&sqlTime, &timeInfo);
             strftime(buffer, sizeof(buffer), "%Y-%m-%d %I:%M%p", &timeInfo);
 
             handler->PSendSysMessage(LANG_COMMAND_MUTEHISTORY_OUTPUT, buffer, fields[1].GetUInt32(), fields[2].GetCString(), fields[3].GetCString());

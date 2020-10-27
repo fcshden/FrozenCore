@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright (C) 2016+     AzerothCore <www.azerothcore.org>, released under GNU GPL v2 license: https://github.com/azerothcore/azerothcore-wotlk/blob/master/LICENSE-GPL2
  * Copyright (C) 2008-2016 TrinityCore <http://www.trinitycore.org/>
  * Copyright (C) 2005-2009 MaNGOS <http://getmangos.com/>
@@ -2518,7 +2518,15 @@ class spell_item_scroll_of_recall : public SpellScriptLoader
 enum ShadowsFate
 {
     SPELL_SOUL_FEAST        = 71203,
-    NPC_SINDRAGOSA          = 36853
+};
+
+enum ExceptionCreature
+{
+    NPC_GLUTTONOUS_ABOMINATION = 37886,
+    NPC_RISEN_ARCHMAGE = 37868,
+    NPC_BLISTERING_ZOMBIE = 37934,
+    NPC_BLAZING_SKELETON = 36791,
+    NPC_SINDRAGOSA = 36853
 };
 
 class spell_item_unsated_craving : public SpellScriptLoader
@@ -2530,15 +2538,39 @@ class spell_item_unsated_craving : public SpellScriptLoader
         {
             PrepareAuraScript(spell_item_unsated_craving_AuraScript);
 
+            bool isException(Unit* target) const
+            {
+                switch (target->GetEntry())
+                {
+                case NPC_GLUTTONOUS_ABOMINATION:
+                case NPC_RISEN_ARCHMAGE:
+                case NPC_BLISTERING_ZOMBIE:
+                case NPC_BLAZING_SKELETON:
+                case NPC_SINDRAGOSA:
+                    return true;
+                default:
+                    return false;
+                }
+            }
+
             bool CheckProc(ProcEventInfo& procInfo)
             {
                 Unit* caster = procInfo.GetActor();
                 if (!caster || caster->GetTypeId() != TYPEID_PLAYER)
+                {
                     return false;
+                }               
 
                 Unit* target = procInfo.GetActionTarget();
-                if (!target || target->GetTypeId() != TYPEID_UNIT || target->IsCritter() || (target->GetEntry() != NPC_SINDRAGOSA && target->IsSummon()))
+                if (target && isException(target))
+                {
+                    return true;
+                }
+
+                if (!target || target->GetTypeId() != TYPEID_UNIT || target->IsCritter() || target->IsSummon())
+                {
                     return false;
+                }
 
                 return true;
             }

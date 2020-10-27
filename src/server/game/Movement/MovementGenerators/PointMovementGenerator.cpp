@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright (C) 2016+     AzerothCore <www.azerothcore.org>, released under GNU GPL v2 license: https://github.com/azerothcore/azerothcore-wotlk/blob/master/LICENSE-GPL2
  * Copyright (C) 2008-2016 TrinityCore <http://www.trinitycore.org/>
  * Copyright (C) 2005-2009 MaNGOS <http://getmangos.com/>
@@ -59,6 +59,11 @@ void PointMovementGenerator<T>::DoInitialize(T* unit)
     }
     if (speed > 0.0f)
         init.SetVelocity(speed);
+
+    if (i_orientation > 0.0f)
+    {
+        init.SetFacing(i_orientation);
+    }
     init.Launch();
 }
 
@@ -101,6 +106,12 @@ bool PointMovementGenerator<T>::DoUpdate(T* unit, uint32 /*diff*/)
             init.MoveTo(i_x, i_y, i_z);
         if (speed > 0.0f) // Default value for point motion type is 0.0, if 0.0 spline will use GetSpeed on unit
             init.SetVelocity(speed);
+
+        if (i_orientation > 0.0f)
+        {
+            init.SetFacing(i_orientation);
+        }
+
         init.Launch();
     }
 
