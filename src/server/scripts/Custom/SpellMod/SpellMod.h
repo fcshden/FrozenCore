@@ -1,232 +1,225 @@
-﻿#ifndef __Spell_H
-#define __Spell_H
-#include "Common.h"
-#include "Timer.h"
-#include <ace/Singleton.h>
-#include <ace/Atomic_Op.h>
-#include "SharedDefines.h"
-#include "Util.h"
-#include <atomic>
-#include <map>
-#include <set>
-#include <list>
-#pragma execution_character_set("utf-8")
-
-//所有需求表
-
-struct SpellCustomMod
+struct SpellModTemplate
 {
-    uint32 spellid;
-    uint32 reqId;
-    uint32 rewId;
-    float dmgMod;
-    float healMod;
-    bool accountBind;
-    bool disable;
-    int32 castingtime;
-    int32 duration;
-    uint32 cooldown;
-    uint32 procChance;
-    uint32 Periodic[MAX_SPELL_EFFECTS];
+	uint32 reqId;
+	float dmgMod;
+	float healMod;
+	bool accountBind;
+	bool disable;
+	uint32 castingtime;
+	uint32 duration;
+	uint32 cooldown;
+	uint32 procChance;
+	uint32 Periodic[MAX_SPELL_EFFECTS];
 };
 
-struct SpellCustomLearnMod
+extern std::unordered_map<uint32, SpellModTemplate> SpellModMap;
+
+struct SpellModBaseTemplate
 {
-    uint32 spellid;
-    uint32 reqId;
-    uint32 rewId;
+	uint32    EffectImplicitTargetA[MAX_SPELL_EFFECTS];
+	uint32    Effect[MAX_SPELL_EFFECTS];
+	uint32    EffectApplyAuraName[MAX_SPELL_EFFECTS];
+	int32     EffectMiscValue[MAX_SPELL_EFFECTS];
+	int32     EffectBasePoints[MAX_SPELL_EFFECTS];
+	uint32    EffectTriggerSpell[MAX_SPELL_EFFECTS];
+	flag96    EffectSpellClassMask[MAX_SPELL_EFFECTS];
+	uint32    SpellFamilyName;
+	uint32    procChance;
+	uint32    procCharges;
+	uint32	  procFlags;
+	int32     RecoveryTime;
 };
 
-struct SpellCustomUnLearnMod
+extern std::unordered_map<uint32, SpellModBaseTemplate> SpellModBaseMap;
+
+struct AuraModSpellTemplate
 {
-    uint32 spellid;
-    uint32 reqId;
-    uint32 rewId;
+	uint32 AuraId;
+	SpellFamilyNames SpellFamilyName;
+	std::vector<uint32> SpellVec;
+	SpellModType Type[MAX_SPELL_EFFECTS];
+	SpellModOp Op[MAX_SPELL_EFFECTS];
+	int32 Value[MAX_SPELL_EFFECTS];
 };
+
+extern std::vector<AuraModSpellTemplate> AuraModSpellVec;
+
+struct AuraModClassSpellTemplate
+{
+	uint32 AuraId;
+	SpellFamilyNames SpellFamilyName;
+	SpellModType Type[MAX_SPELL_EFFECTS];
+	SpellModOp Op[MAX_SPELL_EFFECTS];
+	int32 Value[MAX_SPELL_EFFECTS];
+};
+
+extern std::unordered_map<uint32, AuraModClassSpellTemplate> AuraModClassSpellMap;
+
+struct AuraModStatTemplate
+{
+	uint32 aura;
+	uint32 auraType[MAX_SPELL_EFFECTS];
+	int32 basePoints[MAX_SPELL_EFFECTS];
+	int32 misc[MAX_SPELL_EFFECTS];
+	int32 miscB[MAX_SPELL_EFFECTS];
+};
+
+extern std::unordered_map<uint32, AuraModStatTemplate> AuraModStatMap;
+
+enum ModTypes
+{
+	MOD_TYPE_PCT,
+	MOD_TYPE_AMOUNT,
+};
+
+struct AuraPctTemplate
+{
+	uint32 aura;
+	uint32 auraType[MAX_SPELL_EFFECTS];
+	int32 basePoints[MAX_SPELL_EFFECTS];
+	uint32 misc[MAX_SPELL_EFFECTS];
+	uint32 miscB[MAX_SPELL_EFFECTS];
+};
+
+extern std::unordered_map<uint32, AuraPctTemplate> AuraPctMap;
+
+struct AccountSpellTemplate
+{
+	uint32 accountId;
+	uint32 spellId;
+};
+
+extern std::vector<AccountSpellTemplate> AccountSpellVec;
+
+struct MountSpellTemplate
+{
+	uint32 mount60;
+	uint32 mount100;
+	uint32 mount150;
+	uint32 mount280;
+	uint32 mount310;
+};
+
+extern std::unordered_map<uint32, MountSpellTemplate> MountSpellMap;
 
 enum LeechTypes
 {
-    LEECH_TYPE_NONE,
-    LEECH_TYPE_SELF_CUR_PCT,			//0 自身当前生命值百分比
-    LEECH_TYPE_SELF_MAX_PCT,			//1 自身最大生命值百分比
-    LEECH_TYPE_TARGET_CUR_PCT,			//2 目标当前生命值百分比
-    LEECH_TYPE_TARGET_MAX_PCT,			//3 目标最大生命值百分比
-    LEECH_TYPE_STATIC,					//4 固定数值
-    LEECH_TYPE_DAMGE_PCT,				//5 技能伤害百分比
+	LEECH_TYPE_NONE,
+	LEECH_TYPE_SELF_CUR_PCT,			//0 自身当前生命值百分比
+	LEECH_TYPE_SELF_MAX_PCT,			//1 自身最大生命值百分比
+	LEECH_TYPE_TARGET_CUR_PCT,			//2 目标当前生命值百分比
+	LEECH_TYPE_TARGET_MAX_PCT,			//3 目标最大生命值百分比
+	LEECH_TYPE_STATIC,					//4 固定数值
+	LEECH_TYPE_DAMGE_PCT,				//5 技能伤害百分比
 };
 
-struct SpellCustomXxSpellMod
+struct SpellLeechTemplate
 {
-    uint32 spellid;
-    float chance;
-    LeechTypes type;
-    float basepoints;
-    float addDmg;
-    uint32 meetAura;
+	uint32 spellid;
+	float chance;
+	LeechTypes type;
+	float basepoints;
+	bool addDmg;
+	uint32 meetAura;
 };
 
-struct SpellCustomXxAuraMod
+extern std::vector<SpellLeechTemplate> SpellLeechVec;
+
+struct AuraLeechTemplate
 {
-    uint32 spellid;
-    float chance;
-    LeechTypes type;
-    float basepoints;
-    float addDmg;
-    flag96 SpellClassMask;
-    uint32 SpellFamily;
+	float chance;
+	LeechTypes type;
+	float basepoints;
+	bool addDmg;
 };
 
-struct SpellCustomFsAuraMod
+extern std::unordered_map<uint32, AuraLeechTemplate> AuraLeechMap;
+
+enum AuraTriggerIgnoreMask
 {
-    uint32 spellid;
-    uint32 dmgmask;
-    float chance;
-    LeechTypes type;
-    float basepoints;
+	AURA_TRIGGER_IGNORE_BOSS = 1,
+	AURA_TRIGGER_IGNORE_DUNGEON = 2,
+	AURA_TRIGGER_IGNORE_NO_DUNGEON = 4,
+	AURA_TRIGGER_IGNORE_PLAYER = 8,
+	AURA_TRIGGER_IGNORE_UNIT = 16,
 };
 
-struct AuraStackTriggerMod
+struct AuraTriggerSpellTemplate
 {
-    uint32 auraid;
-    uint32 Stacks;
-    std::vector<uint32> TriggerSpellVec;
-    uint32 RemoveStacks;
+	uint32 auraId;
+	std::vector<uint32>triggerSpellData;
+	float procChance;
+	std::vector<uint32>linkSpellData;
+	float bp0ApPct;
+	float bp1ApPct;
+	float bp2ApPct;
+	float bp0SpPct;
+	float bp1SpPct;
+	float bp2SpPct;
+	uint32 cooldown;
+	uint32 ignoreMask;
+
+	float TargetRange;
+	uint32 Targets;
+
+	uint32 procFlags;
 };
 
-struct AuraOnDeathMod
+extern std::unordered_map<uint32, AuraTriggerSpellTemplate> AuraTriggerSpellMap;
+
+extern std::unordered_map<uint32, std::string> OnRemoveSpellMap;
+extern std::unordered_map<uint32, std::string> OnLearnSpellMap;
+
+extern std::unordered_map<uint32, uint32> SpellCusTargetMaskMap;
+
+struct AuraStackTriggerTemplate
 {
-    uint32 auraid;
-    uint32 CoolDown;
-    uint32 AttackerTriggerSpell;
-    float AttackerTriggerChance;
-    uint32 SelfTriggerSpell;
-    float SelfTriggerChance;
-    bool PreventLastDamage;
+	uint32 Stacks;
+	std::vector<uint32> TriggerSpellVec;
+	uint32 RemoveStacks;
 };
 
-class SpellModMgr
+extern std::unordered_map<uint32, AuraStackTriggerTemplate> AuraStackTriggerMap;
+
+struct AuraTriggerOnDeathTemplate
+{
+	uint32 CoolDown;
+	uint32 AttackerTriggerSpell;
+	float AttackerTriggerChance;
+	uint32 SelfTriggerSpell;
+	float SelfTriggerChance;
+	bool PreventLastDamage;
+};
+extern std::unordered_map<uint32, AuraTriggerOnDeathTemplate> AuraTriggerOnDeathMap;
+
+class SpellMod
 {
 public:
-    SpellModMgr();
-    ~SpellModMgr();
+	static SpellMod* instance()
+	{
+		static SpellMod instance;
+		return &instance;
+	}
 
-    SpellCustomMod const * FindSpellCustomMod(uint32 spellid)
-    {
-        for (auto i = m_spellmods.begin(); i != m_spellmods.end(); i++)
-        {
-            if ((*i)->spellid == spellid)
-                return (*i);
-        }
-        return nullptr;
-    }
+	void Load();
+	bool Enable(Player* player, uint32 spellId);
+	uint32 GetReqId(uint32 spellId);
+	float GetDmgMod(uint32 spellId);
+	float GetHealMod(uint32 spellId);
+	bool AccontBind(uint32 spellId);
 
-    typedef std::vector<SpellCustomMod*>  CSpellModMap;
-    CSpellModMap m_spellmods; //技能基础属性
-
-
-    SpellCustomLearnMod const * FindSpellLearnMod(uint32 spellid)
-    {
-        for (auto i = m_spellmodlearns.begin(); i != m_spellmodlearns.end(); i++)
-        {
-            if ((*i)->spellid == spellid)
-                return (*i);
-        }
-        return nullptr;
-    }
-
-    typedef std::vector<SpellCustomLearnMod*>  CSpellModLearnMap;
-    CSpellModLearnMap m_spellmodlearns; //技能学习时
+	//account spell
+	void LearnAccountSpell(Player* player);
+	void InsertAccountSpell(Player* player);
 
 
-    SpellCustomUnLearnMod const * FindSpellUnLearnMod(uint32 spellid)
-    {
-        for (auto i = m_spellmodunlearns.begin(); i != m_spellmodunlearns.end(); i++)
-        {
-            if ((*i)->spellid == spellid)
-                return (*i);
-        }
-        return nullptr;
-    }
+	bool Ignore(uint32 ignoreMask, Unit* target);
+	bool AuraTrigger(Unit* caster, Unit* victim, SpellInfo const* auraSpellInfo, SpellInfo const* procSpell, uint32 procFlags, Unit*  &target, AuraEffect* triggeredByAura);
+	void HealOnDamage(Unit* caster, Unit* target, SpellInfo const* spellInfo, uint32 &damage);
 
-    typedef std::vector<SpellCustomUnLearnMod*>  CSpellModUnLearnMap;
-    CSpellModUnLearnMap m_spellmodunlearns; //技能遗忘时
-
-
-    SpellCustomXxSpellMod const * FindSpellXxSpellMod(uint32 spellid)
-    {
-        for (auto i = m_spellmodxxspell.begin(); i != m_spellmodxxspell.end(); i++)
-        {
-            if ((*i)->spellid == spellid)
-                return (*i);
-        }
-        return nullptr;
-    }
-
-    typedef std::vector<SpellCustomXxSpellMod*>  CSpellModXxSpellMap;
-    CSpellModXxSpellMap m_spellmodxxspell; //吸血技能
-
-    SpellCustomXxAuraMod const * FindSpellXxAuraMod(uint32 spellid)
-    {
-        for (auto i = m_spellmodxxaura.begin(); i != m_spellmodxxaura.end(); i++)
-        {
-            if ((*i)->spellid == spellid)
-                return (*i);
-        }
-        return nullptr;
-    }
-
-    typedef std::vector<SpellCustomXxAuraMod*>  CSpellModXxAuraMap;
-    CSpellModXxAuraMap m_spellmodxxaura; //吸血光环
-
-
-    SpellCustomFsAuraMod const * FindSpellFsAuraMod(uint32 spellid)
-    {
-        for (auto i = m_spellmodfsaura.begin(); i != m_spellmodfsaura.end(); i++)
-        {
-            if ((*i)->spellid == spellid)
-                return (*i);
-        }
-        return nullptr;
-    }
-
-    typedef std::vector<SpellCustomFsAuraMod*>  CSpellModFsAuraMap;
-    CSpellModFsAuraMap m_spellmodfsaura; //反伤光环
-
-
-    AuraStackTriggerMod const * FindAuraStackMod(uint32 spellid)
-    {
-        for (auto i = m_AuraStackTriggers.begin(); i != m_AuraStackTriggers.end(); i++)
-        {
-            if ((*i)->auraid == spellid)
-                return (*i);
-        }
-        return nullptr;
-    }
-
-    typedef std::vector<AuraStackTriggerMod*>  CAuraStackTriggerMap;
-    CAuraStackTriggerMap m_AuraStackTriggers; //光环叠加
-
-
-    AuraOnDeathMod const * FindAuraOnDeathMod(uint32 spellid)
-    {
-        for (auto i = m_AuraOnDeath.begin(); i != m_AuraOnDeath.end(); i++)
-        {
-            if ((*i)->auraid == spellid)
-                return (*i);
-        }
-        return nullptr;
-    }
-
-    typedef std::vector<AuraOnDeathMod*>  CAuraOnDeathMap;
-    CAuraOnDeathMap m_AuraOnDeath; //光环死亡触发
-
-    void Load();
-    void HealOnDamage(Unit* caster, Unit* target, SpellInfo const* spellInfo, uint32 &damage);
-    void ShieldOnDamage(Unit* caster, Unit* target, SpellInfo const* spellInfo, uint32 &damage);
-protected:
+	void GetParams_PctOnStat(const char* strAuraType, const char* strStatType, AuraType &auraType, int32 &misc, int32 &miscB);
+	void GetParams_Pct(const char* strAuraType, const char* strModType, AuraType &auraType, int32 &misc, int32 &miscB);
 private:
+
 };
-
-#define sSpellModMgr ACE_Singleton<SpellModMgr, ACE_Null_Mutex>::instance()
-#endif
-
+#define sSpellMod SpellMod::instance()

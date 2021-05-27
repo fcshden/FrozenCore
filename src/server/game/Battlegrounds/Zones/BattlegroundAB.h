@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Originally written by Xinef - Copyright (C) 2016+ AzerothCore <www.azerothcore.org>, released under GNU AGPL v3 license: http://github.com/azerothcore/azerothcore-wotlk/blob/master/LICENSE-AGPL3
 */
 
@@ -25,8 +25,16 @@ enum BG_AB_Events
     BG_AB_EVENT_HORDE_TICK                  = 12
 };
 
+extern uint32 BG_AB_MAX_KILLS;
+extern uint32 BG_AB_WARNING_NEAR_VICTORY_SCORE;
+extern uint32 BG_AB_MAX_TEAM_SCORE;
+
 enum BG_AB_WorldStates
 {
+    BG_AB_FLAG_ALLY_KILLS = 1900,
+    BG_AB_FLAG_HORDE_KILLS = 1901,
+    BG_AB_FLAG_MAX_KILLS = 1902,
+
     BG_AB_OP_OCCUPIED_BASES_HORDE       = 1778,
     BG_AB_OP_OCCUPIED_BASES_ALLY        = 1779,
     BG_AB_OP_RESOURCES_ALLY             = 1776,
@@ -164,9 +172,6 @@ enum BG_AB_Misc
     BG_AB_REP_TICK_NORMAL               = 160,
     BG_AB_REP_TICK_WEEKEND              = 120,
 
-    BG_AB_WARNING_NEAR_VICTORY_SCORE    = 1400,
-    BG_AB_MAX_TEAM_SCORE                = 1600,
-
     BG_AB_FLAG_CAPTURING_TIME           = 60000,
     BG_AB_BANNER_UPDATE_TIME            = 2000
 };
@@ -226,6 +231,8 @@ class BattlegroundAB : public Battleground
     public:
         BattlegroundAB();
         ~BattlegroundAB() override;
+
+        void HandleKillPlayer(Player* player, Player* killer);
 
         void AddPlayer(Player* player) override;
         void StartingEventCloseDoors() override;

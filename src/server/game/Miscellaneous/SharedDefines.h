@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright (C) 2016+     AzerothCore <www.azerothcore.org>, released under GNU GPL v2 license: https://github.com/azerothcore/azerothcore-wotlk/blob/master/LICENSE-GPL2
  * Copyright (C) 2008-2016 TrinityCore <http://www.trinitycore.org/>
  * Copyright (C) 2005-2009 MaNGOS <http://getmangos.com/>
@@ -267,6 +267,13 @@ const uint32 ItemQualityColors[MAX_ITEM_QUALITY] =
 // ***********************************
 // Spell Attributes definitions
 // ***********************************
+enum SpellCusTargetMask
+{
+    SPELL_CUS_TARGET_MASK_NONE = 0,
+    SPELL_CUS_TARGET_MASK_BOSS = 0x00000001,
+    SPELL_CUS_TARGET_MASK_CREATURE = 0x00000002,
+    SPELL_CUS_TARGET_MASK_PLAYER = 0x00000004,
+};
 
 enum SpellAttr0
 {

@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright (C) 2016+     AzerothCore <www.azerothcore.org>, released under GNU GPL v2 license: https://github.com/azerothcore/azerothcore-wotlk/blob/master/LICENSE-GPL2
  * Copyright (C) 2008-2020 TrinityCore <http://www.trinitycore.org/>
  * Copyright (C) 2005-2009 MaNGOS <http://getmangos.com/>
@@ -25,6 +25,9 @@ typedef std::map<WMOAreaTableKey, WMOAreaTableEntry const*> WMOAreaInfoByTripple
 DBCStorage <AreaTableEntry> sAreaTableStore(AreaTableEntryfmt);
 DBCStorage <AreaGroupEntry> sAreaGroupStore(AreaGroupEntryfmt);
 DBCStorage <AreaPOIEntry> sAreaPOIStore(AreaPOIEntryfmt);
+
+static AreaFlagByAreaID sAreaFlagByAreaID;
+static AreaFlagByMapID sAreaFlagByMapID;
 
 static WMOAreaInfoByTripple sWMOAreaInfoByTripple;
 
@@ -81,7 +84,7 @@ DBCStorage <GtRegenHPPerSptEntry>         sGtRegenHPPerSptStore(GtRegenHPPerSptf
 DBCStorage <GtRegenMPPerSptEntry>         sGtRegenMPPerSptStore(GtRegenMPPerSptfmt);
 
 DBCStorage <HolidaysEntry>                sHolidaysStore(Holidaysfmt);
-
+DBCStorage <ItemEntry>                    sItemStore(Itemfmt);
 DBCStorage <ItemBagFamilyEntry>           sItemBagFamilyStore(ItemBagFamilyfmt);
 //DBCStorage <ItemCondExtCostsEntry> sItemCondExtCostsStore(ItemCondExtCostsEntryfmt);
 DBCStorage <ItemDisplayInfoEntry> sItemDisplayInfoStore(ItemDisplayTemplateEntryfmt);
@@ -125,6 +128,10 @@ DBCStorage <SoundEntriesEntry> sSoundEntriesStore(SoundEntriesfmt);
 DBCStorage <SpellItemEnchantmentEntry> sSpellItemEnchantmentStore(SpellItemEnchantmentfmt);
 DBCStorage <SpellItemEnchantmentConditionEntry> sSpellItemEnchantmentConditionStore(SpellItemEnchantmentConditionfmt);
 DBCStorage <SpellEntry> sSpellStore(SpellEntryfmt);
+
+DBCStorage <_SpellEntry> _sSpellStore(_SpellEntryfmt);
+DBCStorage <SpellIconEntry> sSpellIconStore(SpellIconEntryfmt);
+
 SpellCategoryStore sSpellsByCategoryStore;
 PetFamilySpellsStore sPetFamilySpellsStore;
 
@@ -244,6 +251,21 @@ void LoadDBCStores(const std::string& dataPath)
 #define LOAD_DBC(store, file, dbtable) LoadDBC(availableDbcLocales, bad_dbc_files, store, dbcPath, file, dbtable)
 
     LOAD_DBC(sAreaTableStore,                       "AreaTable.dbc",                        "areatable_dbc");
+
+    // must be after sAreaStore loading
+    for (uint32 i = 0; i < sAreaTableStore.GetNumRows(); ++i)           // areaflag numbered from 0
+    {
+        if (AreaTableEntry const* area = sAreaTableStore.LookupEntry(i))
+        {
+            // fill AreaId->DBC records
+            sAreaFlagByAreaID.insert(AreaFlagByAreaID::value_type(uint16(area->ID), area->exploreFlag));
+
+            // fill MapId->DBC records (skip sub zones and continents)
+            if (area->zone == 0 && area->mapid != 0 && area->mapid != 1 && area->mapid != 530 && area->mapid != 571)
+                sAreaFlagByMapID.insert(AreaFlagByMapID::value_type(area->mapid, area->exploreFlag));
+        }
+    }
+
     LOAD_DBC(sAchievementStore,                     "Achievement.dbc",                      "achievement_dbc");
     LOAD_DBC(sAchievementCategoryStore,             "Achievement_Category.dbc",             "achievement_category_dbc");
     LOAD_DBC(sAchievementCriteriaStore,             "Achievement_Criteria.dbc",             "achievement_criteria_dbc");
@@ -290,6 +312,7 @@ void LoadDBCStores(const std::string& dataPath)
     LOAD_DBC(sGtRegenHPPerSptStore,                 "gtRegenHPPerSpt.dbc",                  "gtregenhpperspt_dbc");
     LOAD_DBC(sGtRegenMPPerSptStore,                 "gtRegenMPPerSpt.dbc",                  "gtregenmpperspt_dbc");
     LOAD_DBC(sHolidaysStore,                        "Holidays.dbc",                         "holidays_dbc");
+    LOAD_DBC(sItemStore, "Item.dbc", "");
     LOAD_DBC(sItemBagFamilyStore,                   "ItemBagFamily.dbc",                    "itembagfamily_dbc");
     LOAD_DBC(sItemDisplayInfoStore,                 "ItemDisplayInfo.dbc",                  "itemdisplayinfo_dbc");
     //LOAD_DBC(sItemCondExtCostsStore,              "ItemCondExtCosts.dbc",                 "itemcondextcosts_dbc");
@@ -319,6 +342,8 @@ void LoadDBCStores(const std::string& dataPath)
     LOAD_DBC(sSkillLineAbilityStore,                "SkillLineAbility.dbc",                 "skilllineability_dbc");
     LOAD_DBC(sSoundEntriesStore,                    "SoundEntries.dbc",                     "soundentries_dbc");
     LOAD_DBC(sSpellStore,                           "Spell.dbc",                            "spell_dbc");
+    LOAD_DBC(_sSpellStore, "Spell.dbc", "spell_dbc");
+    LOAD_DBC(sSpellIconStore, "SpellIcon.dbc", "");
     LOAD_DBC(sSpellCastTimesStore,                  "SpellCastTimes.dbc",                   "spellcasttimes_dbc");
     LOAD_DBC(sSpellCategoryStore,                   "SpellCategory.dbc",                    "spellcategory_dbc");
     LOAD_DBC(sSpellDifficultyStore,                 "SpellDifficulty.dbc",                  "spelldifficulty_dbc");
@@ -626,6 +651,79 @@ uint32 GetTalentSpellCost(uint32 spellId)
 
     return 0;
 }
+
+int32 GetAreaFlagByAreaID(uint32 area_id)
+{
+    AreaFlagByAreaID::iterator i = sAreaFlagByAreaID.find(area_id);
+    if (i == sAreaFlagByAreaID.end())
+        return -1;
+
+    return i->second;
+}
+
+AreaTableEntry const* GetAreaEntryByAreaID(uint32 area_id)
+{
+    int32 areaflag = GetAreaFlagByAreaID(area_id);
+    if (areaflag < 0)
+        return NULL;
+
+    return sAreaTableStore.LookupEntry(areaflag);
+}
+
+AreaTableEntry const* GetAreaEntryByAreaFlagAndMap(uint32 area_flag, uint32 map_id)
+{
+    if (area_flag)
+        return sAreaTableStore.LookupEntry(area_flag);
+
+    if (MapEntry const* mapEntry = sMapStore.LookupEntry(map_id))
+        return GetAreaEntryByAreaID(mapEntry->linked_zone);
+
+    return NULL;
+}
+
+int32 GetMapIdByZone(uint32 zone_id)
+{
+    if (zone_id == 0)
+        return -1;
+
+    for (uint32 id = 0; id < sAreaTableStore.GetNumRows(); id++)
+    {
+        AreaTableEntry const* info = sAreaTableStore.LookupEntry(id);
+
+        if (info && info->zone == 0 && info->ID == zone_id)
+            return info->mapid;
+    }
+
+    return -1;
+}
+
+std::string GetMapNameById(uint32 id)
+{
+    MapEntry const* mapEntry = sMapStore.LookupEntry(id);
+    return mapEntry ? std::string(mapEntry->name[4]) : "";
+}
+
+std::string GetZoneNameById(uint32 id)
+{
+    AreaTableEntry const* zoneEntry = GetAreaEntryByAreaID(id);
+    return zoneEntry ? std::string(zoneEntry->area_name[4]) : "";
+}
+
+std::string GetAreaNameById(uint32 id)
+{
+    AreaTableEntry const* areaEntry = GetAreaEntryByAreaID(id);
+    return areaEntry ? std::string(areaEntry->area_name[4]) : "";
+}
+
+uint32 GetAreaFlagByMapId(uint32 mapid)
+{
+    AreaFlagByMapID::iterator i = sAreaFlagByMapID.find(mapid);
+    if (i == sAreaFlagByMapID.end())
+        return 0;
+    else
+        return i->second;
+}
+
 
 WMOAreaTableEntry const* GetWMOAreaTableEntryByTripple(int32 rootid, int32 adtid, int32 groupid)
 {

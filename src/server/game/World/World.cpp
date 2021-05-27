@@ -78,7 +78,14 @@
 #include "ServerMotd.h"
 #include "GameGraveyard.h"
 #include <VMapManager2.h>
-#include "BYcustom.h"
+#pragma execution_character_set("utf-8")
+#include "../../scripts/Custom/AuthCheck/AuthCheck.h"
+#include "../../scripts/Custom/GCAddon/GCAddon.h"
+#include "../../scripts/Custom/Faker/Faker.h"
+#include "../Custom/ItemMod/ItemMod.h"
+#include "../../scripts/Custom/CharPvpTop/CharPvpTop.h"
+#include "../../scripts/Custom/GvgSys/GvgSys.h"
+#include "FrozenBot.h"
 
 #ifdef ELUNA
 #include "LuaEngine.h"
@@ -1380,6 +1387,24 @@ void World::LoadConfigSettings(bool reload)
     m_bool_configs[CONFIG_DEBUG_BATTLEGROUND] = sConfigMgr->GetBoolDefault("Debug.Battleground", false);
     m_bool_configs[CONFIG_DEBUG_ARENA]        = sConfigMgr->GetBoolDefault("Debug.Arena",        false);
 
+    //zhcn db
+    m_bool_configs[CONFIG_ZHCN_DB] = sConfigMgr->GetBoolDefault("DB.ZHCN.ENABLE", true);
+
+    //loot check
+    m_bool_configs[CONFIG_LOOTCHECK_ENABLED] = sConfigMgr->GetBoolDefault("LootCheckEnable", false);
+    m_int_configs[CONFIG_LOOTCHECK_TYPE] = sConfigMgr->GetIntDefault("LootCheckType", 1);
+    m_int_configs[CONFIG_LOOTCHECK_COUNT] = sConfigMgr->GetIntDefault("LootCheckCount", 40);
+    m_int_configs[CONFIG_LOOTCHECK_SECONDS] = sConfigMgr->GetIntDefault("LootCheckTime", 30);
+    m_int_configs[CONFIG_LOOTCHECK_MONEY] = sConfigMgr->GetIntDefault("LootCheckMoney", 10000);
+
+    m_bool_configs[CONFIG_ARENA_1V1_ENABLE] = sConfigMgr->GetBoolDefault("Arena.1v1.Enable", true);
+    m_bool_configs[CONFIG_ARENA_1V1_ANNOUNCER] = sConfigMgr->GetBoolDefault("Arena.1v1.Announcer", false);
+    m_int_configs[CONFIG_ARENA_1V1_MIN_LEVEL] = sConfigMgr->GetIntDefault("Arena.1v1.MinLevel", 80);
+    m_int_configs[CONFIG_ARENA_1V1_COSTS] = sConfigMgr->GetIntDefault("Arena.1v1.Costs", 400000);
+    m_bool_configs[CONFIG_ARENA_1V1_VENDOR_RATING] = sConfigMgr->GetBoolDefault("Arena.1v1.VendorRating", false);
+    m_float_configs[CONFIG_ARENA_1V1_ARENAPOINTS_MULTI] = sConfigMgr->GetFloatDefault("Arena.1v1.ArenaPointsMulti", 0.64f);
+    m_bool_configs[CONFIG_ARENA_1V1_BLOCK_FORBIDDEN_TALENTS] = sConfigMgr->GetBoolDefault("Arena.1v1.BlockForbiddenTalents", true);
+
     // call ScriptMgr if we're reloading the configuration
     sScriptMgr->OnAfterConfigLoad(reload);
 }
@@ -1922,7 +1947,8 @@ void World::SetInitialWorldSettings()
 
     // our speed up
     m_timers[WUPDATE_5_SECS].SetInterval(5*IN_MILLISECONDS);
-
+    m_timers[WUPDATE_1_SECS].SetInterval(1 * IN_MILLISECONDS);
+    m_timers[WUPDATE_CUSTOM_SECS].SetInterval(sConfigMgr->GetIntDefault("Frozen.BotupTime", 10) * IN_MILLISECONDS);
     mail_expire_check_timer = time(nullptr) + 6*3600;
 
     ///- Initilize static helper structures
@@ -2009,7 +2035,6 @@ void World::SetInitialWorldSettings()
     mgr = ChannelMgr::forTeam(TEAM_HORDE);
     mgr->LoadChannels();
 
-    sCustomMgr->LoadAllCustomData();
 #ifdef ELUNA
     ///- Run eluna scripts.
     // in multithread foreach: run scripts
@@ -2172,6 +2197,71 @@ void World::Update(uint32 diff)
         WhoListCacheMgr::Update();
     }
 
+    if (m_timers[WUPDATE_1_SECS].Passed())
+    {
+        m_timers[WUPDATE_1_SECS].Reset();
+        sCharPvpTop->PVPupdate();
+        sGvgSys->UpdateGvGevent();
+        sFbot->PlBotupdate();
+    }
+
+    if (m_timers[WUPDATE_CUSTOM_SECS].Passed())
+    {
+        uint32 rolltime = urand(1, sConfigMgr->GetIntDefault("Frozen.BotupTime", 10));
+        m_timers[WUPDATE_CUSTOM_SECS].SetInterval(rolltime * IN_MILLISECONDS);
+        m_timers[WUPDATE_CUSTOM_SECS].Reset();
+
+        uint32 serverpl = sWorld->GetPlayerCount() - sFbot->m_playerBots.size();
+
+        bool canaddbot = false;
+        if (sConfigMgr->GetIntDefault("Frozen.BotupPlayer", 10) == 0)
+            canaddbot = true;
+        if (serverpl >= sConfigMgr->GetIntDefault("Frozen.BotupPlayer", 10))
+            canaddbot = true;
+
+        if (sConfigMgr->GetBoolDefault("Frozen.BotSys", true) && sFbot->m_playerBots.size() < sConfigMgr->GetIntDefault("Frozen.BotupCount", 10) && canaddbot) //BOT上线开启
+        {
+            SessionMap::const_iterator itr = sWorld->GetAllSessions().begin();
+            SessionMap::const_iterator itr2;
+            uint32 zoneid = sConfigMgr->GetIntDefault("Frozen.BotupZone", 10);
+            if (sConfigMgr->GetBoolDefault("Frozen.BotAcconut", true))
+            {
+                QueryResult mbotaddaccid = LoginDatabase.PQuery("select id from account where online = 0 ORDER BY RAND() LIMIT 1");
+                if (mbotaddaccid)
+                {
+                    uint32 onlineid = mbotaddaccid->Fetch()[0].GetUInt32();
+                    bool isup = false;
+                    if (!isup)
+                    {
+                        QueryResult mbotaddguid;
+
+                        if (zoneid)
+                            mbotaddguid = CharacterDatabase.PQuery("select guid from characters where account = %u and zone = %u ORDER BY RAND() LIMIT 1", onlineid, zoneid);
+                        else
+                            mbotaddguid = CharacterDatabase.PQuery("select guid from characters where account = %u ORDER BY RAND() LIMIT 1", onlineid);
+
+                        if (mbotaddguid)
+                        {
+                            uint32 guid = mbotaddguid->Fetch()[0].GetUInt32();
+                            sFbot->AddPlayerBot(onlineid, guid);
+
+                        }
+                    }
+                }
+            }
+            else
+            {
+                QueryResult mbotaddguid;
+                if (zoneid)
+                    mbotaddguid = CharacterDatabase.PQuery("select guid,account from characters where online = 0  and zone = %u ORDER BY RAND() LIMIT 1", zoneid);
+                else
+                    mbotaddguid = CharacterDatabase.PQuery("select guid,account from characters where online = 0 ORDER BY RAND() LIMIT 1");
+
+                if (mbotaddguid)
+                    sFbot->AddPlayerBot(mbotaddguid->Fetch()[1].GetUInt32(), mbotaddguid->Fetch()[0].GetUInt32());
+            }
+        }
+    }
     ///- Update the game time and check for shutdown time
     _UpdateGameTime();
 
@@ -2352,6 +2442,30 @@ void World::SendGlobalMessage(WorldPacket* packet, WorldSession* self, TeamId te
             itr->second->SendPacket(packet);
         }
     }
+}
+
+void World::SendScreenMessage(const char *text, Player* target, bool GM, TeamId teamId)
+{
+    WorldPacket data;
+    ChatHandler::BuildChatPacket(data, CHAT_MSG_RAID_BOSS_EMOTE, LANG_UNIVERSAL,
+        NULL, target, text);
+
+    if (target && target->GetSession())
+        target->GetSession()->SendPacket(&data);
+    else if (GM)
+        SendGlobalGMMessage(&data, NULL, teamId);
+    else
+        SendGlobalMessage(&data, NULL, teamId);
+}
+
+void World::SendFactionMessage(ServerMessageType type, const char *text, TeamId teamid)
+{
+    WorldPacket data(SMSG_SERVER_MESSAGE, 50);              // guess size
+    data << uint32(type);
+    if (type <= SERVER_MSG_STRING)
+        data << text;
+
+    SendGlobalMessage(&data, NULL, teamid);
 }
 
 /// Send a packet to all GMs (except self if mentioned)
@@ -2651,6 +2765,8 @@ void World::SendServerMessage(ServerMessageType type, const char *text, Player* 
 
 void World::UpdateSessions(uint32 diff)
 {
+
+    sFaker->UpdateAllSessions(diff);
     ///- Add new sessions
     WorldSession* sess = nullptr;
     while (addSessQueue.next(sess))
@@ -2949,6 +3065,7 @@ void World::ResetDailyQuests()
 
     // change available dailies
     sPoolMgr->ChangeDailyQuests();
+    sItemMod->ResetDayLimitItem();
 }
 
 void World::LoadDBAllowedSecurityLevel()
@@ -3187,6 +3304,18 @@ void World::LoadGlobalPlayerDataStore()
         while (mailCountResult->NextRow());
     }
 
+    std::map<uint32, std::string> _customtopname;
+    QueryResult resultcustom = CharacterDatabase.Query("SELECT guid, toptitle,lasttop FROM _xlchar GROUP BY guid");
+    if (resultcustom)
+    {
+        do
+        {
+            Field* fields = resultcustom->Fetch();
+            _customtopname[fields[0].GetUInt32()] = fields[1].GetString();
+            sCharPvpTop->m_playertopph[fields[2].GetUInt32()] = fields[0].GetUInt32();
+        } while (resultcustom->NextRow());
+    }
+
     do
     {
         Field* fields = result->Fetch();
@@ -3198,6 +3327,12 @@ void World::LoadGlobalPlayerDataStore()
         if (itr != _mailCountMap.end())
             mailCount = itr->second;
 
+        //topname
+        std::string topnames = "";
+        std::map<uint32, std::string>::const_iterator itr2 = _customtopname.find(guidLow);
+        if (itr2 != _customtopname.end())
+            topnames = itr2->second;
+
         AddGlobalPlayerData(
             guidLow,               /*guid*/
             fields[1].GetUInt32(), /*accountId*/
@@ -3207,7 +3342,8 @@ void World::LoadGlobalPlayerDataStore()
             fields[5].GetUInt8(),  /*class*/
             fields[6].GetUInt8(),  /*level*/
             mailCount,             /*mail count*/
-            0                      /*guild id*/);
+            0,                     /*guild id*/
+            topnames);
 
         ++count;
     }
@@ -3217,7 +3353,7 @@ void World::LoadGlobalPlayerDataStore()
     sLog->outString();
 }
 
-void World::AddGlobalPlayerData(uint32 guid, uint32 accountId, std::string const& name, uint8 gender, uint8 race, uint8 playerClass, uint8 level, uint16 mailCount, uint32 guildId)
+void World::AddGlobalPlayerData(uint32 guid, uint32 accountId, std::string const& name, uint8 gender, uint8 race, uint8 playerClass, uint8 level, uint16 mailCount, uint32 guildId, std::string const& topname)
 {
     GlobalPlayerData data;
 
@@ -3234,6 +3370,7 @@ void World::AddGlobalPlayerData(uint32 guid, uint32 accountId, std::string const
     data.arenaTeamId[0] = 0;
     data.arenaTeamId[1] = 0;
     data.arenaTeamId[2] = 0;
+    data.topname = topname;
 
     _globalPlayerDataStore[guid] = data;
     _globalPlayerNameStore[name] = guid;
@@ -3326,6 +3463,11 @@ GlobalPlayerData const* World::GetGlobalPlayerData(uint32 guid) const
     if (itr != _globalPlayerDataStore.end())
         return &itr->second;
 
+    std::string _customtopname = "";
+    QueryResult resultcustom = CharacterDatabase.PQuery("SELECT toptitle FROM _xlchar where guid = %u", guid);
+    if (resultcustom)
+        _customtopname = resultcustom->Fetch()[0].GetString();
+
     // Player is not in the global storage, try to get it from the Database
     PreparedStatement* stmt = CharacterDatabase.GetPreparedStatement(CHAR_SEL_DATA_BY_GUID);
 
@@ -3352,7 +3494,8 @@ GlobalPlayerData const* World::GetGlobalPlayerData(uint32 guid) const
             fields[5].GetUInt8(),  /*class*/
             fields[6].GetUInt8(),  /*level*/
             0,                     /*mail count*/
-            0                      /*guild id*/
+            0,                      /*guild id*/
+            _customtopname
         );
 
         itr = _globalPlayerDataStore.find(guid);
@@ -3389,6 +3532,11 @@ uint32 World::GetGlobalPlayerGUID(std::string const& name) const
 
         uint32 guidLow = fields[0].GetUInt32();
 
+        std::string _customtopname = "";
+        QueryResult resultcustom = CharacterDatabase.PQuery("SELECT toptitle FROM _xlchar where guid = %u", guidLow);
+        if (resultcustom)
+            _customtopname = resultcustom->Fetch()[0].GetString();
+
         sLog->outString("Player %s [GUID: %u] was not found in the global storage, but it was found in the database.", name.c_str(), guidLow);
 
         sWorld->AddGlobalPlayerData(
@@ -3400,7 +3548,8 @@ uint32 World::GetGlobalPlayerGUID(std::string const& name) const
             fields[5].GetUInt8(),  /*class*/
             fields[6].GetUInt8(),  /*level*/
             0,                     /*mail count*/
-            0                      /*guild id*/
+            0,                     /*guild id*/
+            _customtopname
         );
 
         itr = _globalPlayerNameStore.find(name);
@@ -3414,4 +3563,63 @@ uint32 World::GetGlobalPlayerGUID(std::string const& name) const
 
     // Player not found
     return 0;
+}
+
+
+void World::UpdateNamePrefixSuffix(Player* player, std::string prefix, std::string suffix)
+{
+    GlobalPlayerDataMap::iterator itr = _globalPlayerDataStore.find(player->GetGUIDLow());
+    if (itr == _globalPlayerDataStore.end())
+        return;
+
+    itr->second.prefix = prefix;
+    itr->second.suffix = suffix;
+
+    WorldPacket data(SMSG_NAME_QUERY_RESPONSE, (8 + 1 + 1 + 1 + 1 + 1 + 10));
+    data.appendPackGUID(player->GetGUID());
+
+    data << uint8(0);
+    data << prefix + itr->second.name + suffix;
+    data << uint8(0);
+    data << uint8(itr->second.race);
+    data << uint8(itr->second.gender);
+    data << uint8(itr->second.playerClass);
+    data << uint8(0);
+
+    SessionMap const& smap = sWorld->GetAllSessions();
+    for (SessionMap::const_iterator itr = smap.begin(); itr != smap.end(); ++itr)
+        if (Player* pl = itr->second->GetPlayer())
+        {
+            pl->GetSession()->SendPacket(&data);
+
+            if (pl->GetAreaId() == player->GetAreaId())
+                sGCAddon->SendPacketTo(pl, "GC_S_NAME_UPDATE", " ");
+        }
+}
+
+void World::UpdateTopPlayerData(uint32 guid, std::string const& name)
+{
+    GlobalPlayerDataMap::iterator itr = _globalPlayerDataStore.find(guid);
+    if (itr == _globalPlayerDataStore.end())
+        return;
+
+    itr->second.topname = name;
+
+    WorldPacket data(SMSG_INVALIDATE_PLAYER, 8);
+    data << MAKE_NEW_GUID(guid, 0, HIGHGUID_PLAYER);
+    SendGlobalMessage(&data);
+}
+
+void World::UpdateAllTopPlayerData()
+{
+    for (GlobalPlayerDataMap::iterator itr = _globalPlayerDataStore.begin(); itr != _globalPlayerDataStore.end(); ++itr)
+    {
+        if (itr->second.topname != "")
+        {
+            itr->second.topname = "";
+            WorldPacket data(SMSG_INVALIDATE_PLAYER, 8);
+            data << MAKE_NEW_GUID(itr->second.guidLow, 0, HIGHGUID_PLAYER);
+            SendGlobalMessage(&data);
+        }
+    }
 }

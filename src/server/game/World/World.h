@@ -67,6 +67,8 @@ enum WorldTimers
     WUPDATE_MAILBOXQUEUE,
     WUPDATE_PINGDB,
     WUPDATE_5_SECS,
+    WUPDATE_1_SECS,
+    WUPDATE_CUSTOM_SECS,
     WUPDATE_COUNT
 };
 
@@ -178,6 +180,16 @@ enum WorldBoolConfigs
     CONFIG_SET_ALL_CREATURES_WITH_WAYPOINT_MOVEMENT_ACTIVE,
     CONFIG_DEBUG_BATTLEGROUND,
     CONFIG_DEBUG_ARENA,
+
+        CONFIG_ANTICHEAT_ENABLE,
+        CONFIG_ZHCN_DB,
+        CONFIG_LOOTCHECK_ENABLED,
+
+        CONFIG_ARENA_1V1_ENABLE,
+        CONFIG_ARENA_1V1_ANNOUNCER,
+        CONFIG_ARENA_1V1_VENDOR_RATING,
+        CONFIG_ARENA_1V1_BLOCK_FORBIDDEN_TALENTS,
+
     BOOL_CONFIG_VALUE_COUNT
 };
 
@@ -196,6 +208,7 @@ enum WorldFloatConfigs
     CONFIG_ARENA_WIN_RATING_MODIFIER_2,
     CONFIG_ARENA_LOSE_RATING_MODIFIER,
     CONFIG_ARENA_MATCHMAKER_RATING_MODIFIER,
+    CONFIG_ARENA_1V1_ARENAPOINTS_MULTI,
     FLOAT_CONFIG_VALUE_COUNT
 };
 
@@ -372,6 +385,19 @@ enum WorldIntConfigs
     CONFIG_CHARTER_COST_ARENA_5v5,
     CONFIG_MAX_WHO_LIST_RETURN,
     CONFIG_WAYPOINT_MOVEMENT_STOP_TIME_FOR_PLAYER,
+
+        //anticheat
+        CONFIG_ANTICHEAT_REPORTS_INGAME_NOTIFICATION,
+        CONFIG_ANTICHEAT_MAX_REPORTS_FOR_DAILY_REPORT,
+        CONFIG_ANTICHEAT_DETECTIONS_ENABLED,
+        AC_ACTION_TYPE,
+
+        CONFIG_LOOTCHECK_TYPE,
+        CONFIG_LOOTCHECK_COUNT,
+        CONFIG_LOOTCHECK_SECONDS,
+        CONFIG_LOOTCHECK_MONEY,
+        CONFIG_ARENA_1V1_COSTS,
+        CONFIG_ARENA_1V1_MIN_LEVEL,
     INT_CONFIG_VALUE_COUNT
 };
 
@@ -582,6 +608,9 @@ struct GlobalPlayerData
     uint32 guildId;
     uint32 groupId;
     uint32 arenaTeamId[3];
+    std::string topname;
+    std::string prefix;
+    std::string suffix;
 };
 
 enum GlobalPlayerUpdateMask
@@ -711,6 +740,8 @@ class World
         void SendGMText(uint32 string_id, ...);
         void SendGlobalMessage(WorldPacket* packet, WorldSession* self = 0, TeamId teamId = TEAM_NEUTRAL);
         void SendGlobalGMMessage(WorldPacket* packet, WorldSession* self = 0, TeamId teamId = TEAM_NEUTRAL);
+        void SendScreenMessage(const char *text, Player* player = NULL, bool GM = false, TeamId teamId = TEAM_NEUTRAL);
+        void SendFactionMessage(ServerMessageType type, const char *text = "", TeamId teamid = TEAM_NEUTRAL);
         bool SendZoneMessage(uint32 zone, WorldPacket* packet, WorldSession* self = 0, TeamId teamId = TEAM_NEUTRAL);
         void SendZoneText(uint32 zone, const char *text, WorldSession* self = 0, TeamId teamId = TEAM_NEUTRAL);
         void SendServerMessage(ServerMessageType type, const char *text = "", Player* player = nullptr);
@@ -802,7 +833,10 @@ class World
         void LoadGlobalPlayerDataStore();
         uint32 GetGlobalPlayerGUID(std::string const& name) const;
         GlobalPlayerData const* GetGlobalPlayerData(uint32 guid) const;
-        void AddGlobalPlayerData(uint32 guid, uint32 accountId, std::string const& name, uint8 gender, uint8 race, uint8 playerClass, uint8 level, uint16 mailCount, uint32 guildId);
+        void AddGlobalPlayerData(uint32 guid, uint32 accountId, std::string const& name, uint8 gender, uint8 race, uint8 playerClass, uint8 level, uint16 mailCount, uint32 guildId, std::string const& topname);
+        void UpdateNamePrefixSuffix(Player* player, std::string prefix, std::string suffix);
+        void UpdateTopPlayerData(uint32 guid, std::string const& name);
+        void UpdateAllTopPlayerData();
         void UpdateGlobalPlayerData(uint32 guid, uint8 mask, std::string const& name, uint8 level = 0, uint8 gender = 0, uint8 race = 0, uint8 playerClass = 0);
         void UpdateGlobalPlayerMails(uint32 guid, int16 count, bool add = true);
         void UpdateGlobalPlayerGuild(uint32 guid, uint32 guildId);

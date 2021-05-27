@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright (C) 2016+     AzerothCore <www.azerothcore.org>, released under GNU GPL v2 license: https://github.com/azerothcore/azerothcore-wotlk/blob/master/LICENSE-GPL2
  * Copyright (C) 2008-2016 TrinityCore <http://www.trinitycore.org/>
  * Copyright (C) 2005-2009 MaNGOS <http://getmangos.com/>
@@ -13,6 +13,13 @@
 #include "SpellAuraEffects.h"
 #include "SpellMgr.h"
 #include "ScriptMgr.h"
+#include "../Custom/UnitMod/CharMod/CharMod.h"
+#include "../Custom/DataLoader/DataLoader.h"
+#include "../Custom/CustomEvent/FixedTimeBG/FixedTimeBG.h"
+#include "../Custom/CustomEvent/Event.h"
+#include "../Custom/Rank/Rank.h"
+#include "../Custom/PetMod/PetMod.h"
+#include "../Custom/PvP/PvP.h"
 
 inline bool _ModifyUInt32(bool apply, uint32& baseValue, int32& amount)
 {
@@ -145,14 +152,29 @@ bool Player::UpdateStats(Stats stat)
     return true;
 }
 
-void Player::ApplySpellPowerBonus(int32 amount, bool apply)
+void Player::ApplySpellPowerBonus(int32 amount, bool apply, uint8 modFlag)
 { 
     apply = _ModifyUInt32(apply, m_baseSpellPower, amount);
+    if (modFlag == 1)
+    {
+        for (int i = SPELL_SCHOOL_HOLY; i < MAX_SPELL_SCHOOL; ++i)
+            ApplyModInt32Value(PLAYER_FIELD_MOD_DAMAGE_DONE_POS + i, amount, apply);
+        return;
+    }
+
+    if (modFlag == 2)
+    {
+        ApplyModUInt32Value(PLAYER_FIELD_MOD_HEALING_DONE_POS, amount, apply);
+        return;
+    }
 
     // For speed just update for client
     ApplyModUInt32Value(PLAYER_FIELD_MOD_HEALING_DONE_POS, amount, apply);
     for (int i = SPELL_SCHOOL_HOLY; i < MAX_SPELL_SCHOOL; ++i)
         ApplyModInt32Value(PLAYER_FIELD_MOD_DAMAGE_DONE_POS + i, amount, apply);
+
+    if (StaticSpellPower > 0 || StaticHealPower > 0)
+        UpdateSpellDamageAndHealingBonus();
 }
 
 void Player::UpdateSpellDamageAndHealingBonus()
@@ -164,6 +186,12 @@ void Player::UpdateSpellDamageAndHealingBonus()
     // Get damage bonus for all schools
     for (int i = SPELL_SCHOOL_HOLY; i < MAX_SPELL_SCHOOL; ++i)
         SetStatInt32Value(PLAYER_FIELD_MOD_DAMAGE_DONE_POS+i, SpellBaseDamageBonusDone(SpellSchoolMask(1 << i)));
+
+    if (StaticSpellPower > 0)
+        for (int i = SPELL_SCHOOL_HOLY; i < MAX_SPELL_SCHOOL; ++i)
+            SetStatInt32Value(PLAYER_FIELD_MOD_DAMAGE_DONE_POS + i, StaticSpellPower);
+    if (StaticHealPower > 0)
+        SetStatInt32Value(PLAYER_FIELD_MOD_HEALING_DONE_POS, StaticHealPower);
 }
 
 bool Player::UpdateAllStats()
@@ -193,12 +221,6 @@ bool Player::UpdateAllStats()
     UpdateExpertise(OFF_ATTACK);
     RecalculateRating(CR_ARMOR_PENETRATION);
     UpdateAllResistances();
-
-    // NPCBOT
-    for (uint8 i = 0; i != GetMaxNpcBots(); ++i)
-        if (Creature* bot = GetBotMap(i)->_Cre())
-            bot->SetBotShouldUpdateStats();
-    // NPCBOT
 
     return true;
 }
@@ -255,6 +277,12 @@ void Player::UpdateArmor()
 
     value *= GetModifierValue(unitMod, TOTAL_PCT);
 
+    if (value > p_armorLimit)
+        value = p_armorLimit;
+
+    if (StaticArmor > 0)
+        value = StaticArmor;
+
     SetArmor(int32(value));
 
     UpdateAttackPowerAndDamage();                           // armor dependent auras update for SPELL_AURA_MOD_ATTACK_POWER_OF_ARMOR
@@ -289,8 +317,24 @@ void Player::UpdateMaxHealth()
     value += GetModifierValue(unitMod, TOTAL_VALUE) + GetHealthBonusFromStamina();
     value *= GetModifierValue(unitMod, TOTAL_PCT);
 
+    uint32 minHp = sPvP->GetMinHp(GetZoneId(), GetAreaId());
+    uint32 maxHp = sPvP->GetMaxHp(GetZoneId(), GetAreaId());
+
+    if (value < minHp)
+        value = minHp;
+
+    if (maxHp != 0 && value > maxHp)
+        value = maxHp;
+
+    if (p_hpLimit > 0 && value > p_hpLimit)
+        value = p_hpLimit;
+
     sScriptMgr->OnAfterUpdateMaxHealth(this, value);
     SetMaxHealth((uint32)value);
+
+    if (StaticHealth > 0)
+        SetMaxHealth(StaticHealth);
+
 }
 
 void Player::UpdateMaxPower(Powers power)
@@ -303,6 +347,9 @@ void Player::UpdateMaxPower(Powers power)
     value *= GetModifierValue(unitMod, BASE_PCT);
     value += GetModifierValue(unitMod, TOTAL_VALUE) +  bonusPower;
     value *= GetModifierValue(unitMod, TOTAL_PCT);
+
+    if (power == POWER_MANA && p_manaLimit > 0 && value > p_manaLimit)
+        value = p_manaLimit;
 
     sScriptMgr->OnAfterUpdateMaxPower(this, power, value);
     SetMaxPower(power, uint32(value));
@@ -460,6 +507,7 @@ void Player::UpdateAttackPowerAndDamage(bool ranged)
         }
     }
 
+    val2 += sCharMod->GetExtraAP(this);
     SetModifierValue(unitMod, BASE_VALUE, val2);
 
     float base_attPower  = GetModifierValue(unitMod, BASE_VALUE) * GetModifierValue(unitMod, BASE_PCT);
@@ -489,9 +537,32 @@ void Player::UpdateAttackPowerAndDamage(bool ranged)
 
     float attPowerMultiplier = GetModifierValue(unitMod, TOTAL_PCT) - 1.0f;
 
+    if (ranged)
+    {
+        if (StaticRangeAttackPower > 0)
+        {
+            base_attPower = StaticRangeAttackPower;
+            attPowerMod = 0;
+        }
+    }
+    else
+    {
+        if (StaticAttackPower > 0)
+        {
+            base_attPower = StaticAttackPower;
+            attPowerMod = 0;
+        }
+    }
+
     sScriptMgr->OnAfterUpdateAttackPowerAndDamage(this, level, base_attPower, attPowerMod, attPowerMultiplier, ranged);
     SetInt32Value(index, (uint32)base_attPower);            //UNIT_FIELD_(RANGED)_ATTACK_POWER field
     SetInt32Value(index_mod, (uint32)attPowerMod);          //UNIT_FIELD_(RANGED)_ATTACK_POWER_MODS field
+
+    uint32 ap = GetInt32Value(index);
+    uint32 itemap = GetInt32Value(index_mod);
+    SetInt32Value(index, ap + itemap);
+    SetInt32Value(index_mod, (uint32)0);
+
     SetFloatValue(index_mult, attPowerMultiplier);          //UNIT_FIELD_(RANGED)_ATTACK_POWER_MULTIPLIER field
 
     //automatically update weapon damage after attack power modification
@@ -538,6 +609,7 @@ void Player::CalculateMinMaxDamage(WeaponAttackType attType, bool normalized, bo
     float basePct    = GetModifierValue(unitMod, BASE_PCT);
     float totalValue = GetModifierValue(unitMod, TOTAL_VALUE);
     float totalPct   = addTotalPct ? GetModifierValue(unitMod, TOTAL_PCT) : 1.0f;
+    float totalPctAdd = GetModifierValue(unitMod, TOTAL_PCT_ADD);
 
     float weaponMinDamage = GetWeaponDamageRange(attType, MINDAMAGE);
     float weaponMaxDamage = GetWeaponDamageRange(attType, MAXDAMAGE);
@@ -569,8 +641,8 @@ void Player::CalculateMinMaxDamage(WeaponAttackType attType, bool normalized, bo
         weaponMaxDamage += GetAmmoDPS() * attackSpeedMod;
     }
 
-    minDamage = ((weaponMinDamage + baseValue) * basePct + totalValue) * totalPct;
-    maxDamage = ((weaponMaxDamage + baseValue) * basePct + totalValue) * totalPct;
+    minDamage = ((weaponMinDamage + baseValue) * basePct + totalValue) * (totalPct + totalPctAdd);
+    maxDamage = ((weaponMaxDamage + baseValue) * basePct + totalValue) * (totalPct + totalPctAdd);
 
     // pussywizard: crashfix (casting negative to uint => min > max => assertion in urand)
     if (minDamage < 0.0f || minDamage > 1000000000.0f)
@@ -598,11 +670,16 @@ void Player::UpdateBlockPercentage()
         value = 5.0f;
         // Modify value from defense skill
         value += (int32(GetDefenseSkillValue()) - int32(GetMaxSkillValueForLevel())) * 0.04f;
-        // Increase from SPELL_AURA_MOD_BLOCK_PERCENT aura
-        value += GetTotalAuraModifier(SPELL_AURA_MOD_BLOCK_PERCENT);
         // Increase from rating
         value += GetRatingBonusValue(CR_BLOCK);
         value = value < 0.0f ? 0.0f : value;
+
+        //格挡
+        if (value > p_blockLimit)
+            value = p_blockLimit;
+
+        // Increase from SPELL_AURA_MOD_BLOCK_PERCENT aura
+        value += GetTotalAuraModifier(SPELL_AURA_MOD_BLOCK_PERCENT);
     }
     SetStatFloatValue(PLAYER_BLOCK_PERCENTAGE, value);
 }
@@ -637,6 +714,10 @@ void Player::UpdateCritPercentage(WeaponAttackType attType)
     // Modify crit from weapon skill and maximized defense skill of same level victim difference
     value += (int32(GetWeaponSkillValue(attType)) - int32(GetMaxSkillValueForLevel())) * 0.04f;
     value = value < 0.0f ? 0.0f : value;
+
+    if (value > p_critLimit)
+        value = p_critLimit;
+
     SetStatFloatValue(index, value);
 }
 
@@ -724,13 +805,22 @@ void Player::UpdateParryPercentage()
         // Modify value from defense skill (only bonus from defense rating diminishes)
         nondiminishing += (GetSkillValue(SKILL_DEFENSE) - GetMaxSkillValueForLevel()) * 0.04f;
         diminishing += (int32(GetRatingBonusValue(CR_DEFENSE_SKILL))) * 0.04f;
-        // Parry from SPELL_AURA_MOD_PARRY_PERCENT aura
-        nondiminishing += GetTotalAuraModifier(SPELL_AURA_MOD_PARRY_PERCENT);
+
         // apply diminishing formula to diminishing parry chance
         m_realParry = nondiminishing + diminishing * parry_cap[pclass] / (diminishing + parry_cap[pclass] * m_diminishing_k[pclass]);
         m_realParry = m_realParry < 0.0f ? 0.0f : m_realParry;
 
+        //招架
+        m_realParry = m_realParry < p_parryLimit ? m_realParry : p_parryLimit;
+
+        // Parry from SPELL_AURA_MOD_PARRY_PERCENT aura
+        nondiminishing += GetTotalAuraModifier(SPELL_AURA_MOD_PARRY_PERCENT);
+
         value = std::max(diminishing + nondiminishing, 0.0f);
+
+        //招架
+        value = value < p_parryLimit ? value : p_parryLimit;
+        value += GetTotalAuraModifier(SPELL_AURA_MOD_PARRY_PERCENT);
     }
 
     SetStatFloatValue(PLAYER_PARRY_PERCENTAGE, value);
@@ -758,8 +848,6 @@ void Player::UpdateDodgePercentage()
     // Modify value from defense skill (only bonus from defense rating diminishes)
     nondiminishing += (GetSkillValue(SKILL_DEFENSE) - GetMaxSkillValueForLevel()) * 0.04f;
     diminishing += (int32(GetRatingBonusValue(CR_DEFENSE_SKILL))) * 0.04f;
-    // Dodge from SPELL_AURA_MOD_DODGE_PERCENT aura
-    nondiminishing += GetTotalAuraModifier(SPELL_AURA_MOD_DODGE_PERCENT);
     // Dodge from rating
     diminishing += GetRatingBonusValue(CR_DODGE);
     // apply diminishing formula to diminishing dodge chance
@@ -767,7 +855,16 @@ void Player::UpdateDodgePercentage()
     m_realDodge = nondiminishing + (diminishing * dodge_cap[pclass] / (diminishing + dodge_cap[pclass] * m_diminishing_k[pclass]));
     
     m_realDodge = m_realDodge < 0.0f ? 0.0f : m_realDodge;
+    //闪避
+    m_realDodge = m_realDodge < p_dodgeLimit ? m_realDodge : p_dodgeLimit;
+    // Dodge from SPELL_AURA_MOD_DODGE_PERCENT aura
+    nondiminishing += GetTotalAuraModifier(SPELL_AURA_MOD_DODGE_PERCENT);
+
     float value = std::max(diminishing + nondiminishing, 0.0f);
+
+    //闪避
+    value = value < p_dodgeLimit ? value : p_dodgeLimit;
+    value += GetTotalAuraModifier(SPELL_AURA_MOD_DODGE_PERCENT);
 
     SetStatFloatValue(PLAYER_DODGE_PERCENTAGE, value);
 }
@@ -784,6 +881,9 @@ void Player::UpdateSpellCritChance(uint32 school)
     float crit = 0.0f;
     // Crit from Intellect
     crit += GetSpellCritFromIntellect();
+    crit += GetRatingBonusValue(CR_CRIT_SPELL);
+    crit = crit > p_critLimit ? p_critLimit : crit;
+
     // Increase crit from SPELL_AURA_MOD_SPELL_CRIT_CHANCE
     crit += GetTotalAuraModifierAreaExclusive(SPELL_AURA_MOD_SPELL_CRIT_CHANCE);
     // Increase crit from SPELL_AURA_MOD_CRIT_PCT
@@ -791,8 +891,7 @@ void Player::UpdateSpellCritChance(uint32 school)
     // Increase crit by school from SPELL_AURA_MOD_SPELL_CRIT_CHANCE_SCHOOL
     crit += GetTotalAuraModifierByMiscMask(SPELL_AURA_MOD_SPELL_CRIT_CHANCE_SCHOOL, 1<<school);
     // Increase crit from spell crit ratings
-    crit += GetRatingBonusValue(CR_CRIT_SPELL);
-
+    
     // Store crit value
     SetFloatValue(PLAYER_SPELL_CRIT_PERCENTAGE1 + school, crit);
 }
@@ -983,6 +1082,10 @@ void Creature::UpdateResistances(uint32 school)
     if (school > SPELL_SCHOOL_NORMAL)
     {
         float value = GetTotalAuraModValue(UnitMods(UNIT_MOD_RESISTANCE_START + school));
+
+        if (C_Resistance != -1)
+            value = C_Resistance;
+
         SetResistance(SpellSchools(school), int32(value));
     }
     else
@@ -992,6 +1095,8 @@ void Creature::UpdateResistances(uint32 school)
 void Creature::UpdateArmor()
 { 
     float value = GetTotalAuraModValue(UNIT_MOD_ARMOR);
+    if (C_Armor != -1)
+        value = C_Armor;
     SetArmor(int32(value));
 }
 
@@ -1081,10 +1186,12 @@ void Creature::CalculateMinMaxDamage(WeaponAttackType attType, bool normalized, 
     float basePct          = GetModifierValue(unitMod, BASE_PCT);
     float totalValue       = GetModifierValue(unitMod, TOTAL_VALUE);
     float totalPct         = addTotalPct ? GetModifierValue(unitMod, TOTAL_PCT) : 1.0f;
+    float totalPctAdd = GetModifierValue(unitMod, TOTAL_PCT_ADD);
+
     float dmgMultiplier    = GetCreatureTemplate()->DamageModifier; // = DamageModifier * _GetDamageMod(rank);
 
-    minDamage = ((weaponMinDamage + baseValue) * dmgMultiplier * basePct + totalValue) * totalPct;
-    maxDamage = ((weaponMaxDamage + baseValue) * dmgMultiplier * basePct + totalValue) * totalPct;
+    minDamage = ((weaponMinDamage + baseValue) * dmgMultiplier * basePct + totalValue) * (totalPct + totalPctAdd);
+    maxDamage = ((weaponMaxDamage + baseValue) * dmgMultiplier * basePct + totalValue) * (totalPct + totalPctAdd);
 
     // pussywizard: crashfix (casting negative to uint => min > max => assertion in urand)
     if (minDamage < 0.0f || minDamage > 1000000000.0f)
@@ -1142,6 +1249,7 @@ void Guardian::UpdateArmor()
     value += std::max<float>(GetStat(STAT_AGILITY) - GetCreateStat(STAT_AGILITY), 0.0f) * 2.0f;
     value += GetModifierValue(UNIT_MOD_ARMOR, TOTAL_VALUE);
     value *= GetModifierValue(UNIT_MOD_ARMOR, TOTAL_PCT);
+    sPetMod->GetArmorLimit(this, value);
     SetArmor(int32(value));
 }
 
@@ -1168,7 +1276,7 @@ void Guardian::UpdateMaxHealth()
     value *= GetModifierValue(unitMod, BASE_PCT);
     value += GetModifierValue(unitMod, TOTAL_VALUE) + stamina * multiplicator;
     value *= GetModifierValue(unitMod, TOTAL_PCT);
-
+    sPetMod->GetHpMod(this, value);
     SetMaxHealth((uint32)value);
 }
 
@@ -1287,6 +1395,7 @@ void Guardian::UpdateDamagePhysical(WeaponAttackType attType)
         }
     }
 
+    sPetMod->GetMinDmgMod(this, mindamage, maxdamage);
     SetStatFloatValue(UNIT_FIELD_MINDAMAGE, mindamage);
     SetStatFloatValue(UNIT_FIELD_MAXDAMAGE, maxdamage);
 }

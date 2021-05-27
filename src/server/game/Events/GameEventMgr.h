@@ -54,7 +54,8 @@ struct GameEventData
     std::set<uint16 /*gameevent id*/> prerequisite_events;  // events that must be completed before starting this event
     std::string description;
     uint8 announce;         // if 0 dont announce, if 1 announce, if 2 take config value
-
+    uint32 eventId;
+    time_t originStartTime;
     bool isValid() const { return length > 0 || state > GAMEEVENT_NORMAL; }
 };
 
@@ -104,7 +105,7 @@ class GameEventMgr
         void StartArenaSeason();
         void StartInternalEvent(uint16 event_id);
         bool StartEvent(uint16 event_id, bool overwrite = false);
-        void StopEvent(uint16 event_id, bool overwrite = false);
+        void StopEvent(uint16 event_id, bool overwrite = false, bool custom = false);
         void HandleQuestComplete(uint32 quest_id);  // called on world event type quest completions
         uint32 GetNPCFlag(Creature* cr);
     private:

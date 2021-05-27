@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright (C) 2016+     AzerothCore <www.azerothcore.org>, released under GNU GPL v2 license: https://github.com/azerothcore/azerothcore-wotlk/blob/master/LICENSE-GPL2
  * Copyright (C) 2008-2016 TrinityCore <http://www.trinitycore.org/>
  * Copyright (C) 2005-2009 MaNGOS <http://getmangos.com/>
@@ -622,8 +622,6 @@ class spell_pri_penance : public SpellScriptLoader
 
             bool Load()
             {
-                // NPCBOT
-                if (GetCaster() && GetCaster()->GetTypeId() == TYPEID_UNIT && GetCaster()->ToCreature()->GetIAmABot()) return true;
                 return GetCaster()->GetTypeId() == TYPEID_PLAYER;
             }
 
@@ -666,9 +664,6 @@ class spell_pri_penance : public SpellScriptLoader
             SpellCastResult CheckCast()
             {
                 Unit* caster = GetCaster();
-                // NPCBOT
-                if (!caster && GetCaster()->GetTypeId() == TYPEID_UNIT && GetCaster()->ToCreature()->GetIAmABot())
-                    caster = (Player*)GetCaster();
                 if (Unit* target = GetExplTargetUnit())
                 {
                     if (!caster->IsFriendlyTo(target))
@@ -870,8 +865,6 @@ class spell_pri_renew : public SpellScriptLoader
 
             bool Load()
             {
-                // NPCBOT
-                if (GetCaster() && GetCaster()->GetTypeId() == TYPEID_UNIT && GetCaster()->ToCreature()->GetIAmABot()) return true;
                 return GetCaster() && GetCaster()->GetTypeId() == TYPEID_PLAYER;
             }
 

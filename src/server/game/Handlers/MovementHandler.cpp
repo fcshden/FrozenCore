@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright (C) 2016+     AzerothCore <www.azerothcore.org>, released under GNU GPL v2 license: https://github.com/azerothcore/azerothcore-wotlk/blob/master/LICENSE-GPL2
  * Copyright (C) 2008-2016 TrinityCore <http://www.trinitycore.org/>
  * Copyright (C) 2005-2009 MaNGOS <http://getmangos.com/>
@@ -25,6 +25,9 @@
 #include "BattlegroundMgr.h"
 #include "ScriptMgr.h"
 #include "GameGraveyard.h"
+#pragma execution_character_set("utf-8")
+#include "../scripts/Custom/AntiCheat/AntiCheat.h"
+#include "../scripts/Custom/CustomEvent/BattleIC/BattleIC.h"
 
 #define MOVEMENT_PACKET_TIME_DELAY 0
 
@@ -415,6 +418,21 @@ void WorldSession::HandleMovementOpcodes(WorldPacket & recvData)
     // Dont allow to turn on walking if charming other player
     if (mover->GetGUID() != _player->GetGUID())
         movementInfo.flags &= ~MOVEMENTFLAG_WALKING;
+
+    if (plrMover && opcode == MSG_MOVE_JUMP && plrMover->m_movementInfo.HasMovementFlag(MOVEMENTFLAG_FALLING | MOVEMENTFLAG_FALLING_FAR))
+    {
+        plrMover->TeleportTo(plrMover->GetMapId(), plrMover->m_positionX, plrMover->m_positionY, plrMover->m_positionZ, plrMover->GetOrientation());
+        recvData.rfinish();
+        return;
+    }
+
+    if (sAntiCheat->CheckMovementInfo(mover, movementInfo))
+    {
+        recvData.rfinish();
+        return;
+    }
+
+    mover->UpdateMovementInfo(movementInfo);
 
     uint32 mstime = World::GetGameTimeMS();
     /*----------------------*/

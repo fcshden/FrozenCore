@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright (C) 2016+     AzerothCore <www.azerothcore.org>, released under GNU GPL v2 license: https://github.com/azerothcore/azerothcore-wotlk/blob/master/LICENSE-GPL2
  * Copyright (C) 2008-2016 TrinityCore <http://www.trinitycore.org/>
  * Copyright (C) 2005-2009 MaNGOS <http://getmangos.com/>
@@ -17,6 +17,7 @@
 #include "SocialMgr.h"
 #include "Language.h"
 #include "AccountMgr.h"
+#include "../Custom/Switch/Switch.h"
 
 void WorldSession::SendTradeStatus(TradeStatus status)
 {
@@ -147,6 +148,9 @@ void WorldSession::moveItems(Item* myItems[], Item* hisItems[])
                 sLog->outDebug(LOG_FILTER_NETWORKIO, "partner storing: %u", myItems[i]->GetGUIDLow());
 #endif
 
+                if (myItems[i]->GetTemplate()->Class != ITEM_CLASS_WEAPON && myItems[i]->GetTemplate()->Class != ITEM_CLASS_ARMOR && myItems[i]->GetTemplate()->Class != ITEM_CLASS_GEM)
+                    myItems[i]->UnBinded = false;
+
                 // adjust time (depends on /played)
                 if (myItems[i]->HasFlag(ITEM_FIELD_FLAGS, ITEM_FIELD_FLAG_BOP_TRADEABLE))
                     myItems[i]->SetUInt32Value(ITEM_FIELD_CREATE_PLAYED_TIME, trader->GetTotalPlayedTime()-(_player->GetTotalPlayedTime()-myItems[i]->GetUInt32Value(ITEM_FIELD_CREATE_PLAYED_TIME)));
@@ -159,6 +163,8 @@ void WorldSession::moveItems(Item* myItems[], Item* hisItems[])
 #if defined(ENABLE_EXTRAS) && defined(ENABLE_EXTRA_LOGS)
                 sLog->outDebug(LOG_FILTER_NETWORKIO, "player storing: %u", hisItems[i]->GetGUIDLow());
 #endif
+                if (hisItems[i]->GetTemplate()->Class != ITEM_CLASS_WEAPON && hisItems[i]->GetTemplate()->Class != ITEM_CLASS_ARMOR && hisItems[i]->GetTemplate()->Class != ITEM_CLASS_GEM)
+                    hisItems[i]->UnBinded = false;
 
                 // adjust time (depends on /played)
                 if (hisItems[i]->HasFlag(ITEM_FIELD_FLAGS, ITEM_FIELD_FLAG_BOP_TRADEABLE))
@@ -622,7 +628,7 @@ void WorldSession::HandleInitiateTradeOpcode(WorldPacket& recvPacket)
         return;
     }
 
-    if (!sWorld->getBoolConfig(CONFIG_ALLOW_TWO_SIDE_TRADE) && pOther->GetTeamId() != _player->GetTeamId())
+    if (!sSwitch->GetOnOff(ST_CF_TRADE) && pOther->GetTeamId() != _player->GetTeamId())
     {
         SendTradeStatus(TRADE_STATUS_WRONG_FACTION);
         return;

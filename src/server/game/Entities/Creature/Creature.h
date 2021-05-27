@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright (C) 2016+     AzerothCore <www.azerothcore.org>, released under GNU GPL v2 license: https://github.com/azerothcore/azerothcore-wotlk/blob/master/LICENSE-GPL2
  * Copyright (C) 2008-2016 TrinityCore <http://www.trinitycore.org/>
  * Copyright (C) 2005-2009 MaNGOS <http://getmangos.com/>
@@ -24,12 +24,6 @@ class Quest;
 class Player;
 class WorldSession;
 class CreatureGroup;
-
-// NPCBOT
-class bot_ai;
-class bot_minion_ai;
-class bot_pet_ai;
-// NPCBOT
 
 enum CreatureFlagsExtra
 {
@@ -340,14 +334,13 @@ typedef std::unordered_map<uint32, CreatureAddon> CreatureAddonContainer;
 // Vendors
 struct VendorItem
 {
-    VendorItem(uint32 _item, int32 _maxcount, uint32 _incrtime, uint32 _ExtendedCost, uint32 _Needid)
-        : item(_item), maxcount(_maxcount), incrtime(_incrtime), ExtendedCost(_ExtendedCost), Needid(_Needid){}
+    VendorItem(uint32 _item, int32 _maxcount, uint32 _incrtime, uint32 _ExtendedCost)
+        : item(_item), maxcount(_maxcount), incrtime(_incrtime), ExtendedCost(_ExtendedCost){}
 
     uint32 item;
     uint32  maxcount;                                       // 0 for infinity item amount
     uint32 incrtime;                                        // time for restore items amount if maxcount != 0
     uint32 ExtendedCost;
-    uint32 Needid;
     //helpers
     bool IsGoldRequired(ItemTemplate const* pProto) const { return pProto->Flags2 & ITEM_FLAGS_EXTRA_EXT_COST_REQUIRES_GOLD || !ExtendedCost; }
 };
@@ -366,9 +359,9 @@ struct VendorItemData
     }
     bool Empty() const { return m_items.empty(); }
     uint8 GetItemCount() const { return m_items.size(); }
-    void AddItem(uint32 item, int32 maxcount, uint32 ptime, uint32 ExtendedCost, uint32 Needid)
+    void AddItem(uint32 item, int32 maxcount, uint32 ptime, uint32 ExtendedCost)
     {
-        m_items.push_back(new VendorItem(item, maxcount, ptime, ExtendedCost, Needid));
+        m_items.push_back(new VendorItem(item, maxcount, ptime, ExtendedCost));
     }
     bool RemoveItem(uint32 item_id);
     VendorItem const* FindItemCostPair(uint32 item_id, uint32 extendedCost) const;
@@ -430,10 +423,44 @@ typedef std::map<uint32, time_t> CreatureSpellCooldowns;
 #define CREATURE_Z_ATTACK_RANGE 3
 
 #define MAX_VENDOR_ITEMS 150                                // Limitation in 3.x.x item count in SMSG_LIST_INVENTORY
+#define MAX_CUSTOM_LOOT_COUNT	5
 
 class Creature : public Unit, public GridObject<Creature>, public MovableMapObject
 {
     public:
+        //creature mod
+        uint8		C_Level;										//等级
+        uint32		C_Health;										//生命值
+        float		C_HpMod;										//生命值倍率
+        int32		C_Armor;										//护甲-1 creature_template表确定
+        float		C_MeleeDmg;										//物理伤害
+        float		C_SpellDmgMod;									//法术伤害倍率
+        float		C_HealMod;										//治疗倍率
+        float		C_ReduceDmgPct;									//减伤百分比
+        int32		C_Resistance;									//抗性为-1 creature_template表确定
+        uint32		C_LootId[MAX_CUSTOM_LOOT_COUNT];				//掉落 creaute_loot_template
+        uint32		C_KillRewId;									//击杀者获得奖励
+        float		C_KillRewChance;								//击杀者获得奖励几率
+        uint32		C_KillGroupRewId;								//击杀者队伍成员获得奖励
+        float		C_KillGroupRewChance;							//击杀者队伍成员获得奖励几率
+        bool		C_KillAnnounce;									//击杀时广播内容
+        uint32		C_AttackTime;									//攻击间隔
+        float		C_ResetDistance;
+        int32		C_AddTalismanValue;
+        int32		C_AddAddRankValue;
+        std::vector<uint32> C_AuraVec;								//光环
+        uint32		C_KillRewGameObject;
+        bool		C_SrcLoot;										//是否包含原loot
+
+        uint32		RandSpellGroupId;
+        int32		RandSpellTimer;
+
+        //stage
+        uint32 stage;
+        bool summonsClear;
+        //anticheat
+        uint32 reset_timer;
+
 
         explicit Creature(bool isWorldObject = false);
         virtual ~Creature();
@@ -519,7 +546,10 @@ class Creature : public Unit, public GridObject<Creature>, public MovableMapObje
         bool SetFeatherFall(bool enable, bool packetOnly = false) override;
         bool SetHover(bool enable, bool packetOnly = false) override;
 
-        uint32 GetShieldBlockValue() const override;
+        uint32 GetShieldBlockValue() const
+        {
+            return (getLevel() / 2 + uint32(GetStat(STAT_STRENGTH) / 20));
+        }
 
         SpellSchoolMask GetMeleeDamageSchoolMask() const override { return m_meleeDamageSchoolMask; }
         void SetMeleeDamageSchool(SpellSchools school) { m_meleeDamageSchoolMask = SpellSchoolMask(1 << school); }
@@ -575,6 +605,51 @@ class Creature : public Unit, public GridObject<Creature>, public MovableMapObje
                                                             // overriden in Pet
         virtual void SaveToDB(uint32 mapid, uint8 spawnMask, uint32 phaseMask);
         virtual void DeleteFromDB();                        // overriden in Pet
+
+            // ==========================================
+        uint32 GetPlayerDamFromCre(uint32 guid) const  //根据玩家GUID获取对生物造成的伤害
+        {
+            PlayerdamMap::const_iterator itr = ISDam_Player.find(guid);
+            if (itr != ISDam_Player.end())
+                return itr->second;
+            return 0;
+        }
+
+        uint32 GetGuidFromMaxDam() //根据最大的伤害值得到guid
+        {
+            uint32 guid = 0;
+            uint32 maxvalue = 0;
+            PlayerdamMapTmp::const_iterator itr2;
+            for (PlayerdamMapTmp::const_iterator itr = ISTmpDam_Player.begin(); itr != ISTmpDam_Player.end(); ++itr)
+            {
+                if (itr->second >= maxvalue)
+                {
+                    guid = itr->first;
+                    maxvalue = itr->second;
+                    itr2 = itr;
+                }
+            }
+            ISTmpDam_Player.erase(itr2);
+            return guid;
+        }
+
+        void SetDamToValue(uint32 guid, uint32 damage)
+        {
+            ISDam_Player[guid] += damage;
+            ISTmpDam_Player[guid] += damage;
+        }
+
+        typedef std::map<uint32, uint32> PlayerdamMap;
+        PlayerdamMap  ISDam_Player;
+
+        typedef std::map<uint32, uint32> PlayerdamMapTmp;
+        PlayerdamMapTmp  ISTmpDam_Player;
+
+
+        void SendDamPHStdAndPH();
+        typedef std::map<uint32, uint32> PaidamMap; //排行   玩家GUID
+        PaidamMap m_paidam;
+        //=====================================================
 
         Loot loot;
         uint64 GetLootRecipientGUID() const { return m_lootRecipient; }
@@ -719,46 +794,16 @@ class Creature : public Unit, public GridObject<Creature>, public MovableMapObje
 
         // Part of Evade mechanics
         time_t GetLastDamagedTime() const { return _lastDamagedTime; }
-        void SetLastDamagedTime(time_t val) { _lastDamagedTime = val; }
-
-        // NPCBOT
-        Player* GetBotOwner() const { return m_bot_owner; }
-        void SetBotOwner(Player* newowner) { m_bot_owner = newowner; }
-        Creature* GetCreatureOwner() const { return m_creature_owner; }
-        void SetCreatureOwner(Creature* newCreOwner) { m_creature_owner = newCreOwner; }
-        Creature* GetBotsPet() const { return m_bots_pet; }
-        void SetBotsPetDied();
-        void SetBotsPet(Creature* newpet) { /*ASSERT (!m_bots_pet);*/ m_bots_pet = newpet; }
-        void SetIAmABot(bool bot = true);
-        bool GetIAmABot() const;
-        bool GetIAmABotsPet() const;
-        void SetBotClass(uint8 myclass) { m_bot_class = myclass; }
-        uint8 GetBotClass() const;
-        uint8 GetBotRoles() const;
-        bot_ai* GetBotAI() const { return bot_AI; }
-        bot_minion_ai* GetBotMinionAI() const;
-        bot_pet_ai* GetBotPetAI() const;
-        void InitBotAI(bool asPet = false);
-        void SetBotCommandState(CommandStates st, bool force = false);
-        CommandStates GetBotCommandState() const;
-        void ApplyBotDamageMultiplierMelee(uint32& damage, CalcDamageInfo& damageinfo) const;
-        void ApplyBotDamageMultiplierMelee(int32& damage, SpellNonMeleeDamage& damageinfo, SpellInfo const* spellInfo, WeaponAttackType attackType, bool& crit) const;
-        void ApplyBotDamageMultiplierSpell(int32& damage, SpellNonMeleeDamage& damageinfo, SpellInfo const* spellInfo, WeaponAttackType attackType, bool& crit) const;
-        void ApplyBotDamageMultiplierEffect(SpellInfo const* spellInfo, uint8 effect_index, float &value) const;
-        void SetBotShouldUpdateStats();
-        void OnBotSummon(Creature* summon);
-        void OnBotDespawn(Creature* summon);
-        void SetCanUpdate(bool can) { m_canUpdate = can; }
-        void RemoveBotItemBonuses(uint8 slot);
-        void ApplyBotItemBonuses(uint8 slot);
-        bool CanUseOffHand() const;
-        bool CanUseRanged() const;
-        bool CanEquip(ItemTemplate const* item, uint8 slot) const;
-        bool Unequip(uint8 slot) const;
-        bool Equip(uint32 itemId, uint8 slot) const;
-        bool ResetEquipment(uint8 slot) const;
-        bool IsQuestBot() const;
-        // NPCBOT
+        void SetLastDamagedTime(time_t val)
+        {
+            _lastDamagedTime = val;
+            if (!val)
+            {
+                ISDam_Player.clear();
+                ISTmpDam_Player.clear();
+                m_paidam.clear();
+            }
+        }
 
     protected:
         bool CreateFromProto(uint32 guidlow, uint32 Entry, uint32 vehId, const CreatureData* data = nullptr);
@@ -814,15 +859,6 @@ class Creature : public Unit, public GridObject<Creature>, public MovableMapObje
         bool CanAlwaysSee(WorldObject const* obj) const override;
 
     private:
-
-        // NPCBOT
-        Player* m_bot_owner;
-        Creature* m_creature_owner;
-        Creature* m_bots_pet;
-        bot_ai* bot_AI;
-        uint8 m_bot_class;
-        bool m_canUpdate;
-        // NPCBOT
 
         void ForcedDespawn(uint32 timeMSToDespawn = 0);
 

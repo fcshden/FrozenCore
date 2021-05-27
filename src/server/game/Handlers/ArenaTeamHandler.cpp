@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright (C) 2016+     AzerothCore <www.azerothcore.org>, released under GNU GPL v2 license: https://github.com/azerothcore/azerothcore-wotlk/blob/master/LICENSE-GPL2
  * Copyright (C) 2008-2016 TrinityCore <http://www.trinitycore.org/>
  * Copyright (C) 2005-2009 MaNGOS <http://getmangos.com/>
@@ -16,6 +16,8 @@
 #include "SocialMgr.h"
 #include "ArenaTeamMgr.h"
 #include "Opcodes.h"
+#include "../Custom/Switch/Switch.h"
+#include "../Custom/CommonFunc/CommonFunc.h"
 
 void WorldSession::HandleInspectArenaTeamsOpcode(WorldPacket & recvData)
 {
@@ -121,7 +123,7 @@ void WorldSession::HandleArenaTeamInviteOpcode(WorldPacket & recvData)
     if (player->GetSocial()->HasIgnore(GetPlayer()->GetGUIDLow()))
         return;
 
-    if (!sWorld->getBoolConfig(CONFIG_ALLOW_TWO_SIDE_INTERACTION_GUILD) && player->GetTeamId() != GetPlayer()->GetTeamId())
+    if (!sSwitch->GetOnOff(ST_CF_GUILD) && player->GetTeamId() != GetPlayer()->GetTeamId())
     {
         SendArenaTeamCommandResult(ERR_ARENA_TEAM_INVITE_SS, "", "", ERR_ARENA_TEAM_NOT_ALLIED);
         return;
@@ -179,7 +181,7 @@ void WorldSession::HandleArenaTeamAcceptOpcode(WorldPacket & /*recvData*/)
     }
 
     // Only allow members of the other faction to join the team if cross faction interaction is enabled
-    if (!sWorld->getBoolConfig(CONFIG_ALLOW_TWO_SIDE_INTERACTION_GUILD) && _player->GetTeamId() != sObjectMgr->GetPlayerTeamIdByGUID(arenaTeam->GetCaptain()))
+    if (!sSwitch->GetOnOff(ST_CF_GUILD) && _player->GetTeamId() != sObjectMgr->GetPlayerTeamIdByGUID(arenaTeam->GetCaptain()))
     {
         SendArenaTeamCommandResult(ERR_ARENA_TEAM_CREATE_S, "", "", ERR_ARENA_TEAM_NOT_ALLIED);
         return;

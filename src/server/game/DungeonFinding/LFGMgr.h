@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright (C) 2016+     AzerothCore <www.azerothcore.org>, released under GNU GPL v2 license: https://github.com/azerothcore/azerothcore-wotlk/blob/master/LICENSE-GPL2
  * Copyright (C) 2008-2016 TrinityCore <http://www.trinitycore.org/>
  * Copyright (C) 2005-2009 MaNGOS <http://getmangos.com/>
@@ -291,12 +291,15 @@ struct LfgPlayerRewardData
 /// Reward info
 struct LfgReward
 {
-    LfgReward(uint32 _maxLevel = 0, uint32 _firstQuest = 0, uint32 _otherQuest = 0):
-        maxLevel(_maxLevel), firstQuest(_firstQuest), otherQuest(_otherQuest) { }
+    LfgReward(uint32 _maxLevel = 0, uint32 _firstQuest = 0, uint32 _otherQuest = 0, uint32 _tankRewId = 0, uint32 _healRewId = 0, uint32 _dpsRewId = 0):
+        maxLevel(_maxLevel), firstQuest(_firstQuest), otherQuest(_otherQuest), tankRewId(_tankRewId), healRewId(_healRewId), dpsRewId(_dpsRewId) { }
 
     uint32 maxLevel;
     uint32 firstQuest;
     uint32 otherQuest;
+    uint32 tankRewId;
+    uint32 healRewId;
+    uint32 dpsRewId;
 };
 
 /// Stores player data related to proposal to join

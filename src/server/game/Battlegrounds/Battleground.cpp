@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright (C) 2016+     AzerothCore <www.azerothcore.org>, released under GNU GPL v2 license: https://github.com/azerothcore/azerothcore-wotlk/blob/master/LICENSE-GPL2
  * Copyright (C) 2008-2016 TrinityCore <http://www.trinitycore.org/>
  * Copyright (C) 2005-2009 MaNGOS <http://getmangos.com/>
@@ -33,6 +33,14 @@
 #include "Transport.h"
 #include "ScriptMgr.h"
 #include "GameGraveyard.h"
+#pragma execution_character_set("utf-8")
+#include "../Custom/CustomEvent/FixedTimeBG/FixedTimeBG.h"
+#include "../Custom/CommonFunc/CommonFunc.h"
+#include "../Custom/DataLoader/DataLoader.h"
+#include "../Custom/Talisman/Talisman.h"
+#include "../Custom/Reward/Reward.h"
+#include "../Custom/Switch/Switch.h"
+
 #ifdef ELUNA
 #include "LuaEngine.h"
 #endif
@@ -111,6 +119,10 @@ void Battleground::BroadcastWorker(Do& _do)
 
 Battleground::Battleground()
 {
+    RandomBuffInterval = 0;
+    m_AllyKills = 0;
+    m_HordeKills = 0;
+
     m_RealTypeID        = BATTLEGROUND_TYPE_NONE;
     m_RandomTypeID      = BATTLEGROUND_TYPE_NONE;
     m_InstanceID        = 0;
@@ -265,6 +277,9 @@ void Battleground::Update(uint32 diff)
             }
             else
             {
+                //随机BUFF
+                sFTB->AddRandomBuff(this, diff);
+
                 _ProcessResurrect(diff);
                 if (sBattlegroundMgr->GetPrematureFinishTime() && (GetPlayersCountByTeam(TEAM_ALLIANCE) < GetMinPlayersPerTeam() || GetPlayersCountByTeam(TEAM_HORDE) < GetMinPlayersPerTeam()))
                     _ProcessProgress(diff);
@@ -458,6 +473,11 @@ inline void Battleground::_ProcessJoin(uint32 diff)
         // First start warning - 2 or 1 minute
         SendMessageToAll(StartMessageIds[BG_STARTING_EVENT_FIRST], CHAT_MSG_BG_SYSTEM_NEUTRAL);
     }
+
+    // 1v1 Arena - Start arena after 15s, when all players are in arena
+    if (GetArenaType() == ARENA_TYPE_5v5 && GetStartDelayTime() > StartDelayTimes[BG_STARTING_EVENT_THIRD] && (m_PlayersCount[0] + m_PlayersCount[1]) == 2)
+        SetStartDelayTime(StartDelayTimes[BG_STARTING_EVENT_THIRD]);
+
     // After 1 minute or 30 seconds, warning is signaled
     else if (GetStartDelayTime() <= StartDelayTimes[BG_STARTING_EVENT_SECOND] && !(m_Events & BG_STARTING_EVENT_2))
     {
@@ -994,16 +1014,48 @@ void Battleground::EndBattleground(TeamId winnerTeamId)
                 if (player->getLevel() >= BG_AWARD_ARENA_POINTS_MIN_LEVEL)
                     player->ModifyArenaPoints(winner_arena);
 
+                if (player->GetRandomWinner())
+                    sRew->Rew(player, sSwitch->GetValueByIndex(sT_BG_REW, 1));
+                else
+                    sRew->Rew(player, sSwitch->GetValueByIndex(sT_BG_REW, 2));
+
+                if (BattlegroundMgr::IsBGWeekend(GetBgTypeID()))
+                    sRew->Rew(player, sSwitch->GetValueByIndex(sT_BG_REW, 3));
+
                 if (!player->GetRandomWinner())
                     player->SetRandomWinner(true);
             }
 
             player->UpdateAchievementCriteria(ACHIEVEMENT_CRITERIA_TYPE_WIN_BG, player->GetMapId());
+
+            //定时胜利战场奖励
+            if (FixedTimeBGMap.find(GetBgTypeID()) != FixedTimeBGMap.end())
+            {
+                BattlegroundScoreMap::const_iterator score_itr = PlayerScores.find(player->GetGUID());
+                if (score_itr != PlayerScores.end())                         // player not found...
+                    if (score_itr->second->DamageDone >= sFTB->GetRewDmg(GetBgTypeID())
+                        || score_itr->second->HealingDone >= sFTB->GetRewHeal(GetBgTypeID())
+                        || score_itr->second->KillingBlows >= sFTB->GetRewKills(GetBgTypeID())
+                        || score_itr->second->Deaths >= sFTB->GetRewKilleds(GetBgTypeID()))
+                        sFTB->RewardPlayer(player, GetBgTypeID(), true);
+            }
         }
         else
         {
             if (IsRandom() || BattlegroundMgr::IsBGWeekend(GetBgTypeID(true)))
                 UpdatePlayerScore(player, SCORE_BONUS_HONOR, GetBonusHonorFromKill(loser_kills));
+
+            //定时失败战场奖励
+            if (FixedTimeBGMap.find(GetBgTypeID()) != FixedTimeBGMap.end())
+            {
+                BattlegroundScoreMap::const_iterator score_itr = PlayerScores.find(player->GetGUID());
+                if (score_itr != PlayerScores.end())                         // player not found...
+                    if (score_itr->second->DamageDone >= sFTB->GetRewDmg(GetBgTypeID())
+                        || score_itr->second->HealingDone >= sFTB->GetRewHeal(GetBgTypeID())
+                        || score_itr->second->KillingBlows >= sFTB->GetRewKills(GetBgTypeID())
+                        || score_itr->second->Deaths >= sFTB->GetRewKilleds(GetBgTypeID()))
+                        sFTB->RewardPlayer(player, GetBgTypeID(), false);
+            }
         }
 
         player->ResetAllPowers();
@@ -1310,6 +1362,13 @@ void Battleground::AddOrSetPlayerToCorrectBgGroup(Player* player, TeamId teamId)
 
 uint32 Battleground::GetFreeSlotsForTeam(TeamId teamId) const
 {
+    /*cfbg*/
+    if (sFTB->GetCFFlag(GetBgTypeID()))
+    {
+        uint32 num = GetMaxPlayersPerTeam() * 2 - GetInvitedCount(TEAM_ALLIANCE) - GetInvitedCount(TEAM_HORDE);
+        return num > 0 ? num : 0;
+    }
+
     if (!(GetStatus() == STATUS_IN_PROGRESS || GetStatus() == STATUS_WAIT_JOIN))
         return 0;
 
@@ -1871,6 +1930,41 @@ void Battleground::HandleKillPlayer(Player* victim, Player* killer)
         // To be able to remove insignia -- ONLY IN Battlegrounds
         victim->SetFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_SKINNABLE);
         RewardXPAtKill(killer, victim);
+    }
+
+    //判断击杀人数 提示或结束战场
+    if (sFTB->GetEndKilss(GetBgTypeID()) == 0)
+        return;
+
+    uint32 allyKills = GetAllyKills() + 1;
+    uint32 hordeKills = GetHordeKills() + 1;
+    uint32 maxKills = 0;
+
+    if (killer->GetBgTeamId() == TEAM_ALLIANCE)
+        SetAllyKills(allyKills);
+    else
+        SetHordeKills(hordeKills);
+
+    Battleground::BattlegroundPlayerMap const& pl = GetPlayers();
+    for (Battleground::BattlegroundPlayerMap::const_iterator itr = pl.begin(); itr != pl.end(); ++itr)
+    {
+        BattlegroundScoreMap::const_iterator score_itr = PlayerScores.find(itr->second->GetGUID());
+        if (score_itr == PlayerScores.end())                         // player not found...
+            return;
+
+        std::ostringstream oss;
+        if (killer->GetBgTeamId() == TEAM_ALLIANCE)
+            oss << "|cFF0177EC联盟|r击杀人数：" << allyKills << "/" << sFTB->GetEndKilss(GetBgTypeID());
+        else
+            oss << "|cFFFF1717部落|r击杀人数：" << hordeKills << "/" << sFTB->GetEndKilss(GetBgTypeID());
+        itr->second->GetSession()->SendAreaTriggerMessage(oss.str().c_str());
+    }
+
+    maxKills = (allyKills > hordeKills) ? allyKills : hordeKills;
+
+    if (maxKills >= sFTB->GetEndKilss(GetBgTypeID()))
+    {
+        allyKills > hordeKills ? EndBattleground(TEAM_ALLIANCE) : EndBattleground(TEAM_HORDE);
     }
 }
 

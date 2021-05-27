@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright (C) 2016+     AzerothCore <www.azerothcore.org>, released under GNU GPL v2 license: https://github.com/azerothcore/azerothcore-wotlk/blob/master/LICENSE-GPL2
  * Copyright (C) 2008-2016 TrinityCore <http://www.trinitycore.org/>
  * Copyright (C) 2005-2009 MaNGOS <http://getmangos.com/>
@@ -241,14 +241,6 @@ void TempSummon::UnSummon(uint32 msTime)
     Unit* owner = GetSummoner();
     if (owner && owner->GetTypeId() == TYPEID_UNIT && owner->ToCreature()->IsAIEnabled)
         owner->ToCreature()->AI()->SummonedCreatureDespawn(this);
-
-    // NPCBOT
-    if (GetIAmABot() || GetIAmABotsPet())
-    {
-        sLog->outString("TempSummon::UnSummon(): Trying to unsummon Bot %s(owner: %s). Aborted", GetName().c_str(), GetBotOwner()->GetName().c_str());
-        return;
-    }
-    // NPCBOT
 
     AddObjectToRemoveList();
 }

@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright (C) 2016+     AzerothCore <www.azerothcore.org>, released under GNU GPL v2 license: https://github.com/azerothcore/azerothcore-wotlk/blob/master/LICENSE-GPL2
  * Copyright (C) 2008-2016 TrinityCore <http://www.trinitycore.org/>
  * Copyright (C) 2005-2009 MaNGOS <http://getmangos.com/>
@@ -26,7 +26,7 @@
 #include "CreatureAI.h"
 #include "SpellInfo.h"
 #include "GameGraveyard.h"
-#include "../game/AI/NpcBots/bothelper.h"
+
 
 enum StableResultCode
 {
@@ -240,8 +240,127 @@ void WorldSession::SendTrainerList(uint64 guid, const std::string& strTitle)
 
     data.put<uint32>(count_pos, count);
     SendPacket(&data);
+
+    GetPlayer()->NpcTrainerId = 0;
 }
 
+void WorldSession::SendTrainerList(uint64 guid, uint32 entry)
+{
+    std::string str = GetAcoreString(LANG_NPC_TAINER_HELLO);
+    SendTrainerList(guid, str, entry);
+}
+
+void WorldSession::SendTrainerList(uint64 guid, const std::string& strTitle, uint32 entry)
+{
+    Creature* unit = GetPlayer()->GetNPCIfCanInteractWith(guid, UNIT_NPC_FLAG_TRAINER);
+    if (!unit)
+    {
+        ;//sLog->outDebug(LOG_FILTER_NETWORKIO, "WORLD: SendTrainerList - Unit (GUID: %u) not found or you can not interact with him.", uint32(GUID_LOPART(guid)));
+        return;
+    }
+
+    // remove fake death
+    if (GetPlayer()->HasUnitState(UNIT_STATE_DIED))
+        GetPlayer()->RemoveAurasByType(SPELL_AURA_FEIGN_DEATH);
+    CreatureTemplate const* ci = unit->GetCreatureTemplate();
+
+    if (!ci)
+    {
+        ;//sLog->outDebug(LOG_FILTER_NETWORKIO, "WORLD: SendTrainerList - (GUID: %u) NO CREATUREINFO!", GUID_LOPART(guid));
+        return;
+    }
+
+    TrainerSpellData const* trainer_spells = sObjectMgr->GetNpcTrainerSpells(entry);
+    //TrainerSpellData const* trainer_spells = unit->GetTrainerSpells();
+    if (!trainer_spells)
+    {
+        ;//sLog->outDebug(LOG_FILTER_NETWORKIO, "WORLD: SendTrainerList - Training spells not found for creature (GUID: %u Entry: %u)",
+        //    GUID_LOPART(guid), unit->GetEntry());
+        return;
+    }
+    WorldPacket data(SMSG_TRAINER_LIST, 8 + 4 + 4 + trainer_spells->spellList.size() * 38 + strTitle.size() + 1);
+    data << guid;
+    data << uint32(trainer_spells->trainerType);
+
+    size_t count_pos = data.wpos();
+    data << uint32(trainer_spells->spellList.size());
+
+    // reputation discount
+    float fDiscountMod = _player->GetReputationPriceDiscount(unit);
+    bool can_learn_primary_prof = GetPlayer()->GetFreePrimaryProfessionPoints() > 0;
+
+    uint32 count = 0;
+    for (TrainerSpellMap::const_iterator itr = trainer_spells->spellList.begin(); itr != trainer_spells->spellList.end(); ++itr)
+    {
+        TrainerSpell const* tSpell = &itr->second;
+
+        bool valid = true;
+        bool primary_prof_first_rank = false;
+        for (uint8 i = 0; i < MAX_SPELL_EFFECTS; ++i)
+        {
+            if (!tSpell->learnedSpell[i])
+                continue;
+            if (!_player->IsSpellFitByClassAndRace(tSpell->learnedSpell[i]))
+            {
+                valid = false;
+                break;
+            }
+            SpellInfo const* learnedSpellInfo = sSpellMgr->GetSpellInfo(tSpell->learnedSpell[i]);
+            if (learnedSpellInfo && learnedSpellInfo->IsPrimaryProfessionFirstRank())
+                primary_prof_first_rank = true;
+        }
+        if (!valid)
+            continue;
+
+        TrainerSpellState state = _player->GetTrainerSpellState(tSpell);
+
+        data << uint32(tSpell->spell);                      // learned spell (or cast-spell in profession case)
+        data << uint8(state == TRAINER_SPELL_GREEN_DISABLED ? TRAINER_SPELL_GREEN : state);
+        data << uint32(floor(tSpell->spellCost * fDiscountMod));
+
+        data << uint32(primary_prof_first_rank && can_learn_primary_prof ? 1 : 0);
+        // primary prof. learn confirmation dialog
+        data << uint32(primary_prof_first_rank ? 1 : 0);    // must be equal prev. field to have learn button in enabled state
+        data << uint8(tSpell->reqLevel);
+        data << uint32(tSpell->reqSkill);
+        data << uint32(tSpell->reqSkillValue);
+        //prev + req or req + 0
+        uint8 maxReq = 0;
+        for (uint8 i = 0; i < MAX_SPELL_EFFECTS; ++i)
+        {
+            if (!tSpell->learnedSpell[i])
+                continue;
+            if (uint32 prevSpellId = sSpellMgr->GetPrevSpellInChain(tSpell->learnedSpell[i]))
+            {
+                data << uint32(prevSpellId);
+                ++maxReq;
+            }
+            if (maxReq == 3)
+                break;
+            SpellsRequiringSpellMapBounds spellsRequired = sSpellMgr->GetSpellsRequiredForSpellBounds(tSpell->learnedSpell[i]);
+            for (SpellsRequiringSpellMap::const_iterator itr2 = spellsRequired.first; itr2 != spellsRequired.second && maxReq < 3; ++itr2)
+            {
+                data << uint32(itr2->second);
+                ++maxReq;
+            }
+            if (maxReq == 3)
+                break;
+        }
+        while (maxReq < 3)
+        {
+            data << uint32(0);
+            ++maxReq;
+        }
+
+        ++count;
+    }
+
+    data << strTitle;
+
+    data.put<uint32>(count_pos, count);
+    SendPacket(&data);
+
+}
 void WorldSession::HandleTrainerBuySpellOpcode(WorldPacket & recvData)
 {
     uint64 guid;
@@ -266,7 +385,13 @@ void WorldSession::HandleTrainerBuySpellOpcode(WorldPacket & recvData)
         GetPlayer()->RemoveAurasByType(SPELL_AURA_FEIGN_DEATH);
 
     // check present spell in trainer spell list
-    TrainerSpellData const* trainer_spells = unit->GetTrainerSpells();
+    TrainerSpellData const* trainer_spells;
+
+    if (GetPlayer()->NpcTrainerId != 0)
+        trainer_spells = sObjectMgr->GetNpcTrainerSpells(GetPlayer()->NpcTrainerId);
+    else
+        trainer_spells = unit->GetTrainerSpells();
+
     if (!trainer_spells)
         return;
 
@@ -311,34 +436,6 @@ void WorldSession::HandleGossipHelloOpcode(WorldPacket & recvData)
 
     uint64 guid;
     recvData >> guid;
-
-    // NPCBOT
-    if (guid == _player->GetGUID())
-    {
-        if (_player->GetBotHelper())
-        {
-            _player->GetBotHelper()->OnGossipHello(_player);
-            return;
-        }
-    }
-    else if (IS_CREATURE_GUID(guid))
-    {
-        if (Creature* qBot = ObjectAccessor::GetCreatureOrPetOrVehicle(*_player, guid))
-        {
-            if (qBot->IsQuestBot() &&
-                (_player->IsAlive() || qBot->GetCreatureTemplate()->type_flags & CREATURE_TYPE_FLAG_GHOST_VISIBLE) &&
-                (qBot->IsAlive() || (qBot->GetCreatureTemplate()->type_flags & CREATURE_TYPE_FLAG_CAN_INTERACT_WHILE_DEAD)))
-            {
-                if (!sScriptMgr->OnGossipHello(_player, qBot))
-                {
-                    sLog->outString("WORLD: HandleGossipHelloOpcode - qBot %s (Entry: %u) returned false on gossip hello.",
-                        qBot->GetName().c_str(), qBot->GetEntry());
-                }
-                return;
-            }
-        }
-    }
-    // NPCBOT
 
     Creature* unit = GetPlayer()->GetNPCIfCanInteractWith(guid, UNIT_NPC_FLAG_NONE);
     if (!unit)

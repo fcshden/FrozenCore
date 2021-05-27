@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright (C) 2016+     AzerothCore <www.azerothcore.org>, released under GNU GPL v2 license: https://github.com/azerothcore/azerothcore-wotlk/blob/master/LICENSE-GPL2
  * Copyright (C) 2008-2016 TrinityCore <http://www.trinitycore.org/>
  * Copyright (C) 2005-2009 MaNGOS <http://getmangos.com/>
@@ -726,6 +726,11 @@ public:
         _eventMap.insert(EventStore::value_type(_time + time, _lastEvent));
     }
 
+    void PopEvent()
+    {
+        if (!Empty())
+            _eventMap.erase(_eventMap.begin());
+    }
     /**
     * @name ExecuteEvent
     * @brief Returns the next event to execute and removes it from map.
@@ -757,6 +762,22 @@ public:
         return 0;
     }
 
+    uint32 GetEvent()
+    {
+        while (!Empty())
+        {
+            EventStore::iterator itr = _eventMap.begin();
+
+            if (itr->first > _time)
+                return 0;
+            else if (_phase && (itr->second & 0xFF000000) && !(itr->second & (_phase << 24)))
+                _eventMap.erase(itr);
+            else
+                return (itr->second & 0x0000FFFF);
+        }
+
+        return 0;
+    }
     /**
     * @name DelayEvents
     * @brief Delays all events in the map. If delay is greater than or equal internal timer, delay will be 0.

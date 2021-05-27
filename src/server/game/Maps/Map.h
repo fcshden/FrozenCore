@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright (C) 2016+     AzerothCore <www.azerothcore.org>, released under GNU GPL v2 license: https://github.com/azerothcore/azerothcore-wotlk/blob/master/LICENSE-GPL2
  * Copyright (C) 2008-2016 TrinityCore <http://www.trinitycore.org/>
  * Copyright (C) 2005-2009 MaNGOS <http://getmangos.com/>
@@ -275,6 +275,21 @@ class Map : public GridRefManager<NGridType>
         virtual ~Map();
 
         MapEntry const* GetEntry() const { return i_mapEntry; }
+
+        uint32 ZoneAuraTimer;
+
+        //未激活 未失败
+        int32 countDown = 0;
+        bool deadlineActive = false;
+        bool deadlineFailed = false;
+        int32 minuteCountDown = 60 * IN_MILLISECONDS;
+
+        //挑战模式
+        uint32 challengeLv = 0;
+
+        //加入的机器人数量
+        uint32 allyPN = 0;
+        uint32 hordePN = 0;
 
         // currently unused for normal maps
         bool CanUnload(uint32 diff)

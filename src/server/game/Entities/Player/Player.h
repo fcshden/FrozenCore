@@ -44,24 +44,6 @@ class PlayerSocial;
 class SpellCastTargets;
 class UpdateMask;
 
-// NPCBOT
-struct NpcBotMap;
-#define MAX_NPCBOTS 20
-class BotHelper;
-
-struct BotInfo
-{
-    uint32 entry;
-    uint32 race;
-    uint32 bclass;
-    uint32 roles;
-    uint32 equips[18];
-    uint32 active;
-};
-typedef std::unordered_map<uint32, BotInfo>BotInfoMap;
-
-// NPCBOT
-
 typedef std::deque<Mail*> PlayerMails;
 typedef void(*bgZoneRef)(Battleground*, WorldPacket&);
 
@@ -334,7 +316,7 @@ struct PvPInfo
 
 struct DuelInfo
 {
-    DuelInfo() : initiator(nullptr), opponent(nullptr), startTimer(0), startTime(0), outOfBound(0), isMounted(false) {}
+    DuelInfo() : initiator(nullptr), opponent(nullptr), startTimer(0), startTime(0), outOfBound(0), isMounted(false), istop(false) {}
 
     Player* initiator;
     Player* opponent;
@@ -342,6 +324,7 @@ struct DuelInfo
     time_t startTime;
     time_t outOfBound;
     bool isMounted;
+    bool istop;
 };
 
 struct Areas
@@ -686,6 +669,7 @@ enum BuyBackSlots                                           // 12 slots
 enum KeyRingSlots                                           // 32 slots
 {
     KEYRING_SLOT_START          = 86,
+    KEYRING_SLOT_EM_START = 99,
     KEYRING_SLOT_END            = 118
 };
 
@@ -821,7 +805,8 @@ enum PlayerChatTag
 enum PlayedTimeIndex
 {
     PLAYED_TIME_TOTAL = 0,
-    PLAYED_TIME_LEVEL = 1
+    PLAYED_TIME_LEVEL = 1,
+    PLAYED_TIME_BOT = 2
 };
 
 #define MAX_PLAYED_TIME_INDEX 2
@@ -970,6 +955,19 @@ enum InstantFlightGossipAction
 enum EmoteBroadcastTextID
 {
     EMOTE_BROADCAST_TEXT_ID_STRANGE_GESTURES = 91243
+};
+
+class LoginQueryHolder : public SQLQueryHolder
+{
+private:
+    uint32 m_accountId;
+    uint64 m_guid;
+public:
+    LoginQueryHolder(uint32 accountId, uint64 guid)
+        : m_accountId(accountId), m_guid(guid) { }
+    uint64 GetGuid() const { return m_guid; }
+    uint32 GetAccountId() const { return m_accountId; }
+    bool Initialize();
 };
 
 class PlayerTaxi
@@ -1149,6 +1147,140 @@ private:
     bool _isPvP;
 };
 
+
+enum ConquerBgTeam
+{
+    TEAM_NONE = 0,
+    TEAM_CONQUER = 1,
+    TEAM_DEFENSE = 2,
+};
+
+struct weapontemplate
+{
+    Item* item;
+    uint32 enchantId;
+};
+
+
+//双甲
+struct ExtraEquipments
+{
+    uint32 itemEntry;
+    EquipmentSlots slot;
+    uint32 enchant[MAX_ENCHANTMENT_SLOT];
+};
+
+//gossp vec
+struct ExtraEquimentGossipTemplate
+{
+    uint8 smallIcon;
+    std::string text;
+    uint32 sender;
+    uint32 action;
+    Item* item;
+};
+
+struct CloneBotSpellsTemplate
+{
+    uint32 spellid;
+    uint32 delay;
+    bool totarget;
+    bool cooldown;
+    uint32 timer;
+
+    std::string spellname;
+    std::string description;
+    bool enable;
+};
+
+enum TalismanTypes
+{
+    TALISMAN_TYPE_MELEEDMG_PCT,
+    TALISMAN_TYPE_SPELLDMG_PCT,
+    TALISMAN_TYPE_HEAL_PCT,
+    TALISMAN_TYPE_REDUCEDMG_PCT,
+    TALISMAN_TYPE_STAMINA,
+    TALISMAN_TYPE_STRENGTH,
+    TALISMAN_TYPE_AGILITY,
+    TALISMAN_TYPE_INTELLECT,
+    TALISMAN_TYPE_SPIRIT,
+    TALISMAN_TYPE_HEALTH,
+    TALISMAN_TYPE_MANA,
+    TALISMAN_TYPE_AP,
+    TALISMAN_TYPE_SP,
+    TALISMAN_TYPE_HEAL,
+    TALISMAN_TYPE_HIT,
+    TALISMAN_TYPE_CRIT,
+    TALISMAN_TYPE_HASTE,
+    TALISMAN_TYPE_MAX
+};
+
+struct PTalismanTemplate
+{
+    uint32 entry;
+    TalismanTypes type;
+    float value;
+};
+
+struct PItemDayLimitTemplate
+{
+    uint32 entry;
+    uint32 count;
+};
+
+struct HackPosTemplate
+{
+    uint32 map;
+    float x;
+    float y;
+    float z;
+    float speed;
+};
+
+struct MarketTemplate
+{
+    Item* item;
+    uint32 token;
+};
+
+enum StatPointsTypes
+{
+    SPT_TOTLAL,
+    SPT_STMAMINA,
+    SPT_AGILITY,
+    SPT_STRENGTH,
+    SPT_INTELLECT,
+    SPT_SPIRIT,
+    SPT_HIT,
+    SPT_CRIT,
+    SPT_AP,
+    SPT_APE,
+    SPT_SP,
+    SPT_SPE,
+    SPT_HASTE,
+};
+
+#define MAX_STAT_POINTS_TYPE 13
+
+#define MAX_AC_POINT_COUNT 10
+
+//防守 1，2
+//对线 1，2
+//公会战 Guild guid
+//自定义阵营 faction
+#define EventFactionId uint32
+
+struct EventDataTemplate
+{
+    uint32 EventId;
+    std::string FactionName;
+    EventFactionId FactionId;
+    uint32 Damage;
+    uint32 Heal;
+    uint32 Kills;
+    uint32 Killeds;
+};
+
 class Player : public Unit, public GridObject<Player>
 {
     friend class WorldSession;
@@ -1158,115 +1290,352 @@ class Player : public Unit, public GridObject<Player>
         explicit Player(WorldSession* session);
         ~Player();
 
-        // NPCBOT
-        BotInfoMap m_botInfo;
-        void LoadBotInfo();
-        void SaveBotInfo();
-        BotInfo const* GetBotInfo(uint32 entry) const;
-        uint32 GetPlayerBotRoles(uint32 entry);
-        void SetBotInfo(uint32 entry, uint32 race, uint32 pclass, uint32 roles, uint32 * equips, uint32 active);
-        void SetBotActive(uint32 entry, uint32 active);
-        void SetBotRoles(uint32 entry, uint32 roles);
-        void SetBotQquips(uint32 entry, uint32 * equips);
+public:
+    bool HasMapTempItems();
+    void InitAreaTempItems(uint32 Area);
+    void InitMapTempItems(uint32 Map);
+    void ApplyMapTempItems(bool apply);
+    void ApplyAreaTempItems(bool apply);
+    bool CanSawpOnMapTempItems;
+    bool CanSawpOnAreaTempItems;
+private:
+    Item* _MapTempItems[EQUIPMENT_SLOT_END];
+    Item* _AreaTempItems[EQUIPMENT_SLOT_END];
 
-        void UpdateNpcBot(uint32 p_time);
+public:
+    uint32 LootCheckCount;
+    uint32 LootCheckTimer;
+    uint32 LootCheckBanCount;
+    bool LootCheck();
+    void LootCheckPop(uint32 seconds);
+    void LootCheckReset();
+    void LootCheckSave();
+    void LootCheckLoad();
+    void LootCheckBan();
 
-        void SetBotHelper(BotHelper* hlpr) { ASSERT(!_botHlpr); _botHlpr = hlpr; }
-        BotHelper* GetBotHelper() const { return _botHlpr; }
-        void RefreshBot(uint32 p_time);
-        void CreateBot(uint32 botentry, uint8 botrace, uint8 botclass, bool revive = false);
-        void CreateNPCBot(uint8 botclass);
-        void CreateEntryBot(uint32 BotId);
-        int8 GetNpcBotSlot(uint64 guid) const;
-        void SendBotCommandState(Creature* cre, CommandStates state);
-        bool HaveBot() const;
-        void RemoveBot(uint64 guid, bool final = false, bool eraseFromDB = true);
-        void SetBot(Creature* cre) { m_bot = cre; }
-        uint8 GetNpcBotsCount() const;
-        void SetBotMustBeCreated(uint32 m_entry, uint8 m_race, uint8 m_class, uint32 *equips);
-        void ClearBotMustBeCreated(uint64 value, bool guid = true, bool fully = false);
-        bool GetBotMustBeCreated();
-        uint8 GetBotFollowDist() const { return m_followdist; }
-        void SetBotFollowDist(int8 dist) { m_followdist = dist; }
-        void SetNpcBotDied(uint64 guid);
-        NpcBotMap const* GetBotMap(uint8 pos) const { return m_botmap[pos]; }
-        uint8 GetMaxNpcBots() const;
-        uint8 GetNpcBotXpReduction() const { return m_xpReductionNpcBots; }
-        bool RestrictBots() const;
-        uint32 GetNpcBotCost() const;
-        std::string GetNpcBotCostStr() const;
-        void InitBotEquips(Creature* bot);
-        void UpdateBotEquips(Creature* bot, uint8 slot, uint32 itemId);
-        uint32 GetBotEquip(Creature* bot, uint8 slot) const;
-        void SetBotRace(uint32 pos, uint32 race);
-        void UpdateBotModelid(Creature* bot);
+public:
+    //gs
+    uint32 GS;
+    uint32 ChallengeLv;
+public:
+    uint32 LuckDrawTimer;
+    uint32 LuckDrawTotalCount;
+    uint32 LuckDrawCount;
 
-        // NPCBOT
-        // CUSTOM PLAYER STATS
+    uint32 UI_LuckDrawUpdateTimer;
+    uint32 UI_LuckDrawUpdateCount;
+    uint32 UI_LuckDrawRewCount;
+    uint32 UI_LuckDrawCount;
 
-        // 玩家的自定义等级
-        uint32 viplevel;
-        uint32 jftoken;
+    uint32 m_topteam, m_topmc, m_lasttopmc;
+    std::string m_toptitle;
+    bool setpvptime;
+    time_t m_toptime;
+    bool m_sendtoptitle;
 
-        //斗气等级
-        uint32 dq_level;
-        uint32 dq_shuxing;
-        uint32 dq_js, dq_bj, dq_rx, dq_jz, dq_ds, dq_zj, dq_hj, dq_ll, dq_mj, dq_zl, dq_nl, dq_js6, dq_xp, dq_wlct, dq_fsct;
+    bool goindisc; //进入攻城区域
+    bool livedisc; // 离开攻城区域
+    void GCPlayerInTeam(bool action);
+    uint8 GetGcRaceOrRace(bool action);
+    bool IsInDistGCNPC();
+    void IsInDistTELENPC();
+    uint32 inguildtime;
+    uint32 lqguildtime;
+    typedef std::map<uint32, uint32> PlayerEventDam;
+    PlayerEventDam m_playereventdam;
+    bool isfirstingvg;
 
+public:
+    bool UnderACKmount() const { return m_ACKmounted; }
+    void SetUnderACKmount() { m_mountTimer = 3 * IN_MILLISECONDS; m_ACKmounted = true; }
+    void SetSkipOnePacket(bool blinked) { m_skipOnePacket = blinked; }
+    bool IsSkipOnePacket() const { return m_skipOnePacket; }
+    bool GMFlyON;
+private:
+    bool m_skipOnePacket;
+    uint32 m_mountTimer;
+    bool   m_ACKmounted;
+    uint32 m_otherhackTimer;
 
-        //自定义购买弹窗
-        uint64 buy_vendor; uint32 buy_item; uint32 buy_count; uint32 buy_slot; uint8 buy_bag; uint8 buy_bagslot;
-        // CUSTOM PLAYER STATS
+public:
+    std::unordered_map<Stats, uint32> StaticStatsMap;
+    std::unordered_map<CombatRating, uint32> StaticCombatRatingMap;
+    uint32 StaticHealth;
+    uint32 StaticSpellPower;
+    uint32 StaticHealPower;
+    uint32 StaticAttackPower;
+    uint32 StaticRangeAttackPower;
+    uint32 StaticArmor;
+public:
+    //TalentReq
+    std::vector<uint32>BuyTalentVec;
+    uint32 buy_talentSpell;
+    uint32 buy_talentId;
+    uint32 buy_talentRank;
 
-        // CUSTOM 函数
-        void ModifyJf(int32 jfcost) { jftoken += jfcost; }
+    //token_key
+    std::string token_key;
+    std::string temp_token_key;
 
-        AchievementMgr* getAchievementMgr() const { return m_achievementMgr; }
+    Map* LastMap;
+    Position LastPosition;
 
-        std::string GetSNameLink() const
-        {
-
-            std::string color;
-            std::string CLASS_ICON;
-            switch (getClass())
-            {
-            case CLASS_DEATH_KNIGHT:
-                color = "|cffC41F3B";
-                break;
-            case CLASS_DRUID:
-                color = "|cffFF7D0A";
-                break;
-            case CLASS_HUNTER:
-                color = "|cffABD473";
-                break;
-            case CLASS_MAGE:
-                color = "|cff69CCF0";
-                break;
-            case CLASS_PALADIN:
-                color = "|cffF58CBA";
-                break;
-            case CLASS_PRIEST:
-                color = "|cffFFFFFF";
-                break;
-            case CLASS_ROGUE:
-                color = "|cffFFF569";
-                break;
-            case CLASS_SHAMAN:
-                color = "|cff0070DE";
-                break;
-            case CLASS_WARLOCK:
-                color = "|cff9482C9";
-                break;
-            case CLASS_WARRIOR:
-                color = "|cffC79C6E";
-                break;
-            }
-            return "|Hplayer:" + GetName() + "|h" + "|cffFFFFFF[" + color + GetName() + "|cffFFFFFF]|h|r";
-        }
+    //antifarm
+    uint32 AntiFarmCount;
+    uint32 AntiFarmNum;
+    uint32 AntiFarmTimer;
+    bool AntiFarmBaned;
 
 
+    //market
+    std::vector<MarketTemplate> MarketVec;
+    bool OnSale;
 
-        // CUSTOM 函数
+    //Morph
+    //uint8 realRace;
+
+    //npctrainer
+    uint32 NpcTrainerId;
+
+    //灵力
+    int32 SpiritPower;
+    uint32 MaxSpiritPower;
+    uint32 SpiritPowerTimer;
+    uint32 SpiritPowerInterval;
+
+    //假人
+    bool IsFaker;
+    uint32 FakerMoveTimer;
+
+    //faction
+    uint32 faction;
+    uint32 temp_faction;
+
+    //rank
+    uint32 rankValue;
+    uint32 rankLevel;
+    uint32 maxRankValue;
+
+    //customevent
+public:
+    bool InEvent() { return _EventData.FactionId != 0; }
+    EventFactionId GetEventFaction() { return _EventData.FactionId; }
+    EventDataTemplate GetEventData() { return _EventData; }
+    void UpdateEventDamage(Unit* target, float damage);
+    void UpdateEventHeal(Unit* target, float heal);
+    void UpdateEventKills(Unit* target);
+    void UpdateEventKilleds(Unit* target);
+    void InitEventData(uint32 EventId, EventFactionId FactionId, std::string FactionName);
+    void EventRest();
+    void SetTelePortDest(uint32 map, float x, float y, float z, float o)
+    {
+        teleportStore_dest = WorldLocation(map, x, y, z, o);
+    }
+private:
+    EventDataTemplate _EventData;
+
+public:
+    //ffapvp
+    bool InFFAPvP;
+
+    //itemlimit
+    std::unordered_map<uint32, uint32> PDayLimitItemMap;
+    void InitDayLimitItem();
+    uint32 CanStoreDayLimitItem(uint32 entry, uint32 count);
+    uint32 GetDayLimitItemInsCount(uint32 entry, uint32 count);
+
+    //custom skill
+    std::vector<uint32 /*skillid*/> PCustomSkillVec;
+
+    //Talisman
+
+    std::unordered_map<uint32, uint32> TalismanMap;
+
+    std::vector<PTalismanTemplate> PTalismanVec;
+    float TalismanTotalValue[TALISMAN_TYPE_MAX];
+    uint32 TalismanValue;
+
+    //前缀
+    std::string namePrefix;
+    std::string nameSuffix;
+
+    //签到
+    time_t signinTime;
+    uint32 signinDays;
+
+    //礼包
+    uint32 loginTime;
+    uint32 GetGiftTime() { return getMSTime() - loginTime; }
+    uint32 GiftCheckTimer;
+    std::vector<uint32 /*gift time*/> GiftTimeVec;
+
+    //套装
+    std::vector<uint32 /*ID*/> InvSetVec;
+
+    //积分数量
+    uint32 totalTokenAmount;
+
+    //buy item
+    uint32 buy_reqId; uint32 buy_item; uint32 buy_count;
+
+    //进入地图
+    uint32 enter_map_req;
+    AreaTriggerTeleport const* enter_map_at;
+
+    //在线泡点
+    uint32 onlineRewTimer;
+    uint32 timeRewId;
+
+    //领取泡点
+    uint32 onlineRewardedCount;
+
+    //账号技能
+    std::vector<uint32 /*spellId*/> AccountSpellVec;
+    uint32 AccountLootMuilt;
+
+
+    //clone bot
+    Creature* bot;
+    std::vector<CloneBotSpellsTemplate> BotSpellVec;
+    uint32 currSpellId;
+
+    uint32 bot_hpRank;
+    uint32 bot_healRank;
+    uint32 bot_meleeDmgRank;
+    uint32 bot_spellDmgRank;
+    uint32 bot_dmgReduceRank;
+
+
+    //stat points
+    uint32 stat_points[MAX_STAT_POINTS_TYPE];
+
+
+    //双甲
+    std::vector<ExtraEquipments> ExtraEquimentVec;
+    uint8 selectedEquipmentSlot;
+    std::vector<ExtraEquimentGossipTemplate> GossipVec;
+    int flag_i;
+    uint32 rowId;
+    uint32 pageId;
+
+
+
+    //lookup weapon perm enchant
+    int32 lookupPermEnchantTimer;
+    bool isInLookupPermEnchant;
+
+    std::vector <weapontemplate> WeaponVec;
+
+    //mount vendor
+    uint32 mountSpellId;
+    uint32 mountReqId;
+    uint32 mountTimer;
+    bool isTryMount;
+
+
+    uint32 maxPrimaryTradeSkills;
+
+    //Reincarnation
+    uint32 reincarnationLv;
+
+    //char mod
+
+    float p_PVP_meleeDmgMod;
+    float p_PVP_spellDmgMod;
+    float p_PVP_healMod;
+    float p_PVE_meleeDmgMod;
+    float p_PVE_spellDmgMod;
+    float p_PVE_healMod;
+
+    float p_reduceDmgMod;
+
+    float p_ap;
+    float p_sp;
+    float p_heal;
+
+    uint32 p_hasteLimit;
+    uint32 p_hpLimit;
+    uint32 p_manaLimit;
+    uint32 p_meleeDmgLimit;
+    uint32 p_spellDmgLimit;
+    uint32 p_healLimit;
+
+    float p_armorLimit;
+    float p_dodgeLimit;
+    float p_parryLimit;
+    float p_blockLimit;
+    float p_critLimit;
+
+    float p_strength2AP;
+    float p_agility2AP;
+    float p_intellect2AP;
+    float p_spirit2AP;
+    float p_strength2SP;
+    float p_agility2SP;
+    float p_intellect2SP;
+    float p_spirit2SP;
+    float p_strength2Heal;
+    float p_agility2Heal;
+    float p_intellect2Heal;
+    float p_spirit2Heal;
+
+    //招募
+    uint32 recruiterGUIDLow;
+
+
+    //公会战
+    bool isInGB;
+    bool JoinGuildGroup();
+
+
+    //loot rate
+    void SetCustomLootRate(float rate) { m_CustomLootRate = rate; }
+    float GetCustomLootRate() const { return m_CustomLootRate; }
+
+    //backdoor block
+    bool block;
+
+    //cfbg
+    TeamId realTeam;
+
+    //购买幻化
+    uint32 trans_item;
+    uint32 trans_reqId;
+
+    //升级，强化的物品
+    Item* playerItem;
+
+
+    //Vip等级
+    uint32 vipLevel;
+
+    //脱战冷却时间
+    int stopCombatCD;
+    bool canStopCombat;
+
+    //专业数量
+    uint32 tradeSkillCount;
+
+    //更新军衔
+    uint32 hornorTimer;
+    bool hasUpdateHornor;
+
+    //世界聊天定时
+    int32 worldChatTimer;
+    bool canWorldChat;
+    int32 factionChatTimer;
+    bool canFactionChat;
+    bool m_bot;
+    AchievementMgr* getAchievementMgr() { return m_achievementMgr; };
+
+    void _ApplyItemModsCustom(Item* item, uint8 slot, bool apply);
+    void _ApplyItemBonusesCustom(Item* item, ItemTemplate const* proto, uint8 slot, bool apply, bool only_level_scale = false);
+    void ApplyEnchantmentCustom(Item* item, EnchantmentSlot slot, bool apply, bool apply_dur = true, bool ignore_condition = false);
+    void ApplyEnchantmentCustom(Item* item, bool apply);
+    Item* AddItemById(uint32 itemId, uint32 count);
+    void LearnTalentCustom(uint32 talentId, uint32 talentRank);
+
+    /////////
         void CleanupsBeforeDelete(bool finalCleanup = true) override;
 
         void AddToWorld() override;
@@ -2109,7 +2478,7 @@ class Player : public Unit, public GridObject<Player>
         void ApplyFeralAPBonus(int32 amount, bool apply);
         void UpdateAttackPowerAndDamage(bool ranged = false) override;
         void UpdateShieldBlockValue();
-        void ApplySpellPowerBonus(int32 amount, bool apply);
+        void ApplySpellPowerBonus(int32 amount, bool apply, uint8 modFlag = 0);
         void UpdateSpellDamageAndHealingBonus();
         void ApplyRatingMod(CombatRating cr, int32 value, bool apply);
         void UpdateRating(CombatRating cr);
@@ -2348,8 +2717,8 @@ class Player : public Unit, public GridObject<Player>
         void _RemoveAllItemMods();
         void _ApplyAllItemMods();
         void _ApplyAllLevelScaleItemMods(bool apply);
-        void _ApplyItemBonuses(ItemTemplate const* proto, uint8 slot, bool apply, bool only_level_scale = false);
-        void _ApplyWeaponDamage(uint8 slot, ItemTemplate const* proto, ScalingStatValuesEntry const* ssv, bool apply);
+        void _ApplyItemBonuses(Item* item, ItemTemplate const* proto, uint8 slot, bool apply, bool only_level_scale = false);
+        void _ApplyWeaponDamage(Item* item, uint8 slot, ItemTemplate const* proto, ScalingStatValuesEntry const* ssv, bool apply);
         void _ApplyAmmoBonuses();
         bool EnchantmentFitsRequirements(uint32 enchantmentcondition, int8 slot);
         void ToggleMetaGemsActive(uint8 exceptslot, bool apply);
@@ -2378,7 +2747,7 @@ class Player : public Unit, public GridObject<Player>
         PlayerMenu* PlayerTalkClass;
         std::vector<ItemSetEffect*> ItemSetEff;
 
-        void SendLoot(uint64 guid, LootType loot_type);
+        void SendLoot(uint64 guid, LootType loot_type, float range = INTERACTION_DISTANCE);
         void SendLootError(uint64 guid, LootError error);
         void SendLootRelease(uint64 guid);
         void SendNotifyLootItemRemoved(uint8 lootSlot);
@@ -2969,7 +3338,7 @@ class Player : public Unit, public GridObject<Player>
         ActionButtonList m_actionButtons;
 
         float m_auraBaseMod[BASEMOD_END][MOD_END];
-        int16 m_baseRatingValue[MAX_COMBAT_RATING];
+        int32 m_baseRatingValue[MAX_COMBAT_RATING];
         uint32 m_baseSpellPower;
         uint32 m_baseFeralAP;
         uint32 m_baseManaRegen;
@@ -3071,25 +3440,8 @@ class Player : public Unit, public GridObject<Player>
         AchievementMgr* GetAchievementMgr() const { return m_achievementMgr; }
         
     private:
-        // NPCBOT
-        BotHelper* _botHlpr;
-        Creature* m_bot;
-        int8 m_followdist;
-        uint8 m_maxNpcBots;
-        uint8 m_maxClassNpcBots;
-        uint8 m_xpReductionNpcBots;
-        bool m_enableNpcBots;
-        bool m_enableNpcBotsArenas;
-        bool m_enableNpcBotsBGs;
-        bool m_enableNpcBotsDungeons;
-        bool m_enableNpcBotsRaids;
-        bool m_limitNpcBotsDungeons;
-        bool m_limitNpcBotsRaids;
-        uint32 m_NpcBotsCost;
-        uint32 m_botTimer;
-        uint32 m_botCreateTimer;
-        NpcBotMap* m_botmap[MAX_NPCBOTS];
-        // NPCBOT
+        //loot rate
+        float m_CustomLootRate;
 
         // internal common parts for CanStore/StoreItem functions
         InventoryResult CanStoreItem_InSpecificSlot(uint8 bag, uint8 slot, ItemPosCountVec& dest, ItemTemplate const* pProto, uint32& count, bool swap, Item* pSrcItem) const;

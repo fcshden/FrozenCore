@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright (C) 2016+     AzerothCore <www.azerothcore.org>, released under GNU GPL v2 license: https://github.com/azerothcore/azerothcore-wotlk/blob/master/LICENSE-GPL2
  * Copyright (C) 2008-2020 TrinityCore <http://www.trinitycore.org/>
  * Copyright (C) 2005-2009 MaNGOS <http://getmangos.com/>
@@ -54,8 +54,9 @@ char constexpr GtOCTRegenHPfmt[] = "df";
 char constexpr GtRegenHPPerSptfmt[] = "df";
 char constexpr GtRegenMPPerSptfmt[] = "df";
 char constexpr Holidaysfmt[] = "niiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiixxsiix";
+char const Itemfmt[] = "niiiiiii";
 char constexpr ItemBagFamilyfmt[] = "nxxxxxxxxxxxxxxxxx";
-char constexpr ItemDisplayTemplateEntryfmt[] = "nxxxxsxxxxxxxxxxxxxxxxxxx";
+char constexpr ItemDisplayTemplateEntryfmt[] = "nssssssiiiiiiiissssssssii";
 //char constexpr ItemCondExtCostsEntryfmt[] = "xiii";
 char constexpr ItemExtendedCostEntryfmt[] = "niiiiiiiiiiiiiix";
 char constexpr ItemLimitCategoryEntryfmt[] = "nxxxxxxxxxxxxxxxxxii";
@@ -87,6 +88,12 @@ char constexpr SpellCategoryfmt[] = "ni";
 char constexpr SpellDifficultyfmt[] = "niiii";
 char constexpr SpellDurationfmt[] = "niii";
 char constexpr SpellEntryfmt[] = "niiiiiiiiiiiixixiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiifxiiiiiiiiiiiiiiiiiiiiiiiiiiiifffiiiiiiiiiiiiiiiiiiiiifffiiiiiiiiiiiiiiifffiiiiiiiiiiiiixssssssssssssssssxssssssssssssssssxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxiiiiiiiiiiixfffxxxiiiiixxfffxx";
+
+char const _SpellEntryfmt[] = "niiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiifiiiiiiiiiiiiiiiiiiiiiiiiiiiiifffiiiiiiiiiiiiiiiiiiiiifffiiiiiiiiiiiiiiifffiiiiiiiiiiiiiissssssssssssssssissssssssssssssssissssssssssssssssissssssssssssssssiiiiiiiiiiiiifffiiiiiiiiiifffii";
+char const SpellIconEntryfmt[] = "ns";
+const std::string CustomSpellEntryfmt = "papppppppppppapapaaaaaaaaaaapaaapapppppppaaaaapaapaaaaaaaaaaaaaaaaaappppppppppppppppppppppppppppppppppppaaappppppppppppaaapppppppppaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaappppppppapppaaaaappaaaaaaa";
+const std::string CustomSpellEntryIndex = "Id";
+
 char constexpr SpellFocusObjectfmt[] = "nxxxxxxxxxxxxxxxxx";
 char constexpr SpellItemEnchantmentfmt[] = "niiiiiiixxxiiissssssssssssssssxiiiiiii";
 char constexpr SpellItemEnchantmentConditionfmt[] = "nbbbbbxxxxxbbbbbbbbbbiiiiiXXXXX";

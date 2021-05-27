@@ -23,7 +23,8 @@
 #include "InstanceScript.h"
 #include "Player.h"
 #include "GameGraveyard.h"
-#include "BYcustom.h"
+#include "../Custom/SpellMod/SpellMod.h"
+
 
 bool IsPrimaryProfessionSkill(uint32 skill)
 {
@@ -3267,6 +3268,10 @@ void SpellMgr::LoadSpellCustomAttr()
 
 void SpellMgr::LoadDbcDataCorrections()
 {
+
+    //此处加载光环影响技能
+    sSpellMod->Load();
+
     uint32 oldMSTime = getMSTime();
 
     SpellEntry* spellInfo = nullptr;
@@ -6365,6 +6370,9 @@ void SpellMgr::LoadDbcDataCorrections()
             spellInfo->EffectImplicitTargetA[EFFECT_1] = TARGET_UNIT_TARGET_ANY;
             spellInfo->EffectImplicitTargetA[EFFECT_2] = TARGET_UNIT_TARGET_ANY;
             break;
+        case 54710:
+            spellInfo->DurationIndex = 23;
+            break;
             // Check for SPELL_ATTR7_INTERRUPT_ONLY_NONPLAYER
         case 47476: // Deathknight - Strangulate
         case 15487: // Priest - Silence
@@ -6389,19 +6397,172 @@ void SpellMgr::LoadDbcDataCorrections()
                 break;
         }
 
-        //SpellCustomMod
         {
-            if (sCustomMgr->FindSpellCustomMod(spellInfo->Id))
-            {
-                if (sCustomMgr->FindSpellCustomMod(spellInfo->Id)->procChance != 0)
-                    spellInfo->procChance = sCustomMgr->FindSpellCustomMod(spellInfo->Id)->procChance;
+            //重载spellentry
+            std::unordered_map<uint32, SpellModBaseTemplate>::iterator iter = SpellModBaseMap.find(spellInfo->Id);
 
-                if (sCustomMgr->FindSpellCustomMod(spellInfo->Id)->cooldown != 0)
-                    spellInfo->RecoveryTime = sCustomMgr->FindSpellCustomMod(spellInfo->Id)->cooldown;
+            if (iter != SpellModBaseMap.end())
+            {
+                if (iter->second.SpellFamilyName != 0)
+                    spellInfo->SpellFamilyName = iter->second.SpellFamilyName;
+
+                if (iter->second.procChance != 0)
+                    spellInfo->procChance = iter->second.procChance;
+
+                if (iter->second.procCharges != 0)
+                    spellInfo->procCharges = iter->second.procCharges;
+
+                spellInfo->procFlags = iter->second.procFlags;
+
+                if (iter->second.RecoveryTime != 0)
+                    spellInfo->RecoveryTime = iter->second.RecoveryTime;
+
+                for (uint8 j = 0; j < MAX_SPELL_EFFECTS; ++j)
+                {
+                    if (iter->second.EffectImplicitTargetA[j] != 0)
+                        spellInfo->EffectImplicitTargetA[j] = iter->second.EffectImplicitTargetA[j];
+
+                    if (iter->second.Effect[j] != 0)
+                        spellInfo->Effect[j] = iter->second.Effect[j];
+
+                    if (iter->second.EffectApplyAuraName[j] != 0)
+                        spellInfo->EffectApplyAuraName[j] = iter->second.EffectApplyAuraName[j];
+
+                    if (iter->second.EffectMiscValue[j] != 0)
+                        spellInfo->EffectMiscValue[j] = iter->second.EffectMiscValue[j];
+
+                    if (iter->second.EffectBasePoints[j] != 0)
+                        spellInfo->EffectBasePoints[j] = iter->second.EffectBasePoints[j];
+
+                    if (iter->second.EffectTriggerSpell[j] != 0)
+                        spellInfo->EffectTriggerSpell[j] = iter->second.EffectTriggerSpell[j];
+
+                    if (iter->second.EffectSpellClassMask[j] != flag96(0, 0, 0))
+                        spellInfo->EffectSpellClassMask[j] = iter->second.EffectSpellClassMask[j];
+                }
+            }
+        }
+
+        //光环修改技能
+        {
+            std::unordered_map<uint32, AuraTriggerSpellTemplate>::iterator iter = AuraTriggerSpellMap.find(spellInfo->Id);
+
+            if (iter != AuraTriggerSpellMap.end())
+            {
+                spellInfo->Effect[0] = SPELL_EFFECT_APPLY_AURA;
+                spellInfo->procFlags = iter->second.procFlags;
+                spellInfo->procChance = 101;
+                spellInfo->EffectApplyAuraName[0] = SPELL_AURA_PROC_TRIGGER_SPELL;
+                spellInfo->EffectTriggerSpell[0] = 61456;
+            }
+        }
+
+        //SpellModTemplate
+        {
+            std::unordered_map<uint32, SpellModTemplate>::iterator iter = SpellModMap.find(spellInfo->Id);
+
+            if (iter != SpellModMap.end())
+            {
+                if (iter->second.procChance != 0)
+                    spellInfo->procChance = iter->second.procChance;
+
+                if (iter->second.cooldown != 0)
+                    spellInfo->RecoveryTime = iter->second.cooldown;
 
                 for (size_t i = 0; i < MAX_SPELL_EFFECTS; i++)
-                    if (sCustomMgr->FindSpellCustomMod(spellInfo->Id)->Periodic[i] != 0)
-                        spellInfo->EffectAmplitude[i] = sCustomMgr->FindSpellCustomMod(spellInfo->Id)->Periodic[i];
+                    if (iter->second.Periodic[i] != 0)
+                        spellInfo->EffectAmplitude[i] = iter->second.Periodic[i];
+            }
+        }
+
+        /*
+        //修改技能
+        {
+            for (auto iter = AuraModSpellVec.begin(); iter != AuraModSpellVec.end(); iter++)
+            {
+                if (spellInfo->Id != iter->AuraId)
+                    continue;
+
+                spellInfo->SpellFamilyName = iter->SpellFamilyName;
+
+                for (size_t i = 0; i < MAX_SPELL_EFFECTS; i++)
+                {
+                    if (iter->Value[i] == 0)
+                        continue;
+
+                    spellInfo->Effect[i] = SPELL_EFFECT_APPLY_AURA;
+
+                    for (auto itr = iter->SpellVec.begin(); itr != iter->SpellVec.end(); itr++)
+                        if (SpellEntry const* spell1 = sSpellStore.LookupEntry(*itr))
+                            spellInfo->EffectSpellClassMask[i] |= spell1->SpellFamilyFlags;
+
+                    spellInfo->EffectApplyAuraName[i] = iter->Type[i];
+                    spellInfo->EffectMiscValue[i] = iter->Op[i];
+                    spellInfo->EffectBasePoints[i] = iter->Value[i];
+                }
+            }
+        }
+        */
+        //修改职业
+
+        {
+            std::unordered_map<uint32, AuraModClassSpellTemplate>::iterator iter = AuraModClassSpellMap.find(spellInfo->Id);
+
+            if (iter != AuraModClassSpellMap.end())
+            {
+                spellInfo->SpellFamilyName = iter->second.SpellFamilyName;
+
+                for (size_t i = 0; i < MAX_SPELL_EFFECTS; i++)
+                {
+                    if (iter->second.Value[i] == 0)
+                        continue;
+
+                    spellInfo->Effect[i] = SPELL_EFFECT_APPLY_AURA;
+                    spellInfo->EffectSpellClassMask[i] = flag96(0xffffffff, 0xffffffff, 0xffffffff);
+                    spellInfo->EffectApplyAuraName[i] = iter->second.Type[i];
+                    spellInfo->EffectMiscValue[i] = iter->second.Op[i];
+                    spellInfo->EffectBasePoints[i] = iter->second.Value[i];
+                }
+            }
+        }
+
+        {
+            std::unordered_map<uint32, AuraModStatTemplate>::iterator iter = AuraModStatMap.find(spellInfo->Id);
+
+            if (iter != AuraModStatMap.end())
+            {
+                for (size_t i = 0; i < MAX_SPELL_EFFECTS; i++)
+                {
+                    if (iter->second.auraType[i] == SPELL_AURA_NONE)
+                        continue;
+
+                    spellInfo->Effect[i] = SPELL_EFFECT_APPLY_AURA;
+                    spellInfo->EffectApplyAuraName[i] = iter->second.auraType[i];
+                    spellInfo->EffectBasePoints[i] = iter->second.basePoints[i];
+                    spellInfo->EffectMiscValue[i] = iter->second.misc[i];
+                    spellInfo->EffectMiscValueB[i] = iter->second.miscB[i];;
+                    spellInfo->EffectDieSides[i] = 0;
+                }
+            }
+        }
+
+        {
+            std::unordered_map<uint32, AuraPctTemplate>::iterator iter = AuraPctMap.find(spellInfo->Id);
+
+            if (iter != AuraPctMap.end())
+            {
+                for (size_t i = 0; i < MAX_SPELL_EFFECTS; i++)
+                {
+                    if (iter->second.auraType[i] == SPELL_AURA_NONE)
+                        continue;
+
+                    spellInfo->Effect[i] = SPELL_EFFECT_APPLY_AURA;
+                    spellInfo->EffectApplyAuraName[i] = iter->second.auraType[i];
+                    spellInfo->EffectBasePoints[i] = iter->second.basePoints[i];
+                    spellInfo->EffectMiscValue[i] = iter->second.misc[i];
+                    spellInfo->EffectMiscValueB[i] = iter->second.miscB[i];
+                    spellInfo->EffectDieSides[i] = 0;
+                }
             }
         }
     }

@@ -43,9 +43,16 @@
 #include "AccountMgr.h"
 #include "Spell.h"
 #include "WhoListCache.h"
-#include "BYcustom.h"
+#include "../Custom/CommonFunc/CommonFunc.h"
+#include "../Custom/CustomEvent/Event.h"
+#include "../Custom/Recruit/Recruit.h"
+#include "../Custom/FakePlayers/FakePlayers.h"
+#include "../Custom/PvP/PvP.h"
+#include "../Custom/Switch/Switch.h"
+#include "../Custom/GCAddon/GCAddon.h"
+#include "../Custom/Challenge/challenge.h"
+#include "../Custom/MapMod/MapMod.h"
 
-#include "../game/AI/NpcBots/bothelper.h"
 #ifdef ELUNA
 #include "LuaEngine.h"
 #endif
@@ -102,6 +109,24 @@ void WorldSession::HandleGossipSelectOptionOpcode(WorldPacket & recv_data)
 
     if (_player->PlayerTalkClass->IsGossipOptionCoded(gossipListId))
         recv_data >> code;
+
+    //处理弹窗钩子
+
+    if (sRecruit->RecruitAcceptOrCancel(GetPlayer(), menuId))
+        return;
+
+    if (sCF->DoAciotnAfterAccept(GetPlayer(), menuId))
+        return;
+
+    if (sEvent->AcceptInvitation(GetPlayer(), menuId))
+        return;
+
+    if (_player->PlayerTalkClass->IsGossipOptionCoded(gossipListId) || menuId == 7878)
+        recv_data >> code;
+
+    if (!IsGCValidString(code, "HandleGossipSelectOptionOpcode", this, recv_data))
+        return;
+
 
     Creature* unit = nullptr;
     GameObject* go = nullptr;
@@ -188,10 +213,7 @@ void WorldSession::HandleGossipSelectOptionOpcode(WorldPacket & recv_data)
         }
         else
         {
-            if (menuId == 10000)
-                sCustomMgr->OnPlayerSelectDQ(_player, _player->PlayerTalkClass->GetGossipOptionSender(gossipListId), _player->PlayerTalkClass->GetGossipOptionAction(gossipListId), code.c_str());
-            else
-                sScriptMgr->OnGossipSelectCode(_player, menuId, _player->PlayerTalkClass->GetGossipOptionSender(gossipListId), _player->PlayerTalkClass->GetGossipOptionAction(gossipListId), code.c_str());
+            sScriptMgr->OnGossipSelectCode(_player, menuId, _player->PlayerTalkClass->GetGossipOptionSender(gossipListId), _player->PlayerTalkClass->GetGossipOptionAction(gossipListId), code.c_str());
         }
     }
     else
@@ -214,16 +236,7 @@ void WorldSession::HandleGossipSelectOptionOpcode(WorldPacket & recv_data)
         }
         else
         {
-            if (_player->GetBotHelper())// NPCBOT
-                _player->GetBotHelper()->OnGossipSelect(_player, _player->PlayerTalkClass->GetGossipOptionSender(gossipListId), _player->PlayerTalkClass->GetGossipOptionAction(gossipListId));
-            else
-            {
-                if (menuId == 10000)
-                    sCustomMgr->OnPlayerSelectDQ(_player, _player->PlayerTalkClass->GetGossipOptionSender(gossipListId), _player->PlayerTalkClass->GetGossipOptionAction(gossipListId), "");
-                else
-                    sScriptMgr->OnGossipSelect(_player, menuId, _player->PlayerTalkClass->GetGossipOptionSender(gossipListId), _player->PlayerTalkClass->GetGossipOptionAction(gossipListId));
-            }
-                
+            sScriptMgr->OnGossipSelect(_player, menuId, _player->PlayerTalkClass->GetGossipOptionSender(gossipListId), _player->PlayerTalkClass->GetGossipOptionAction(gossipListId));
         }
     }
 }
@@ -418,6 +431,32 @@ void WorldSession::HandleWhoOpcode(WorldPacket& recvData)
         ++displaycount;
     }
 
+
+    std::vector<FakePlayersTemplate>::iterator itr;
+    for (itr = FakePlayersVec.begin(); itr != FakePlayersVec.end(); ++itr)
+    {
+        if (!itr->online)
+            continue;
+
+        data << itr->pname;                                    // player name
+        data << itr->gname;                                    // guild name
+        data << uint32(itr->lvl);                              // player level
+        data << uint32(itr->class_);                           // player class
+        data << uint32(itr->race);                             // player race
+        data << uint8(itr->gender);                            // player gender
+        data << uint32(itr->pzoneid);							// player zone id
+        ++displaycount;
+        ++matchcount;
+    }
+
+    uint32 num = atoi(sSwitch->GetFlagByIndex(ST_WHO, 1).c_str());
+    float muilt = atof(sSwitch->GetFlagByIndex(ST_WHO, 2).c_str());
+
+    muilt = muilt == 0 ? 1 : muilt;
+
+    if (matchcount > num && num > 0)
+        matchcount *= muilt;
+
     data.put(0, displaycount);                            // insert right count, count displayed
     data.put(4, matchcount);                              // insert right count, count of matches
 
@@ -436,7 +475,7 @@ void WorldSession::HandleLogoutRequestOpcode(WorldPacket & /*recv_data*/)
         DoLootRelease(lguid);
 
     bool instantLogout = ((GetSecurity() >= 0 && uint32(GetSecurity()) >= sWorld->getIntConfig(CONFIG_INSTANT_LOGOUT))
-        || (GetPlayer()->HasFlag(PLAYER_FLAGS, PLAYER_FLAGS_RESTING) && !GetPlayer()->IsInCombat())) || GetPlayer()->IsInFlight();
+        || ((GetPlayer()->HasFlag(PLAYER_FLAGS, PLAYER_FLAGS_RESTING) || sPvP->GetType(GetPlayer()->GetZoneId(), GetPlayer()->GetAreaId()) == PVP_TYPE_SANCTUARY) && !GetPlayer()->IsInCombat())) || GetPlayer()->IsInFlight();
 
     bool preventAfkSanctuaryLogout = sWorld->getIntConfig(CONFIG_AFK_PREVENT_LOGOUT) == 1
         && GetPlayer()->isAFK() && sAreaTableStore.LookupEntry(GetPlayer()->GetAreaId())->IsSanctuary();
@@ -630,7 +669,7 @@ void WorldSession::HandleAddFriendOpcode(WorldPacket & recv_data)
         {
             if (friendGuid == GetPlayer()->GetGUID())
                 friendResult = FRIEND_SELF;
-            else if (GetPlayer()->GetTeamId() != teamId && !sWorld->getBoolConfig(CONFIG_ALLOW_TWO_SIDE_ADD_FRIEND)  && AccountMgr::IsPlayerAccount(GetSecurity()))
+            else if (GetPlayer()->GetTeamId() != teamId && !sSwitch->GetOnOff(ST_CF_GROUP) && AccountMgr::IsPlayerAccount(GetSecurity()))
                 friendResult = FRIEND_ENEMY;
             else if (GetPlayer()->GetSocial()->HasFriend(guidLow))
                 friendResult = FRIEND_ALREADY;
@@ -988,7 +1027,10 @@ void WorldSession::HandleAreaTriggerOpcode(WorldPacket& recv_data)
     }
 
     if (!teleported)
-        player->TeleportTo(at->target_mapId, at->target_X, at->target_Y, at->target_Z, at->target_Orientation, TELE_TO_NOT_LEAVE_TRANSPORT);
+    {
+        if (!sChallengeMod->AddGossipOrTele(player, triggerId))
+            sMapMod->PopOrTele(player, triggerId);
+    }
 }
 
 void WorldSession::HandleUpdateAccountData(WorldPacket &recv_data)
@@ -1912,6 +1954,9 @@ void WorldSession::HandleAreaSpiritHealerQueryOpcode(WorldPacket & recv_data)
 
     Creature* unit = GetPlayer()->GetMap()->GetCreature(guid);
     if (!unit)
+        return;
+
+    if (sEvent->SendAreaSpiritHealerQueryOpcode(GetPlayer()))
         return;
 
     if (!unit->IsSpiritService())                            // it's not spirit service

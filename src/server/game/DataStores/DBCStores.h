@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright (C) 2016+     AzerothCore <www.azerothcore.org>, released under GNU GPL v2 license: https://github.com/azerothcore/azerothcore-wotlk/blob/master/LICENSE-GPL2
  * Copyright (C) 2008-2016 TrinityCore <http://www.trinitycore.org/>
  * Copyright (C) 2005-2009 MaNGOS <http://getmangos.com/>
@@ -18,6 +18,16 @@ SimpleFactionsList const* GetFactionTeamList(uint32 faction);
 char* GetPetName(uint32 petfamily, uint32 dbclang);
 uint32 GetTalentSpellCost(uint32 spellId);
 TalentSpellPos const* GetTalentSpellPos(uint32 spellId);
+
+int32 GetAreaFlagByAreaID(uint32 area_id);                  // -1 if not found
+AreaTableEntry const* GetAreaEntryByAreaID(uint32 area_id);
+AreaTableEntry const* GetAreaEntryByAreaFlagAndMap(uint32 area_flag, uint32 map_id);
+uint32 GetAreaFlagByMapId(uint32 mapid);
+int32 GetMapIdByZone(uint32 zone_id);
+
+std::string GetMapNameById(uint32 id);
+std::string GetZoneNameById(uint32 id);
+std::string GetAreaNameById(uint32 id);
 
 WMOAreaTableEntry const* GetWMOAreaTableEntryByTripple(int32 rootid, int32 adtid, int32 groupid);
 
@@ -100,6 +110,7 @@ extern DBCStorage <GtOCTRegenHPEntry>            sGtOCTRegenHPStore;
 extern DBCStorage <GtRegenHPPerSptEntry>         sGtRegenHPPerSptStore;
 extern DBCStorage <GtRegenMPPerSptEntry>         sGtRegenMPPerSptStore;
 extern DBCStorage <HolidaysEntry>                sHolidaysStore;
+extern DBCStorage <ItemEntry>                    sItemStore;
 extern DBCStorage <ItemBagFamilyEntry>           sItemBagFamilyStore;
 extern DBCStorage <ItemDisplayInfoEntry>         sItemDisplayInfoStore;
 extern DBCStorage <ItemExtendedCostEntry>        sItemExtendedCostStore;
@@ -140,6 +151,8 @@ extern DBCStorage <SpellRangeEntry>              sSpellRangeStore;
 extern DBCStorage <SpellRuneCostEntry>           sSpellRuneCostStore;
 extern DBCStorage <SpellShapeshiftEntry>         sSpellShapeshiftStore;
 extern DBCStorage <SpellEntry>                   sSpellStore;
+extern DBCStorage <_SpellEntry>                   _sSpellStore;
+extern DBCStorage <SpellIconEntry>                   sSpellIconStore;
 extern DBCStorage <StableSlotPricesEntry>        sStableSlotPricesStore;
 extern DBCStorage <SummonPropertiesEntry>        sSummonPropertiesStore;
 extern DBCStorage <TalentEntry>                  sTalentStore;

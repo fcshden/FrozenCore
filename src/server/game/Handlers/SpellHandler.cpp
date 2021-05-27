@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright (C) 2016+     AzerothCore <www.azerothcore.org>, released under GNU GPL v2 license: https://github.com/azerothcore/azerothcore-wotlk/blob/master/LICENSE-GPL2
  * Copyright (C) 2008-2016 TrinityCore <http://www.trinitycore.org/>
  * Copyright (C) 2005-2009 MaNGOS <http://getmangos.com/>
@@ -22,6 +22,17 @@
 #include "GameObjectAI.h"
 #include "SpellAuraEffects.h"
 #include "Player.h"
+#pragma execution_character_set("utf-8")
+#include "../Custom/CommonFunc/CommonFunc.h"
+#include "../Custom//DataLoader/DataLoader.h"
+#include "../Custom/ItemMod/ItemMod.h"
+#include "../Custom/Requirement/Requirement.h"
+#include "../Custom/Reward/Reward.h"
+#include "../Custom/Command/CustomCommand.h"
+#include "Chat.h"
+#include "../Custom/Morph/Morph.h"
+#include "../Custom/ServerAnnounce/ServerAnnounce.h"
+#include "../Custom/ItemMod/NoPatchItem.h"
 #ifdef ELUNA
 #include "LuaEngine.h"
 #endif
@@ -96,6 +107,16 @@ void WorldSession::HandleUseItemOpcode(WorldPacket& recvPacket)
         return;
     }
 
+    if (!pItem)
+        return;
+
+    //检测幻化标识
+    if (sItemMod->HasTransFlag(pItem))
+    {
+        pUser->SendEquipError(EQUIP_ERR_CANT_DO_RIGHT_NOW, pItem, NULL);
+        return;
+    }
+
     // some item classes can be used only in equipped state
     if (proto->InventoryType != INVTYPE_NON_EQUIP && !pItem->IsEquipped())
     {
@@ -139,6 +160,19 @@ void WorldSession::HandleUseItemOpcode(WorldPacket& recvPacket)
         }
     }
 
+    //item use 技能GCD或CoolDown时禁止使用
+    for (int i = 0; i < MAX_ITEM_PROTO_SPELLS; ++i)
+    {
+        if (SpellInfo const* spellInfo = sSpellMgr->GetSpellInfo(proto->Spells[i].SpellId))
+        {
+            if (pUser->GetGlobalCooldownMgr().HasGlobalCooldown(spellInfo) || pUser->HasSpellCooldown(proto->Spells[i].SpellId))
+            {
+                pUser->SendEquipError(EQUIP_ERR_CANT_DO_RIGHT_NOW, pItem, NULL);
+                return;
+            }
+        }
+    }
+
     // check also  BIND_WHEN_PICKED_UP and BIND_QUEST_ITEM for .additem or .additemset case by GM (not binded at adding to inventory)
     if (pItem->GetTemplate()->Bonding == BIND_WHEN_USE || pItem->GetTemplate()->Bonding == BIND_WHEN_PICKED_UP || pItem->GetTemplate()->Bonding == BIND_QUEST_ITEM)
     {
@@ -153,6 +187,92 @@ void WorldSession::HandleUseItemOpcode(WorldPacket& recvPacket)
     targets.Read(recvPacket, pUser);
     HandleClientCastFlags(recvPacket, castFlags, targets);
 
+    //item use
+    {
+        uint32 reqId = 0;
+        uint32 rewId = 0;
+        uint32 chance = 0;
+        uint32 spellId1 = 0;
+        uint32 spellId2 = 0;
+        uint32 spellId3 = 0;
+        std::string command = "";
+        sItemMod->GetUseInfo(proto->ItemId, reqId, rewId, chance, command, spellId1, spellId2, spellId3);
+
+
+        if (!sReq->Check(pUser, reqId))
+            return;
+
+        SpellInfo const* spellInfo1 = sSpellMgr->GetSpellInfo(spellId1);
+        SpellInfo const* spellInfo2 = sSpellMgr->GetSpellInfo(spellId2);
+        SpellInfo const* spellInfo3 = sSpellMgr->GetSpellInfo(spellId3);
+
+        if (spellInfo1 || spellInfo2 || spellInfo3)
+        {
+            bool del = false;
+
+            SpellCastResult result1 = pUser->_CastSpell(targets, spellInfo1, NULL, TriggerCastFlags(TRIGGERED_FULL_MASK));
+            SpellCastResult result2 = pUser->_CastSpell(targets, spellInfo2, NULL, TriggerCastFlags(TRIGGERED_FULL_MASK));
+            SpellCastResult result3 = pUser->_CastSpell(targets, spellInfo3, NULL, TriggerCastFlags(TRIGGERED_FULL_MASK));
+
+            if (SPELL_CAST_OK == result1)
+                del = true;
+            if (SPELL_CAST_OK == result2)
+                del = true;
+            if (SPELL_CAST_OK == result3)
+                del = true;
+
+            if (!del)
+            {
+                //成功消耗及加载时不发送消息
+                if (!pUser->GetSession()->PlayerLoading())
+                {
+                    if (result1 != SPELL_CAST_OK && result1 != SPELL_FAILED_UNKNOWN)
+                    {
+
+                        WorldPacket data(SMSG_CAST_FAILED, 1 + 4 + 1);
+                        Spell::WriteCastResultInfo(data, pUser, spellInfo1, 1, result1, SPELL_CUSTOM_ERROR_CUSTOM_MSG);
+                        pUser->GetSession()->SendPacket(&data);
+                    }
+                    else if (result2 != SPELL_CAST_OK && result2 != SPELL_FAILED_UNKNOWN)
+                    {
+                        WorldPacket data(SMSG_CAST_FAILED, 1 + 4 + 1);
+                        Spell::WriteCastResultInfo(data, pUser, spellInfo2, 1, result2, SPELL_CUSTOM_ERROR_CUSTOM_MSG);
+                        pUser->GetSession()->SendPacket(&data);
+                    }
+                    else if (result3 != SPELL_CAST_OK && result3 != SPELL_FAILED_UNKNOWN)
+                    {
+                        WorldPacket data(SMSG_CAST_FAILED, 1 + 4 + 1);
+                        Spell::WriteCastResultInfo(data, pUser, spellInfo3, 1, result3, SPELL_CUSTOM_ERROR_CUSTOM_MSG);
+                        pUser->GetSession()->SendPacket(&data);
+                    }
+                }
+
+                return;
+            }
+        }
+
+        sReq->Des(pUser, reqId);
+
+        if (urand(1, 100) <= chance && rewId > 0)
+        {
+            pUser->CastStop();
+            sRew->Rew(pUser, rewId);
+        }
+
+        if (!command.empty())
+            sCustomCommand->DoCommand(pUser, command);
+    }
+
+    // check also  BIND_WHEN_PICKED_UP and BIND_QUEST_ITEM for .additem or .additemset case by GM (not binded at adding to inventory)
+    if (pItem->GetTemplate()->Bonding == BIND_WHEN_USE || pItem->GetTemplate()->Bonding == BIND_WHEN_PICKED_UP || pItem->GetTemplate()->Bonding == BIND_QUEST_ITEM)
+    {
+        if (!pItem->IsSoulBound())
+        {
+            pItem->SetState(ITEM_CHANGED, pUser);
+            pItem->UnBinded = false;
+            pItem->SetBinding(true);
+        }
+    }
 
     // Note: If script stop casting it must send appropriate data to client to prevent stuck item in gray state.
     if (!sScriptMgr->OnItemUse(pUser, pItem, targets))
@@ -209,6 +329,13 @@ void WorldSession::HandleOpenItemOpcode(WorldPacket& recvPacket)
         pUser->SendEquipError(EQUIP_ERR_CANT_DO_RIGHT_NOW, item, nullptr);
         sLog->outError("Possible hacking attempt: Player %s [guid: %u] tried to open item [guid: %u, entry: %u] which is not openable!",
                 pUser->GetName().c_str(), pUser->GetGUIDLow(), item->GetGUIDLow(), proto->ItemId);
+        return;
+    }
+
+    if (!sNoPatchItem->CanOpenItem(pUser))
+    {
+        pUser->SendEquipError(EQUIP_ERR_CANT_DO_RIGHT_NOW, item, NULL);
+        pUser->SendLootError(item->GetGUID(), LOOT_ERROR_DIDNT_KILL);
         return;
     }
 
@@ -363,6 +490,31 @@ void WorldSession::HandleCastSpellOpcode(WorldPacket& recvPacket)
         sLog->outError("WORLD: unknown spell id %u", spellId);
         recvPacket.rfinish(); // prevent spam at ignore packet
         return;
+    }
+
+    if (_player->GetMap()->IsBattlegroundOrArena())
+    {
+        if (spellInfo->Effects[0].ApplyAuraName == 201 || spellInfo->Effects[0].ApplyAuraName == 206 || spellInfo->Effects[0].ApplyAuraName == 207
+            || spellInfo->Effects[0].ApplyAuraName == 208 || spellInfo->Effects[0].ApplyAuraName == 210 || spellInfo->Effects[0].ApplyAuraName == 211
+            )
+        {
+            ChatHandler(_player->GetSession()).PSendSysMessage("这个地图无法使用飞行坐骑.");
+            return;
+        }
+        if (spellInfo->Effects[1].ApplyAuraName == 201 || spellInfo->Effects[1].ApplyAuraName == 206 || spellInfo->Effects[1].ApplyAuraName == 207
+            || spellInfo->Effects[1].ApplyAuraName == 208 || spellInfo->Effects[1].ApplyAuraName == 210 || spellInfo->Effects[1].ApplyAuraName == 211
+            )
+        {
+            ChatHandler(_player->GetSession()).PSendSysMessage("这个地图无法使用飞行坐骑.");
+            return;
+        }
+        if (spellInfo->Effects[2].ApplyAuraName == 201 || spellInfo->Effects[2].ApplyAuraName == 206 || spellInfo->Effects[2].ApplyAuraName == 207
+            || spellInfo->Effects[2].ApplyAuraName == 208 || spellInfo->Effects[2].ApplyAuraName == 210 || spellInfo->Effects[2].ApplyAuraName == 211
+            )
+        {
+            ChatHandler(_player->GetSession()).PSendSysMessage("这个地图无法使用飞行坐骑.");
+            return;
+        }
     }
 
     if (mover->GetTypeId() == TYPEID_PLAYER)

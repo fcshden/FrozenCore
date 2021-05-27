@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Originally written by Xinef - Copyright (C) 2016+ AzerothCore <www.azerothcore.org>, released under GNU AGPL v3 license: http://github.com/azerothcore/azerothcore-wotlk/blob/master/LICENSE-AGPL3
 */
 
@@ -13,9 +13,18 @@
 #include "World.h"
 #include "WorldPacket.h"
 #include "GameGraveyard.h"
+#include "../Custom/DataLoader/DataLoader.h"
+#include "../Custom/CommonFunc/CommonFunc.h"
+#include "../Custom/CustomEvent/FixedTimeBG/FixedTimeBG.h"
+
+uint32 BG_WS_MAX_TEAM_SCORE;
+uint32 BG_WS_MAX_KILLS;
 
 BattlegroundWS::BattlegroundWS()
 {
+    BG_WS_MAX_KILLS = sFTB->GetEndKilss(BATTLEGROUND_WS);
+    BG_WS_MAX_TEAM_SCORE = sFTB->GetMaxRes(BATTLEGROUND_WS);
+
     BgObjects.resize(BG_WS_OBJECT_MAX);
     BgCreatures.resize(BG_CREATURES_MAX_WS);
 
@@ -476,6 +485,8 @@ void BattlegroundWS::HandleKillPlayer(Player* player, Player* killer)
 
     EventPlayerDroppedFlag(player);
     Battleground::HandleKillPlayer(player, killer);
+    UpdateWorldState(BG_WS_FLAG_ALLIANCE_KILLS, GetAllyKills());
+    UpdateWorldState(BG_WS_FLAG_HORDE_KILLS, GetHordeKills());
 }
 
 void BattlegroundWS::UpdatePlayerScore(Player* player, uint32 type, uint32 value, bool doAddHonor)
@@ -510,6 +521,10 @@ GraveyardStruct const* BattlegroundWS::GetClosestGraveyard(Player* player)
 
 void BattlegroundWS::FillInitialWorldStates(WorldPacket& data)
 {
+    data << uint32(BG_WS_FLAG_ALLIANCE_KILLS) << uint32(GetAllyKills());
+    data << uint32(BG_WS_FLAG_HORDE_KILLS) << uint32(GetHordeKills());
+    data << uint32(BG_WS_FLAG_MAX_KILLS) << uint32(BG_WS_MAX_KILLS);
+
     data << uint32(BG_WS_FLAG_CAPTURES_ALLIANCE) << uint32(GetTeamScore(TEAM_ALLIANCE));
     data << uint32(BG_WS_FLAG_CAPTURES_HORDE) << uint32(GetTeamScore(TEAM_HORDE));
     data << uint32(BG_WS_FLAG_CAPTURES_MAX) << uint32(BG_WS_MAX_TEAM_SCORE);

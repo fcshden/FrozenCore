@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright (C) 2016+     AzerothCore <www.azerothcore.org>
  * Copyright (C) 2008-2016 TrinityCore <http://www.trinitycore.org/>
  * Copyright (C) 2005-2009 MaNGOS <http://getmangos.com/>
@@ -102,11 +102,9 @@ enum WorldDatabaseStatements
     WORLD_UPD_CREATURE_ZONE_AREA_DATA,
     WORLD_UPD_GAMEOBJECT_ZONE_AREA_DATA,
     WORLD_SEL_REQ_XP,
-
-    // NPCBOT
-    WORLD_SEL_NPCBOT_PET_LEVELSTATS,
-    // NPCBOT
-
+    WORLD_INS_SPELL_ICON_DBC,
+    WORLD_INS_SPELL_DBC,
+    WORLD_SEL_SPELL_DBC,
     MAX_WORLDDATABASE_STATEMENTS
 };
 

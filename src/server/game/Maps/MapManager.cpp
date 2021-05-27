@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright (C) 2016+     AzerothCore <www.azerothcore.org>, released under GNU GPL v2 license: https://github.com/azerothcore/azerothcore-wotlk/blob/master/LICENSE-GPL2
  * Copyright (C) 2008-2016 TrinityCore <http://www.trinitycore.org/>
  * Copyright (C) 2005-2009 MaNGOS <http://getmangos.com/>
@@ -27,6 +27,7 @@
 #include "LFGMgr.h"
 #include "Chat.h"
 #include "AvgDiffTracker.h"
+#include "../Custom/Instance/InstanceDieTele.h"
 #ifdef ELUNA
 #include "LuaEngine.h"
 #endif
@@ -106,7 +107,17 @@ Map* MapManager::CreateMap(uint32 id, Player* player)
     Map* m = CreateBaseMap(id);
 
     if (m && m->Instanceable())
+    {
+        if (sInstanceDieTele->Unique(id))
+        {
+            MapInstanced::InstancedMaps &maps = ((MapInstanced*)m)->GetInstancedMaps();
+            for (MapInstanced::InstancedMaps::iterator mitr = maps.begin(); mitr != maps.end(); ++mitr)
+                if (mitr->second->GetId() == id)
+                    return mitr->second;
+        }
+
         m = ((MapInstanced*)m)->CreateInstanceForPlayer(id, player);
+    }
 
     return m;
 }

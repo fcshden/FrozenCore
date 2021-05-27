@@ -19,6 +19,8 @@
 #include "GossipDef.h"
 #include "SocialMgr.h"
 #include "PetitionMgr.h"
+#include "../Custom/Switch/Switch.h"
+#include "../Custom/CommonFunc/CommonFunc.h"
 
 #define CHARTER_DISPLAY_ID 16161
 
@@ -444,7 +446,7 @@ void WorldSession::HandlePetitionSignOpcode(WorldPacket & recvData)
         return;
 
     // not let enemies sign guild charter
-    if (!sWorld->getBoolConfig(CONFIG_ALLOW_TWO_SIDE_INTERACTION_GUILD) && GetPlayer()->GetTeamId() != sObjectMgr->GetPlayerTeamIdByGUID(ownerGuid))
+    if (!sSwitch->GetOnOff(ST_CF_GUILD) && GetPlayer()->GetTeamId() != sObjectMgr->GetPlayerTeamIdByGUID(ownerGuid))
     {
         if (type != GUILD_CHARTER_TYPE)
             SendArenaTeamCommandResult(ERR_ARENA_TEAM_INVITE_SS, "", "", ERR_ARENA_TEAM_NOT_ALLIED);

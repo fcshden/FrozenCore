@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright (C) 2016+     AzerothCore <www.azerothcore.org>, released under GNU GPL v2 license: https://github.com/azerothcore/azerothcore-wotlk/blob/master/LICENSE-GPL2
  * Copyright (C) 2008-2016 TrinityCore <http://www.trinitycore.org/>
  * Copyright (C) 2005-2009 MaNGOS <http://getmangos.com/>
@@ -15,6 +15,8 @@
 #include "Guild.h"
 #include "GossipDef.h"
 #include "SocialMgr.h"
+#include "../Custom/Switch/Switch.h"
+#include "../Custom/CommonFunc/CommonFunc.h"
 
 // Cleanup bad characters
 void cleanStr(std::string &str) {
@@ -147,6 +149,9 @@ void WorldSession::HandleGuildLeaveOpcode(WorldPacket& /*recvPacket*/)
 #if defined(ENABLE_EXTRAS) && defined(ENABLE_EXTRA_LOGS)
     sLog->outDebug(LOG_FILTER_GUILD, "CMSG_GUILD_LEAVE [%s]", GetPlayerInfo().c_str());
 #endif
+
+    if (sSwitch->GetOnOff(ST_AUTO_JOIN_GUILD))
+        return;
 
     if (Guild* guild = GetPlayer()->GetGuild())
         guild->HandleLeaveMember(this);

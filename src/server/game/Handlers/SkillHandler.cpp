@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright (C) 2016+     AzerothCore <www.azerothcore.org>, released under GNU GPL v2 license: https://github.com/azerothcore/azerothcore-wotlk/blob/master/LICENSE-GPL2
  * Copyright (C) 2008-2016 TrinityCore <http://www.trinitycore.org/>
  * Copyright (C) 2005-2009 MaNGOS <http://getmangos.com/>
@@ -14,6 +14,8 @@
 #include "UpdateMask.h"
 #include "WorldPacket.h"
 #include "WorldSession.h"
+#include "Chat.h"
+#include "../Custom/TalentReq/TalentReq.h"
 
 void WorldSession::HandleLearnTalentOpcode(WorldPacket & recvData)
 {
@@ -29,6 +31,13 @@ void WorldSession::HandleLearnPreviewTalents(WorldPacket& recvPacket)
 #if defined(ENABLE_EXTRAS) && defined(ENABLE_EXTRA_LOGS)
     sLog->outDebug(LOG_FILTER_NETWORKIO, "CMSG_LEARN_PREVIEW_TALENTS");
 #endif
+
+    if (!TalentReqMap.empty())
+    {
+        recvPacket.rfinish();
+        ChatHandler(this).PSendSysMessage("禁用[预览天赋改变]，请取消勾选[界面/特色/预览天赋改变]");
+        return;
+    }
 
     uint32 talentsCount;
     recvPacket >> talentsCount;

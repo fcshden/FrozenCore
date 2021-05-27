@@ -41,6 +41,10 @@
 #include "Chat.h"
 #include "DynamicVisibility.h"
 #include "ScriptMgr.h"
+#include "../../scripts/Custom/Challenge/challenge.h"
+#include "../../scripts/Custom/DataLoader/DataLoader.h"
+#include "../../scripts/Custom/CharPvpTop/CharPvpTop.h"
+#include "../../scripts/Custom/Switch/Switch.h"
 
 #ifdef ELUNA
 #include "LuaEngine.h"
@@ -1518,6 +1522,10 @@ bool Position::IsPositionValid() const
 
 float WorldObject::GetGridActivationRange() const
 {
+    auto itr = AreaVisibilityDistMap.find(GetAreaId());
+    if (itr != AreaVisibilityDistMap.end())
+        return itr->second;
+
     if (ToPlayer())
         return IsInWintergrasp() ? VISIBILITY_DIST_WINTERGRASP : GetMap()->GetVisibilityRange();
     else if (ToCreature())
@@ -1530,6 +1538,10 @@ float WorldObject::GetGridActivationRange() const
 
 float WorldObject::GetVisibilityRange() const
 {
+    auto itr = AreaVisibilityDistMap.find(GetAreaId());
+    if (itr != AreaVisibilityDistMap.end())
+        return itr->second;
+
     if (IsVisibilityOverridden() && GetTypeId() == TYPEID_UNIT)
         return MAX_VISIBILITY_DISTANCE;
     else if (GetTypeId() == TYPEID_GAMEOBJECT)
@@ -1547,6 +1559,11 @@ float WorldObject::GetVisibilityRange() const
 
 float WorldObject::GetSightRange(const WorldObject* target) const
 {
+
+    auto itr = AreaVisibilityDistMap.find(GetAreaId());
+    if (itr != AreaVisibilityDistMap.end())
+        return itr->second;
+
     if (ToUnit())
     {
         if (ToPlayer())
@@ -1582,6 +1599,50 @@ bool WorldObject::CanSeeOrDetect(WorldObject const* obj, bool ignoreStealth, boo
 {
     if (this == obj)
         return true;
+
+    if (sCharPvpTop->topevent)
+    {
+        Player const* thisPlayer1 = ToPlayer();
+        if (thisPlayer1)
+        {
+            Player const* objPlayer = obj->ToPlayer();
+            if (objPlayer)
+            {
+                if (thisPlayer1->GetAreaId() == sSwitch->GetValue(TOP_94) && objPlayer->GetAreaId() == sSwitch->GetValue(TOP_94))
+                {
+                    if (thisPlayer1->GetUInt32Value(PLAYER_DUEL_TEAM) > 0 && objPlayer->GetUInt32Value(PLAYER_DUEL_TEAM) > 0)
+                    {
+                        if (thisPlayer1->m_topteam > 0 && objPlayer->m_topteam > 0)
+                        {
+                            if (thisPlayer1->m_topteam == objPlayer->m_topteam)
+                            {
+                                if (!thisPlayer1->HasStealthAura() && !thisPlayer1->HasStealthAura() && !objPlayer->HasStealthAura() && !objPlayer->HasStealthAura())
+                                    return true;
+                            }
+                            else
+                                return false;
+                        }
+
+                        if (thisPlayer1->m_topteam == 0 && objPlayer->m_topteam > 0)
+                            return true;
+                        if (objPlayer->m_topteam == 0 && thisPlayer1->m_topteam > 0)
+                            return false;
+                        if (objPlayer->m_topteam == 0 && thisPlayer1->m_topteam == 0)
+                            return true;
+                    }
+                    else if (thisPlayer1->GetUInt32Value(PLAYER_DUEL_TEAM) == 0 && objPlayer->GetUInt32Value(PLAYER_DUEL_TEAM) == 0) //都不在决斗 都能看到
+                    {
+                        if (!thisPlayer1->HasStealthAura() && !thisPlayer1->HasStealthAura() && !objPlayer->HasStealthAura() && !objPlayer->HasStealthAura())
+                            return true;
+                    }
+                    else if (thisPlayer1->GetUInt32Value(PLAYER_DUEL_TEAM) == 0 && objPlayer->GetUInt32Value(PLAYER_DUEL_TEAM) > 0) //玩家
+                        return true;
+                    else if (thisPlayer1->GetUInt32Value(PLAYER_DUEL_TEAM) > 0 && objPlayer->GetUInt32Value(PLAYER_DUEL_TEAM) == 0)
+                        return false;
+                }
+            }
+        }
+    }
 
     if (obj->IsNeverVisible() || CanNeverSee(obj))
         return false;
@@ -2191,12 +2252,7 @@ TempSummon* Map::SummonCreature(uint32 entry, Position const& pos, SummonPropert
             summon = new Puppet(properties, summoner ? summoner->GetGUID() : 0);
             break;
         case UNIT_MASK_TOTEM:
-            // NPCBOT
-            if (summoner && summoner->GetTypeId() == TYPEID_UNIT && summoner->ToCreature()->GetIAmABot())
-                summon = new Totem(properties, summoner ? summoner->ToCreature()->GetBotOwner()->GetGUID() : 0);
-            else
-                // NPCBOT
-                summon = new Totem(properties, summoner ? summoner->GetGUID() : 0);
+            summon = new Totem(properties, summoner ? summoner->GetGUID() : 0);
             break;
         case UNIT_MASK_MINION:
             summon = new Minion(properties, summoner ? summoner->GetGUID() : 0, false);
@@ -2219,12 +2275,6 @@ TempSummon* Map::SummonCreature(uint32 entry, Position const& pos, SummonPropert
     summon->InitStats(duration);
     AddToMap(summon->ToCreature(), (IS_PLAYER_GUID(summon->GetOwnerGUID()) || (summoner && summoner->GetTransport())));
     summon->InitSummon();
-
-    // NPCBOT
-    if (mask == UNIT_MASK_TOTEM)
-        if (summoner && summoner->GetTypeId() == TYPEID_UNIT && summoner->ToCreature()->GetIAmABot())
-            summoner->ToCreature()->OnBotSummon(summon);
-    // NPCBOT
 
     //ObjectAccessor::UpdateObjectVisibility(summon);
 
@@ -2446,6 +2496,26 @@ void WorldObject::GetCreatureListWithEntryInGrid(std::list<Creature*>& creatureL
     TypeContainerVisitor<acore::CreatureListSearcher<acore::AllCreaturesOfEntryInRange>, GridTypeMapContainer> visitor(searcher);
 
     cell.Visit(pair, visitor, *(this->GetMap()), *this, maxSearchRange);
+}
+
+void WorldObject::GetCreatureListInGrid(std::list<Creature*>& creatureList, float fMaxSearchRange) const
+{
+    CellCoord pair(acore::ComputeCellCoord(this->GetPositionX(), this->GetPositionY()));
+    Cell cell(pair);
+    cell.SetNoCreate();
+
+    acore::AllCreaturesInRange check(this, fMaxSearchRange);
+    acore::CreatureListSearcher<acore::AllCreaturesInRange> searcher(this, creatureList, check);
+    TypeContainerVisitor<acore::CreatureListSearcher<acore::AllCreaturesInRange>, GridTypeMapContainer> visitor(searcher);
+
+    cell.Visit(pair, visitor, *(this->GetMap()), *this, fMaxSearchRange);
+}
+
+void WorldObject::GetPlayerListInGrid(std::list<Player*>& playerList, float maxSearchRange, bool reqAlive) const
+{
+    acore::AnyPlayerInObjectRangeCheck checker(this, maxSearchRange, reqAlive);
+    acore::PlayerListSearcher<acore::AnyPlayerInObjectRangeCheck> searcher(this, playerList, checker);
+    this->VisitNearbyWorldObject(maxSearchRange, searcher);
 }
 
 /*

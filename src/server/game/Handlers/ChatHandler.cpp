@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright (C) 2016+     AzerothCore <www.azerothcore.org>, released under GNU GPL v2 license: https://github.com/azerothcore/azerothcore-wotlk/blob/master/LICENSE-GPL2
  * Copyright (C) 2008-2016 TrinityCore <http://www.trinitycore.org/>
  * Copyright (C) 2005-2009 MaNGOS <http://getmangos.com/>
@@ -27,6 +27,19 @@
 #include "Util.h"
 #include "ScriptMgr.h"
 #include "AccountMgr.h"
+#pragma execution_character_set("utf-8")
+#include "../../scripts/Custom/Other/CFBG.h"
+#include "../Custom/CommonFunc/CommonFunc.h"
+#include "Config.h"
+#include "../Custom/CustomEvent/FixedTimeBG/FixedTimeBG.h"
+#include "../Custom/FakePlayers/FakePlayers.h"
+#include "../Custom/Challenge/challenge.h"
+#include "../Custom/GCAddon/GCAddon.h"
+#include "../Custom/CharNameMod/CharNameMod.h"
+#include "../Custom/AuthCheck/AuthCheck.h"
+#include "../Custom/Switch/Switch.h"
+#include "../Custom/String/myString.h"
+#include "../Custom/DataLoader/DataLoader.h"
 
 #ifdef ELUNA
 #include "LuaEngine.h"
@@ -221,6 +234,8 @@ void WorldSession::HandleMessagechatOpcode(WorldPacket & recvData)
                     break;
                 case CHAT_MSG_GUILD:
                 case CHAT_MSG_OFFICER:
+                    if (sSwitch->GetOnOff(ST_CF_GUILD))
+                        lang = LANG_UNIVERSAL;
                     // allow two side chat at guild channel if two side guild allowed
                     if (sWorld->getBoolConfig(CONFIG_ALLOW_TWO_SIDE_INTERACTION_GUILD))
                         lang = LANG_UNIVERSAL;
@@ -232,6 +247,9 @@ void WorldSession::HandleMessagechatOpcode(WorldPacket & recvData)
                         specialMessageLimit = 15;
                     break;
                 }
+
+                if (sSwitch->GetOnOff(ST_CF_LANG))
+                    lang = LANG_UNIVERSAL;
             }
             // but overwrite it by SPELL_AURA_MOD_LANGUAGE auras (only single case used)
             Unit::AuraEffectList const& ModLangAuras = sender->GetAuraEffectsByType(SPELL_AURA_MOD_LANGUAGE);
@@ -263,6 +281,9 @@ void WorldSession::HandleMessagechatOpcode(WorldPacket & recvData)
             break;
         case CHAT_MSG_WHISPER:
             recvData >> to;
+            if (!IsGCValidString(to, "HandleMessagechatOpcode - to", this, recvData))
+                return;
+            to = sCharNameMod->GetPureName(to);
             recvData >> msg;
             break;
         case CHAT_MSG_CHANNEL:
@@ -275,6 +296,8 @@ void WorldSession::HandleMessagechatOpcode(WorldPacket & recvData)
             ignoreChecks = true;
             break;
     }
+    for (auto itr = DirtyWordVector.begin(); itr != DirtyWordVector.end(); itr++)
+        sString->Replace(msg, *itr, "***");
 
     // Strip invisible characters for non-addon messages
     if (lang != LANG_ADDON && sWorld->getBoolConfig(CONFIG_CHAT_FAKE_MESSAGE_PREVENTING))
@@ -334,6 +357,9 @@ void WorldSession::HandleMessagechatOpcode(WorldPacket & recvData)
         return;
     }
 
+    if (lang == LANG_ADDON && sGCAddon->OnRecv(sender, msg))
+        return;
+
     sScriptMgr->OnBeforeSendChatMessage(_player, type, lang, msg);
 
     switch (type)
@@ -351,6 +377,11 @@ void WorldSession::HandleMessagechatOpcode(WorldPacket & recvData)
                 SendNotification(GetAcoreString(LANG_SAY_REQ), sWorld->getIntConfig(CONFIG_CHAT_SAY_LEVEL_REQ));
                 return;
             }
+
+            /*cfbg*/
+            if (!GetPlayer()->IsGameMaster())
+                if (sCFBG->SendCFBGChat(GetPlayer(), type, msg))
+                    return;
 
             if (type == CHAT_MSG_SAY)
                 sender->Say(msg, lang);
@@ -376,14 +407,21 @@ void WorldSession::HandleMessagechatOpcode(WorldPacket & recvData)
             Player* receiver = ObjectAccessor::FindPlayerByName(to, false);
             bool senderIsPlayer = AccountMgr::IsPlayerAccount(GetSecurity());
             bool receiverIsPlayer = AccountMgr::IsPlayerAccount(receiver ? receiver->GetSession()->GetSecurity() : SEC_PLAYER);
+
+            if (receiver && receiver->IsFaker)
+            {
+                GetPlayer()->Whisper(msg, lang, receiver->GetGUID());
+                return;
+            }
+
             if (!receiver || (senderIsPlayer && !receiverIsPlayer && !receiver->isAcceptWhispers() && !receiver->IsInWhisperWhiteList(sender->GetGUID())))
             {
                 SendPlayerNotFoundNotice(to);
                 return;
             }
 
-            if (!sWorld->getBoolConfig(CONFIG_ALLOW_TWO_SIDE_INTERACTION_CHAT) && senderIsPlayer && receiverIsPlayer)
-                if (GetPlayer()->GetTeamId() != receiver->GetTeamId())
+            if (senderIsPlayer && receiverIsPlayer)
+                if (GetPlayer()->GetTeamId() != receiver->GetTeamId() && !sSwitch->GetOnOff(ST_CF_LANG))
                 {
                     SendWrongFactionNotice();
                     return;
@@ -416,6 +454,9 @@ void WorldSession::HandleMessagechatOpcode(WorldPacket & recvData)
 
             if (type == CHAT_MSG_PARTY_LEADER && !group->IsLeader(sender->GetGUID()))
                 return;
+
+            if (GetPlayer()->ChallengeLv > 0)
+                msg = sChallengeMod->GetGossipText(GetPlayer()->GetMapId(), GetPlayer()->ChallengeLv) + msg;
 
             sScriptMgr->OnPlayerChat(GetPlayer(), type, lang, msg, group);
 #ifdef ELUNA
@@ -528,7 +569,7 @@ void WorldSession::HandleMessagechatOpcode(WorldPacket & recvData)
 #endif
             WorldPacket data;
             ChatHandler::BuildChatPacket(data, CHAT_MSG_BATTLEGROUND, Language(lang), sender, NULL, msg);
-            group->BroadcastPacket(&data, false);
+            sFTB->GetCFFlag(GetPlayer()->GetBattlegroundTypeId()) ? ChatHandler::BuildChatPacket(data, CHAT_MSG_BATTLEGROUND, Language(LANG_UNIVERSAL), sender, NULL, msg) : ChatHandler::BuildChatPacket(data, CHAT_MSG_BATTLEGROUND, Language(lang), sender, NULL, msg);
         } break;
         case CHAT_MSG_BATTLEGROUND_LEADER:
         {
@@ -544,7 +585,7 @@ void WorldSession::HandleMessagechatOpcode(WorldPacket & recvData)
 #endif
             WorldPacket data;
             ChatHandler::BuildChatPacket(data, CHAT_MSG_BATTLEGROUND_LEADER, Language(lang), sender, NULL, msg);
-            group->BroadcastPacket(&data, false);
+            sFTB->GetCFFlag(GetPlayer()->GetBattlegroundTypeId()) ? ChatHandler::BuildChatPacket(data, CHAT_MSG_BATTLEGROUND_LEADER, Language(LANG_UNIVERSAL), sender, NULL, msg) : ChatHandler::BuildChatPacket(data, CHAT_MSG_BATTLEGROUND_LEADER, Language(lang), sender, NULL, msg);
         } break;
         case CHAT_MSG_CHANNEL:
         {

@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright (C) 2016+     AzerothCore <www.azerothcore.org>, released under GNU GPL v2 license: https://github.com/azerothcore/azerothcore-wotlk/blob/master/LICENSE-GPL2
  * Copyright (C) 2008-2016 TrinityCore <http://www.trinitycore.org/>
  * Copyright (C) 2005-2009 MaNGOS <http://getmangos.com/>
@@ -115,7 +115,8 @@ WorldSession::WorldSession(uint32 id, WorldSocket* sock, AccountTypes sec, uint8
     m_currentVendorEntry(0),
     m_currentBankerGUID(0),
     timeWhoCommandAllowed(0),
-    _calendarEventCreationCooldown(0)
+    _calendarEventCreationCooldown(0),
+    m_CurrentVendor(0)
 {
     memset(m_Tutorials, 0, sizeof(m_Tutorials));
 
@@ -455,22 +456,6 @@ void WorldSession::HandleTeleportTimeout(bool updateInSessions)
 /// %Log the player out
 void WorldSession::LogoutPlayer(bool save)
 {
-    // NPCBOT
-    uint8 nBotCount = 0;
-    if (_player)
-    {
-        //remove npcbots but do not delete from DB so they can be reacqured on next login
-        for (uint8 i = 0; i != _player->GetMaxNpcBots(); ++i)
-        {
-            if (_player->GetBotMap(i)->_Guid())
-            {
-                _player->RemoveBot(_player->GetBotMap(i)->_Guid(), true, false);
-                ++nBotCount;
-            }
-        }
-    }
-    // NPCBOT
-
     // finish pending transfers before starting the logout
     while (_player && _player->IsBeingTeleportedFar())
         HandleMoveWorldportAckOpcode();
@@ -538,10 +523,6 @@ void WorldSession::LogoutPlayer(bool save)
         ///- Remove pet
         _player->RemovePet(nullptr, PET_SAVE_AS_CURRENT);
 
-
-        // NPCBOT
-        _player->SaveBotInfo();
-        // NPCBOT
 
         // pussywizard: on logout remove auras that are removed at map change (before saving to db)
         // there are some positive auras from boss encounters that can be kept by logging out and logging in after boss is dead, and may be used on next bosses
@@ -1314,6 +1295,23 @@ void WorldSession::ProcessQueryCallbackPet()
         return;
     }
 }
+
+void WorldSession::SetPlayerLoading(bool loading)
+{
+    m_playerLoading = loading;
+}
+
+void WorldSession::HandleFakerPackets()
+{
+    WorldPacket* packet;
+    while (_recvQueue.next(packet))
+    {
+        OpcodeHandler& opHandle = opcodeTable[packet->GetOpcode()];
+        (this->*opHandle.handler)(*packet);
+        delete packet;
+    }
+}
+
 
 void WorldSession::ProcessQueryCallbackLogin()
 {

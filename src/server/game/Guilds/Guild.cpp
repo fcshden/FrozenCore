@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright (C) 2016+     AzerothCore <www.azerothcore.org>, released under GNU GPL v2 license: https://github.com/azerothcore/azerothcore-wotlk/blob/master/LICENSE-GPL2
  * Copyright (C) 2008-2016 TrinityCore <http://www.trinitycore.org/>
  * Copyright (C) 2005-2009 MaNGOS <http://getmangos.com/>
@@ -16,6 +16,10 @@
 #include "ScriptMgr.h"
 #include "SocialMgr.h"
 #include "Opcodes.h"
+#include "Group.h"
+#include "GroupMgr.h"
+#include "../Custom/FakePlayers/FakePlayers.h"
+#include "../Custom/Switch/Switch.h"
 
 #define MAX_GUILD_BANK_TAB_TEXT_LEN 500
 #define EMBLEM_PRICE 10 * GOLD
@@ -402,7 +406,7 @@ bool Guild::BankTab::LoadItemFromDB(Field* fields)
     }
 
     Item* pItem = NewItemOrBag(proto);
-    if (!pItem->LoadFromDB(itemGuid, 0, fields, itemEntry))
+    if (!pItem->LoadFromDB(itemGuid, 0, fields, itemEntry, 2))
     {
         sLog->outError("Item (GUID %u, id: %u) not found in item_instance, deleting from guild bank!", itemGuid, itemEntry);
 
@@ -1120,6 +1124,7 @@ Guild::Guild():
     m_eventLog(nullptr)
 {
     memset(&m_bankEventLog, 0, (GUILD_BANK_MAX_TABS + 1) * sizeof(LogHolder*));
+    guildGroup = NULL;
 }
 
 Guild::~Guild()
@@ -1495,6 +1500,15 @@ void Guild::HandleInviteMember(WorldSession* session, std::string const& name)
     Player* pInvitee = ObjectAccessor::FindPlayerByName(name, false);
     if (!pInvitee)
     {
+        if (!sFakePlayers->isSameTeamId(session->GetPlayer(), name))
+        {
+            SendCommandResult(session, GUILD_COMMAND_INVITE, ERR_GUILD_NOT_ALLIED, name);
+            return;
+        }
+
+        if (sFakePlayers->Logout(name))
+            return;
+
         SendCommandResult(session, GUILD_COMMAND_INVITE, ERR_GUILD_PLAYER_NOT_FOUND_S, name);
         return;
     }
@@ -1504,7 +1518,7 @@ void Guild::HandleInviteMember(WorldSession* session, std::string const& name)
     if (pInvitee->GetSocial()->HasIgnore(player->GetGUIDLow()))
         return;
 
-    if (!sWorld->getBoolConfig(CONFIG_ALLOW_TWO_SIDE_INTERACTION_GUILD) && pInvitee->GetTeamId() != player->GetTeamId())
+    if (!sSwitch->GetOnOff(ST_CF_GUILD) && pInvitee->GetTeamId() != player->GetTeamId())
     {
         SendCommandResult(session, GUILD_COMMAND_INVITE, ERR_GUILD_NOT_ALLIED, name);
         return;
@@ -1550,7 +1564,7 @@ void Guild::HandleInviteMember(WorldSession* session, std::string const& name)
 void Guild::HandleAcceptMember(WorldSession* session)
 {
     Player* player = session->GetPlayer();
-    if (!sWorld->getBoolConfig(CONFIG_ALLOW_TWO_SIDE_INTERACTION_GUILD) && 
+    if (!sSwitch->GetOnOff(ST_CF_GUILD) &&
         player->GetTeamId() != sObjectMgr->GetPlayerTeamIdByGUID(GetLeaderGUID()))
         return;
 
@@ -2928,4 +2942,15 @@ void Guild::ResetTimes()
         itr->second->ResetValues();
 
     _BroadcastEvent(GE_BANK_TAB_AND_MONEY_UPDATED, 0);
+}
+
+void Guild::BuildGuildGroup(Player* player)
+{
+    if (player->GetGroup())
+        player->RemoveFromGroup(GROUP_REMOVEMETHOD_LEAVE);
+
+    guildGroup = new Group;
+    guildGroup->Create(player);
+    guildGroup->ConvertToRaid();
+    sGroupMgr->AddGroup(guildGroup);
 }

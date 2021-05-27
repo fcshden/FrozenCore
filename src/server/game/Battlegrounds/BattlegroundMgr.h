@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright (C) 2016+     AzerothCore <www.azerothcore.org>, released under GNU GPL v2 license: https://github.com/azerothcore/azerothcore-wotlk/blob/master/LICENSE-GPL2
  * Copyright (C) 2008-2016 TrinityCore <http://www.trinitycore.org/>
  * Copyright (C) 2005-2009 MaNGOS <http://getmangos.com/>
@@ -128,6 +128,12 @@ class BattlegroundMgr
         static std::unordered_map<int, bgMapRef> getBgFromMap;                  // BattlegroundMapID -> bgMapRef
         static std::unordered_map<int, bgTypeRef> getBgFromTypeID;              // BattlegroundTypeID -> bgTypeRef
 
+        void SetAnnounceData(uint32 intervals, bool enable)
+        {
+            m_NextQuequeAnnounceTime = intervals;
+            m_QuequeAnnounceEnable = enable;
+        }
+
     private:
         bool CreateBattleground(CreateBattlegroundData& data);
         uint32 GetNextClientVisibleInstanceId();
@@ -147,6 +153,9 @@ class BattlegroundMgr
         uint32 m_AutoDistributionTimeChecker;
         uint32 m_NextPeriodicQueueUpdateTime;
         BattleMastersMap mBattleMastersMap;
+
+        uint32 m_NextQuequeAnnounceTime;
+        bool m_QuequeAnnounceEnable;
 
         CreateBattlegroundData const* GetBattlegroundTemplateByTypeId(BattlegroundTypeId id)
         {

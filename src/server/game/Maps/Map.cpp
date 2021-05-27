@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright (C) 2016+     AzerothCore <www.azerothcore.org>, released under GNU GPL v2 license: https://github.com/azerothcore/azerothcore-wotlk/blob/master/LICENSE-GPL2
  * Copyright (C) 2008-2016 TrinityCore <http://www.trinitycore.org/>
  * Copyright (C) 2005-2009 MaNGOS <http://getmangos.com/>
@@ -24,6 +24,19 @@
 #include "VMapFactory.h"
 #include "LFGMgr.h"
 #include "Chat.h"
+#pragma execution_character_set("utf-8")
+
+#include "../Custom/Challenge/challenge.h"
+#include "../Custom/Deadline/Deadline.h"
+#include "../Custom/String/myString.h"
+#include "../Custom/Switch/Switch.h"
+#include "../Custom/Morph/Morph.h"
+#include "../Custom/CustomEvent/Event.h"
+#include "../Custom/ZoneAura/ZoneAura.h"
+#include "../Custom/AuthCheck/AuthCheck.h"
+#include "../Custom/CustomEvent/ArenaDuel/ArenaDuel.h"
+#include "../Custom/Instance/InstanceDieTele.h"
+
 #ifdef ELUNA
 #include "LuaEngine.h"
 #endif
@@ -237,6 +250,7 @@ _transportsUpdateIter(_transports.end()), i_scriptLock(false), _defaultLight(Get
     Map::InitVisibilityDistance();
 
     sScriptMgr->OnCreateMap(this);
+    ZoneAuraTimer = 0;
 }
 
 void Map::InitVisibilityDistance()
@@ -502,6 +516,7 @@ bool Map::AddPlayerToMap(Player* player)
     player->UpdateObjectVisibility(false);
 
     sScriptMgr->OnPlayerEnterMap(this, player);
+    sDeadline->SetActive(this);
     return true;
 }
 
@@ -837,6 +852,42 @@ void Map::Update(const uint32 t_diff, const uint32 s_diff, bool  /*thread*/)
     BuildAndSendUpdateForObjects(); // pussywizard
 
     sLog->outDebug(LOG_FILTER_POOLSYS, "%u", mapId); // pussywizard: for crashlogs
+
+    if (deadlineActive)
+    {
+        countDown -= t_diff;
+        minuteCountDown -= t_diff;
+
+        if (countDown < 0)
+        {
+            //失败
+            deadlineActive = false;
+            deadlineFailed = true;
+            sDeadline->Announce(this, sString->GetText(CORE_STR_TYPES(STR_DEADLINE_FAILED)));
+            sDeadline->SetWorldState(this, 0);
+            return;
+        }
+
+        if (minuteCountDown < 0)
+        {
+            minuteCountDown = MINUTE * IN_MILLISECONDS;
+            uint32 leftTime = countDown / (60 * IN_MILLISECONDS) + 1;
+            sDeadline->SetWorldState(this, leftTime);
+
+            if (sSwitch->GetOnOff(ST_DEADLINE_TIME_NOTICE))
+                sDeadline->Announce(this, sString->Format(sString->GetText(CORE_STR_TYPES(STR_DEADLINE_TIME_LEFT)), leftTime));
+        }
+    }
+
+    sEvent->Update(this, t_diff);
+    sArenaDuel->Update(this, t_diff);
+
+    ZoneAuraTimer += t_diff;
+    if (ZoneAuraTimer > 2 * IN_MILLISECONDS)
+    {
+        ZoneAuraTimer = 0;
+        sZoneAura->UpdateAura(this);
+    }
 }
 
 void Map::HandleDelayedVisibility()
@@ -2465,7 +2516,6 @@ uint32 Map::GetPlayersCountExceptGMs() const
         if (!itr->GetSource()->IsGameMaster())
         {
             ++count;
-            count += itr->GetSource()->GetNpcBotsCount();// NPCBOT
         }
     return count;
 }
@@ -2610,7 +2660,7 @@ bool InstanceMap::CanEnter(Player* player, bool loginCheck)
 
     // cannot enter if the instance is full (player cap), GMs don't count
     uint32 maxPlayers = GetMaxPlayers();
-    if (GetPlayersCountExceptGMs() >= (loginCheck ? maxPlayers+1 : maxPlayers))
+    if (GetPlayersCountExceptGMs() >= (loginCheck ? maxPlayers+1 : maxPlayers) && !sInstanceDieTele->Unique(GetId()))
     {
 #if defined(ENABLE_EXTRAS) && defined(ENABLE_EXTRA_LOGS)
         sLog->outDetail("MAP: Instance '%u' of map '%s' cannot have more than '%u' players. Player '%s' rejected", GetInstanceId(), GetMapName(), maxPlayers, player->GetName().c_str());
@@ -2621,7 +2671,7 @@ bool InstanceMap::CanEnter(Player* player, bool loginCheck)
 
     // cannot enter while an encounter is in progress on raids
     bool checkProgress = (IsRaid() || GetId() == 668 /*HoR*/);
-    if (checkProgress && GetInstanceScript() && GetInstanceScript()->IsEncounterInProgress())
+    if (checkProgress && GetInstanceScript() && GetInstanceScript()->IsEncounterInProgress() && !sInstanceDieTele->Unique(GetId()))
     {
         player->SendTransferAborted(GetId(), TRANSFER_ABORT_ZONE_IN_COMBAT);
         return false;
@@ -2646,13 +2696,13 @@ bool InstanceMap::CanEnter(Player* player, bool loginCheck)
                     continue;
                 if (iPlayer->IsGameMaster()) // bypass GMs
                     continue;
-                if (!player->GetGroup()) // player has not group and there is someone inside, deny entry
+                if (!player->GetGroup() && !sInstanceDieTele->Unique(GetId())) // player has not group and there is someone inside, deny entry
                 {
                     player->SendTransferAborted(GetId(), TRANSFER_ABORT_MAX_PLAYERS);
                     return false;
                 }
                 // player inside instance has no group or his groups is different to entering player's one, deny entry
-                if (!iPlayer->GetGroup() || iPlayer->GetGroup() != player->GetGroup())
+                if ((!iPlayer->GetGroup() || iPlayer->GetGroup() != player->GetGroup()) && !sInstanceDieTele->Unique(GetId()))
                 {
                     player->SendTransferAborted(GetId(), TRANSFER_ABORT_MAX_PLAYERS);
                     return false;
@@ -2667,7 +2717,12 @@ bool InstanceMap::CanEnter(Player* player, bool loginCheck)
     Do map specific checks and add the player to the map if successful.
 */
 bool InstanceMap::AddPlayerToMap(Player* player)
-{ 
+{
+    if (challengeLv == 0)
+        challengeLv = player->ChallengeLv;
+
+    player->ChallengeLv = 0;
+
     if (m_resetAfterUnload) // this instance has been reset, it's not meant to be used anymore
         return false;
 

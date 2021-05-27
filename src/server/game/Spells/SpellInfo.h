@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright (C) 2016+     AzerothCore <www.azerothcore.org>, released under GNU GPL v2 license: https://github.com/azerothcore/azerothcore-wotlk/blob/master/LICENSE-GPL2
  * Copyright (C) 2008-2016 TrinityCore <http://www.trinitycore.org/>
  * Copyright (C) 2005-2009 MaNGOS <http://getmangos.com/>
@@ -398,6 +398,9 @@ public:
     inline bool HasAttribute(SpellAttr6 attribute) const { return AttributesEx6 & attribute; }
     inline bool HasAttribute(SpellAttr7 attribute) const { return AttributesEx7 & attribute; }
     inline bool HasAttribute(SpellCustomAttributes customAttribute) const { return AttributesCu & customAttribute; }
+
+    uint32 CusTargetMask;
+    inline bool HasCusTargetMask(SpellCusTargetMask mask) const { return CusTargetMask & mask; }
 
     bool IsExplicitDiscovery() const;
     bool IsLootCrafting() const;

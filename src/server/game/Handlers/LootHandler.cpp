@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright (C) 2016+     AzerothCore <www.azerothcore.org>, released under GNU GPL v2 license: https://github.com/azerothcore/azerothcore-wotlk/blob/master/LICENSE-GPL2
  * Copyright (C) 2008-2016 TrinityCore <http://www.trinitycore.org/>
  * Copyright (C) 2005-2009 MaNGOS <http://getmangos.com/>
@@ -20,6 +20,7 @@
 #include "WorldPacket.h"
 #include "WorldSession.h"
 #include "ObjectMgr.h"
+#include "../../server/scripts/Custom/Recruit/Recruit.h"
 
 #ifdef ELUNA
 #include "LuaEngine.h"
@@ -183,6 +184,9 @@ void WorldSession::HandleLootMoneyOpcode(WorldPacket & /*recvData*/)
 
             uint32 goldPerPlayer = uint32((loot->gold) / (playersNear.size()));
 
+            //共享金钱
+            sRecruit->RecruitMoneyReward(player, goldPerPlayer);
+
             for (std::vector<Player*>::const_iterator i = playersNear.begin(); i != playersNear.end(); ++i)
             {
                 (*i)->ModifyMoney(goldPerPlayer);
@@ -196,6 +200,9 @@ void WorldSession::HandleLootMoneyOpcode(WorldPacket & /*recvData*/)
         }
         else
         {
+            //共享金钱
+            sRecruit->RecruitMoneyReward(player, loot->gold);
+
             player->ModifyMoney(loot->gold);
             player->UpdateAchievementCriteria(ACHIEVEMENT_CRITERIA_TYPE_LOOT_MONEY, loot->gold);
 
@@ -217,6 +224,218 @@ void WorldSession::HandleLootMoneyOpcode(WorldPacket & /*recvData*/)
         if (loot->isLooted() && IS_ITEM_GUID(guid))
             DoLootRelease(guid);
     }
+}
+
+void WorldSession::HandleAutostoreLootItemFarOpcode(WorldPacket& recvData, float range)
+{
+    ;//sLog->outDebug(LOG_FILTER_NETWORKIO, "WORLD: CMSG_AUTOSTORE_LOOT_ITEM");
+    Player* player = GetPlayer();
+    uint64 lguid = player->GetLootGUID();
+    Loot* loot = NULL;
+    uint8 lootSlot = 0;
+
+    recvData >> lootSlot;
+
+    if (IS_GAMEOBJECT_GUID(lguid))
+    {
+        GameObject* go = player->GetMap()->GetGameObject(lguid);
+        // xinef: cheating protection
+        //if (player->GetGroup() && player->GetGroup()->GetLootMethod() == MASTER_LOOT && player->GetGUID() != player->GetGroup()->GetMasterLooterGuid())
+        //    go = NULL;
+
+        // not check distance for GO in case owned GO (fishing bobber case, for example) or Fishing hole GO
+        if (!go || ((go->GetOwnerGUID() != _player->GetGUID() && go->GetGoType() != GAMEOBJECT_TYPE_FISHINGHOLE) && !go->IsWithinDistInMap(_player, range)))
+        {
+            player->SendLootRelease(lguid);
+            return;
+        }
+
+        loot = &go->loot;
+    }
+    else if (IS_ITEM_GUID(lguid))
+    {
+        Item* pItem = player->GetItemByGuid(lguid);
+
+        if (!pItem)
+        {
+            player->SendLootRelease(lguid);
+            return;
+        }
+
+        loot = &pItem->loot;
+    }
+    else if (IS_CORPSE_GUID(lguid))
+    {
+        Corpse* bones = ObjectAccessor::GetCorpse(*player, lguid);
+        if (!bones)
+        {
+            player->SendLootRelease(lguid);
+            return;
+        }
+
+        loot = &bones->loot;
+    }
+    else
+    {
+        Creature* creature = GetPlayer()->GetMap()->GetCreature(lguid);
+
+        bool lootAllowed = creature && creature->IsAlive() == (player->getClass() == CLASS_ROGUE && creature->loot.loot_type == LOOT_PICKPOCKETING);
+        if (!lootAllowed || !creature->IsWithinDistInMap(_player, range))
+        {
+            player->SendLootError(lguid, lootAllowed ? LOOT_ERROR_TOO_FAR : LOOT_ERROR_DIDNT_KILL);
+            return;
+        }
+
+        loot = &creature->loot;
+    }
+
+    player->StoreLootItem(lootSlot, loot);
+
+    // If player is removing the last LootItem, delete the empty container.
+    if (loot->isLooted() && IS_ITEM_GUID(lguid))
+        DoLootRelease(lguid, range);
+}
+
+void WorldSession::HandleLootMoneyFarOpcode(WorldPacket & /*recvData*/, float range)
+{
+    ;//sLog->outDebug(LOG_FILTER_NETWORKIO, "WORLD: CMSG_LOOT_MONEY");
+
+    Player* player = GetPlayer();
+    uint64 guid = player->GetLootGUID();
+    if (!guid)
+        return;
+
+    Loot* loot = NULL;
+    bool shareMoney = true;
+
+    switch (GUID_HIPART(guid))
+    {
+    case HIGHGUID_GAMEOBJECT:
+    {
+        GameObject* go = GetPlayer()->GetMap()->GetGameObject(guid);
+
+        // do not check distance for GO if player is the owner of it (ex. fishing bobber)
+        if (go && ((go->GetOwnerGUID() == player->GetGUID() || go->IsWithinDistInMap(player, range))))
+            loot = &go->loot;
+
+        break;
+    }
+    case HIGHGUID_CORPSE:                               // remove insignia ONLY in BG
+    {
+        Corpse* bones = ObjectAccessor::GetCorpse(*player, guid);
+
+        if (bones && bones->IsWithinDistInMap(player, range))
+        {
+            loot = &bones->loot;
+            shareMoney = false;
+        }
+
+        break;
+    }
+    case HIGHGUID_ITEM:
+    {
+        if (Item* item = player->GetItemByGuid(guid))
+        {
+            loot = &item->loot;
+            shareMoney = false;
+        }
+        break;
+    }
+    case HIGHGUID_UNIT:
+    case HIGHGUID_VEHICLE:
+    {
+        Creature* creature = player->GetMap()->GetCreature(guid);
+        bool lootAllowed = creature && creature->IsAlive() == (player->getClass() == CLASS_ROGUE && creature->loot.loot_type == LOOT_PICKPOCKETING);
+        if (lootAllowed && creature->IsWithinDistInMap(player, range))
+        {
+            loot = &creature->loot;
+            if (creature->IsAlive())
+                shareMoney = false;
+        }
+        else
+            player->SendLootError(guid, lootAllowed ? LOOT_ERROR_TOO_FAR : LOOT_ERROR_DIDNT_KILL);
+        break;
+    }
+    default:
+        return;                                         // unlootable type
+    }
+
+    if (loot)
+    {
+        loot->NotifyMoneyRemoved();
+        if (shareMoney && player->GetGroup())      //item, pickpocket and players can be looted only single player
+        {
+            Group* group = player->GetGroup();
+
+            std::vector<Player*> playersNear;
+            for (GroupReference* itr = group->GetFirstMember(); itr != NULL; itr = itr->next())
+            {
+                Player* member = itr->GetSource();
+                if (!member)
+                    continue;
+
+                if (player->IsAtGroupRewardDistance(member))
+                    playersNear.push_back(member);
+            }
+
+            uint32 goldPerPlayer = uint32((loot->gold) / (playersNear.size()));
+
+            //共享金钱
+            sRecruit->RecruitMoneyReward(player, goldPerPlayer);
+
+            for (std::vector<Player*>::const_iterator i = playersNear.begin(); i != playersNear.end(); ++i)
+            {
+                (*i)->ModifyMoney(goldPerPlayer);
+                (*i)->UpdateAchievementCriteria(ACHIEVEMENT_CRITERIA_TYPE_LOOT_MONEY, goldPerPlayer);
+
+                WorldPacket data(SMSG_LOOT_MONEY_NOTIFY, 4 + 1);
+                data << uint32(goldPerPlayer);
+                data << uint8(playersNear.size() > 1 ? 0 : 1);     // Controls the text displayed in chat. 0 is "Your share is..." and 1 is "You loot..."
+                (*i)->GetSession()->SendPacket(&data);
+            }
+        }
+        else
+        {
+            //共享金钱
+            sRecruit->RecruitMoneyReward(player, loot->gold);
+
+            player->ModifyMoney(loot->gold);
+            player->UpdateAchievementCriteria(ACHIEVEMENT_CRITERIA_TYPE_LOOT_MONEY, loot->gold);
+
+            WorldPacket data(SMSG_LOOT_MONEY_NOTIFY, 4 + 1);
+            data << uint32(loot->gold);
+            data << uint8(1);   // "You loot..."
+            SendPacket(&data);
+        }
+
+        loot->gold = 0;
+
+        // Delete the money loot record from the DB
+        if (loot->containerId > 0)
+            sLootItemStorage->RemoveStoredLootMoney(loot->containerId, loot);
+
+        // Delete container if empty
+        if (loot->isLooted() && IS_ITEM_GUID(guid))
+            DoLootRelease(guid, range);
+    }
+}
+
+void WorldSession::HandleLootFarOpcode(WorldPacket& recvData, float range)
+{
+    ;//sLog->outDebug(LOG_FILTER_NETWORKIO, "WORLD: CMSG_LOOT");
+
+    uint64 guid;
+    recvData >> guid;
+
+    // Check possible cheat
+    if (!GetPlayer()->IsAlive() || !IS_CRE_OR_VEH_GUID(guid))
+        return;
+
+    GetPlayer()->SendLoot(guid, LOOT_CORPSE, range);
+
+    // interrupt cast
+    if (GetPlayer()->IsNonMeleeSpellCast(false))
+        GetPlayer()->InterruptNonMeleeSpells(false);
 }
 
 void WorldSession::HandleLootOpcode(WorldPacket& recvData)
@@ -255,7 +474,7 @@ void WorldSession::HandleLootReleaseOpcode(WorldPacket& recvData)
             DoLootRelease(lguid);
 }
 
-void WorldSession::DoLootRelease(uint64 lguid)
+void WorldSession::DoLootRelease(uint64 lguid, float range)
 {
     Player  *player = GetPlayer();
     Loot    *loot;
@@ -273,7 +492,7 @@ void WorldSession::DoLootRelease(uint64 lguid)
         GameObject* go = GetPlayer()->GetMap()->GetGameObject(lguid);
 
         // not check distance for GO in case owned GO (fishing bobber case, for example) or Fishing hole GO
-        if (!go || ((go->GetOwnerGUID() != _player->GetGUID() && go->GetGoType() != GAMEOBJECT_TYPE_FISHINGHOLE) && !go->IsWithinDistInMap(_player, INTERACTION_DISTANCE)))
+        if (!go || ((go->GetOwnerGUID() != _player->GetGUID() && go->GetGoType() != GAMEOBJECT_TYPE_FISHINGHOLE) && !go->IsWithinDistInMap(_player, range)))
             return;
 
         loot = &go->loot;
@@ -324,7 +543,7 @@ void WorldSession::DoLootRelease(uint64 lguid)
     else if (IS_CORPSE_GUID(lguid))        // ONLY remove insignia at BG
     {
         Corpse* corpse = ObjectAccessor::GetCorpse(*player, lguid);
-        if (!corpse || !corpse->IsWithinDistInMap(_player, INTERACTION_DISTANCE))
+        if (!corpse || !corpse->IsWithinDistInMap(_player, range))
             return;
 
         loot = &corpse->loot;
@@ -370,7 +589,7 @@ void WorldSession::DoLootRelease(uint64 lguid)
         Creature* creature = GetPlayer()->GetMap()->GetCreature(lguid);
 
         bool lootAllowed = creature && creature->IsAlive() == (player->getClass() == CLASS_ROGUE && creature->loot.loot_type == LOOT_PICKPOCKETING);
-        if (!lootAllowed || !creature->IsWithinDistInMap(_player, INTERACTION_DISTANCE))
+        if (!lootAllowed || !creature->IsWithinDistInMap(_player, range))
             return;
 
         loot = &creature->loot;

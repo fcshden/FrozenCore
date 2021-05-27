@@ -343,7 +343,8 @@ enum UnitModifierType
     BASE_PCT = 1,
     TOTAL_VALUE = 2,
     TOTAL_PCT = 3,
-    MODIFIER_TYPE_END = 4
+    TOTAL_PCT_ADD = 4,
+    MODIFIER_TYPE_END = 5
 };
 
 enum WeaponDamageRange
@@ -498,6 +499,7 @@ enum UnitState
     UNIT_STATE_CANNOT_TURN     = (UNIT_STATE_LOST_CONTROL | UNIT_STATE_ROTATING | UNIT_STATE_ROOT),
     // stay by different reasons
     UNIT_STATE_NOT_MOVE        = UNIT_STATE_ROOT | UNIT_STATE_STUNNED | UNIT_STATE_DIED | UNIT_STATE_DISTRACTED,
+    UNIT_STATE_IGNORE_ANTISPEEDHACK = UNIT_STATE_FLEEING | UNIT_STATE_CONFUSED | UNIT_STATE_CHARGING | UNIT_STATE_DISTRACTED | UNIT_STATE_POSSESSED,
     UNIT_STATE_ALL_STATE       = 0xffffffff                      //(UNIT_STATE_STOPPED | UNIT_STATE_MOVING | UNIT_STATE_IN_COMBAT | UNIT_STATE_IN_FLIGHT)
 };
 
@@ -1475,7 +1477,7 @@ class Unit : public WorldObject
         uint8 getGender() const { return GetByteValue(UNIT_FIELD_BYTES_0, 2); }
 
         float GetStat(Stats stat) const { return float(GetUInt32Value(UNIT_FIELD_STAT0+stat)); }
-        void SetStat(Stats stat, int32 val) { SetStatInt32Value(UNIT_FIELD_STAT0+stat, val); }
+        void SetStat(Stats stat, int32 val);
         uint32 GetArmor() const { return GetResistance(SPELL_SCHOOL_NORMAL); }
         void SetArmor(int32 val) { SetResistance(SPELL_SCHOOL_NORMAL, val); }
 
@@ -1736,6 +1738,7 @@ class Unit : public WorldObject
         void SendEnergizeSpellLog(Unit* victim, uint32 SpellID, uint32 Damage, Powers powertype);
         void EnergizeBySpell(Unit* victim, uint32 SpellID, uint32 Damage, Powers powertype);
 
+        SpellCastResult _CastSpell(SpellCastTargets const& targets, SpellInfo const* spellInfo, CustomSpellValues const* value, TriggerCastFlags triggerFlags = TRIGGERED_NONE, Item* castItem = NULL, AuraEffect const* triggeredByAura = NULL, uint64 originalCaster = 0);
         void CastSpell(SpellCastTargets const& targets, SpellInfo const* spellInfo, CustomSpellValues const* value, TriggerCastFlags triggerFlags = TRIGGERED_NONE, Item* castItem = NULL, AuraEffect const* triggeredByAura = NULL, uint64 originalCaster = 0);
         void CastSpell(Unit* victim, uint32 spellId, bool triggered, Item* castItem = NULL, AuraEffect const* triggeredByAura = NULL, uint64 originalCaster = 0);
         void CastSpell(Unit* victim, uint32 spellId, TriggerCastFlags triggerFlags = TRIGGERED_NONE, Item* castItem = NULL, AuraEffect const* triggeredByAura = NULL, uint64 originalCaster = 0);
@@ -2571,6 +2574,15 @@ class Unit : public WorldObject
 
         uint32 _oldFactionId;           ///< faction before charm
         bool m_petCatchUp;
+                public:
+                    void SetLastMoveClientTimestamp(uint32 timestamp) { lastMoveClientTimestamp = timestamp; }
+                    uint32 GetLastMoveClientTimestamp() const { return lastMoveClientTimestamp; }
+                    void UpdateMovementInfo(MovementInfo const& movementInfo);
+                    void SetSpeedHackCooldown(time_t t) { _speedhackCooldown = t; }
+                    time_t GetSpeedHackCooldown() { return _speedhackCooldown; }
+    private:
+        uint32 lastMoveClientTimestamp;
+        time_t _speedhackCooldown;
 };
 
 namespace acore

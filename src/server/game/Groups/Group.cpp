@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright (C) 2016+     AzerothCore <www.azerothcore.org>, released under GNU GPL v2 license: https://github.com/azerothcore/azerothcore-wotlk/blob/master/LICENSE-GPL2
  * Copyright (C) 2008-2016 TrinityCore <http://www.trinitycore.org/>
  * Copyright (C) 2005-2009 MaNGOS <http://getmangos.com/>
@@ -29,6 +29,8 @@
 #include "SharedDefines.h"
 #include "MapManager.h"
 #include "UpdateFieldFlags.h"
+#include "../Custom/Switch/Switch.h"
+#include "../Custom/ItemMod/NoPatchItem.h"
 
 Roll::Roll(uint64 _guid, LootItem const& li) : itemGUID(_guid), itemid(li.itemid),
 itemRandomPropId(li.randomPropertyId), itemRandomSuffix(li.randomSuffix), itemCount(li.count),
@@ -101,9 +103,7 @@ bool Group::Create(Player* leader)
     if (m_groupType & GROUPTYPE_RAID)
         _initRaidSubGroupsCounter();
 
-    if (leader->HaveBot()) // NPCBOT
-        m_lootMethod = FREE_FOR_ALL;
-    else if (!isLFGGroup()) // NPCBOT
+    if (!isLFGGroup())
         m_lootMethod = GROUP_LOOT;
     
 
@@ -382,25 +382,6 @@ bool Group::AddMember(Player* player)
 
     SubGroupCounterIncrease(subGroup);
 
-    // NPCBOT
-    if (IS_PLAYER_GUID(player->GetGUID())) 
-    {
-        player->SetGroupInvite(nullptr);
-        if (player->GetGroup())
-        {
-            if (isBGGroup() || isBFGroup()) // if player is in group and he is being added to BG raid group, then call SetBattlegroundRaid()
-                player->SetBattlegroundOrBattlefieldRaid(this, subGroup);
-            else //if player is in bg raid and we are adding him to normal group, then call SetOriginalGroup()
-                player->SetOriginalGroup(this, subGroup);
-        }
-        else //if player is not in group, then call set group
-            player->SetGroup(this, subGroup);
-
-        // if the same group invites the player back, cancel the homebind timer
-        _cancelHomebindIfInstance(player);
-    }
-    // NPCBOT
-
     if (!isRaidGroup())                                      // reset targetIcons for non-raid-groups
     {
         for (uint8 i = 0; i < TARGETICONCOUNT; ++i)
@@ -502,14 +483,12 @@ bool Group::AddMember(Player* player)
                 m_maxEnchantingLevel = player->GetSkillValue(SKILL_ENCHANTING);
         }
     }
-    UpdatePetFaction();
     return true;
 }
 
 bool Group::RemoveMember(uint64 guid, const RemoveMethod &method /*= GROUP_REMOVEMETHOD_DEFAULT*/, uint64 kicker /*= 0*/, const char* reason /*= NULL*/)
 {
     BroadcastGroupUpdate();
-    UpdatePetFaction();
     // LFG group vote kick handled in scripts
     if (isLFGGroup() && method == GROUP_REMOVEMETHOD_KICK)
     {
@@ -651,11 +630,10 @@ bool Group::RemoveMember(uint64 guid, const RemoveMethod &method /*= GROUP_REMOV
         }
 
         if (m_memberMgr.getSize() < ((isLFGGroup() || isBGGroup() || isBFGroup()) ? 1u : 2u))
-            if (GetMembersCount() < ((isBGGroup() || isLFGGroup()) ? 1u : 2u))// NPCBOT
-            {
-                Disband();
-                return false;
-            }
+        {
+            Disband();
+            return false;
+        }
 
         return true;
     }
@@ -1397,7 +1375,7 @@ void Group::CountTheRoll(Rolls::iterator rollI, Map* allowedMap)
                         roll->getLoot()->NotifyItemRemoved(roll->itemSlot);
                         roll->getLoot()->unlootedCount--;
                         AllowedLooterSet looters = item->GetAllowedLooters();
-                        player->StoreNewItem(dest, roll->itemid, true, item->randomPropertyId, looters);
+                        sNoPatchItem->Create(player->GetMap(), player->StoreNewItem(dest, roll->itemid, true, item->randomPropertyId, looters));
                         player->UpdateLootAchievements(item, roll->getLoot());
                     }
                     else
@@ -1465,7 +1443,7 @@ void Group::CountTheRoll(Rolls::iterator rollI, Map* allowedMap)
                             roll->getLoot()->NotifyItemRemoved(roll->itemSlot);
                             roll->getLoot()->unlootedCount--;
                             AllowedLooterSet looters = item->GetAllowedLooters();
-                            player->StoreNewItem(dest, roll->itemid, true, item->randomPropertyId, looters);
+                            sNoPatchItem->Create(player->GetMap(), player->StoreNewItem(dest, roll->itemid, true, item->randomPropertyId, looters));
                             player->UpdateLootAchievements(item, roll->getLoot());
                         }
                         else
@@ -2086,6 +2064,15 @@ void Group::SetLfgRoles(uint64 guid, const uint8 roles)
          SendUpdate();
 }
 
+uint8  Group::GetLfgRoles(uint64 guid)
+{
+    for (member_witerator slot = m_memberSlots.begin(); slot != m_memberSlots.end(); ++slot)
+        if (slot->guid == guid && sObjectAccessor->FindPlayer(guid))
+            return slot->roles;
+
+    return 0;
+}
+
 bool Group::IsFull() const
 {
     return isRaidGroup() ? (m_memberSlots.size() >= MAXRAIDSIZE) : (m_memberSlots.size() >= MAXGROUPSIZE);
@@ -2348,24 +2335,4 @@ void Group::ToggleGroupMemberFlag(member_witerator slot, uint8 flag, bool apply)
         slot->flags |= flag;
     else
         slot->flags &= ~flag;
-}
-
-void Group::UpdatePetFaction()
-{
-    for (member_witerator itr = m_memberSlots.begin(); itr != m_memberSlots.end(); ++itr)
-    {
-        if (Player* m = ObjectAccessor::FindPlayerInOrOutOfWorld(itr->guid))
-        {
-            m->CombatStop();
-            m->ForceValuesUpdateAtIndex(UNIT_FIELD_BYTES_2);
-            m->ForceValuesUpdateAtIndex(UNIT_FIELD_FACTIONTEMPLATE);
-
-            if (Pet* pet = m->GetPet())
-            {
-                pet->CombatStop();
-                pet->ForceValuesUpdateAtIndex(UNIT_FIELD_BYTES_2);
-                pet->ForceValuesUpdateAtIndex(UNIT_FIELD_FACTIONTEMPLATE);
-            }
-        }
-    }
 }

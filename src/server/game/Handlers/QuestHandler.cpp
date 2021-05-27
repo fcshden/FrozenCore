@@ -21,6 +21,13 @@
 #include "ScriptMgr.h"
 #include "GameObjectAI.h"
 #include "Language.h"
+#pragma execution_character_set("utf-8")
+#include "../Custom/DataLoader/DataLoader.h"
+#include "../Custom/CommonFunc/CommonFunc.h"
+#include "../Custom/Requirement/Requirement.h"
+#include "../Custom/Quest/QuestMod.h"
+#include "../Custom/Reward/Reward.h"
+
 #ifdef ELUNA
 #include "LuaEngine.h"
 #endif
@@ -287,6 +294,9 @@ void WorldSession::HandleQuestgiverChooseRewardOpcode(WorldPacket & recvData)
         {
             _player->RewardQuest(quest, reward, object);
 
+            //交任务时发随机奖励
+            sQuestMod->RandomReward(_player, questId);
+
             switch (object->GetTypeId())
             {
                 case TYPEID_UNIT:
@@ -403,6 +413,15 @@ void WorldSession::HandleQuestLogRemoveQuest(WorldPacket& recvData)
     {
         if (uint32 questId = _player->GetQuestSlotQuestId(slot))
         {
+            //随机任务不允许放弃
+            auto i = QuestRandomMap.find(questId);
+
+            if (i != QuestRandomMap.end())
+            {
+                _player->GetSession()->SendNotification("随机任务不允许放弃");
+                return;
+            }
+
             if (!_player->TakeQuestSourceItem(questId, true))
                 return;                                     // can't un-equip some items, reject quest cancel
 
@@ -452,15 +471,13 @@ void WorldSession::HandleQuestConfirmAccept(WorldPacket& recvData)
     uint32 questId;
     recvData >> questId;
 
-    if (questId == 3)
-    {
-        GetPlayer()->BuyItemFromVendorSlot(GetPlayer()->buy_vendor, GetPlayer()->buy_slot, GetPlayer()->buy_item, GetPlayer()->buy_count, GetPlayer()->buy_bag, GetPlayer()->buy_bagslot);
-        return;
-    }
-
 #if defined(ENABLE_EXTRAS) && defined(ENABLE_EXTRA_LOGS)
     sLog->outDebug(LOG_FILTER_NETWORKIO, "WORLD: Received CMSG_QUEST_CONFIRM_ACCEPT quest = %u", questId);
 #endif
+
+    //处理弹窗钩子
+    if (sCF->DoAciotnAfterAccept(_player, questId, true))
+        return;
 
     if (Quest const* quest = sObjectMgr->GetQuestTemplate(questId))
     {

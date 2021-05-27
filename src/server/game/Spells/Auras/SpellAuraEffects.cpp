@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright (C) 2016+     AzerothCore <www.azerothcore.org>, released under GNU GPL v2 license: https://github.com/azerothcore/azerothcore-wotlk/blob/master/LICENSE-GPL2
  * Copyright (C) 2008-2016 TrinityCore <http://www.trinitycore.org/>
  * Copyright (C) 2005-2009 MaNGOS <http://getmangos.com/>
@@ -28,6 +28,7 @@
 #include "Pet.h"
 #include "ReputationMgr.h"
 #include "InstanceScript.h"
+#include "../Custom/Switch/Switch.h"
 #ifdef ELUNA
 #include "LuaEngine.h"
 #endif
@@ -2044,7 +2045,7 @@ void AuraEffect::HandleAuraModShapeshift(AuraApplication const* aurApp, uint8 mo
         {
             if (Item* pItem = target->ToPlayer()->GetItemByPos(INVENTORY_SLOT_BAG_0, EQUIPMENT_SLOT_MAINHAND))
             {
-                target->ToPlayer()->_ApplyWeaponDamage(EQUIPMENT_SLOT_MAINHAND, pItem->GetTemplate(), NULL, apply);
+                target->ToPlayer()->_ApplyWeaponDamage(pItem, EQUIPMENT_SLOT_MAINHAND, pItem->GetTemplate(), NULL, apply);
             }
         }
     }
@@ -2524,7 +2525,7 @@ void AuraEffect::HandleAuraModDisarm(AuraApplication const* aurApp, uint8 mode, 
 
             if (attacktype < MAX_ATTACK)
             {
-                target->ToPlayer()->_ApplyWeaponDamage(slot, pItem->GetTemplate(), NULL, !apply);
+                target->ToPlayer()->_ApplyWeaponDamage(pItem, slot, pItem->GetTemplate(), NULL, !apply);
                 target->ToPlayer()->_ApplyWeaponDependentAuraMods(pItem, WeaponAttackType(attacktype), !apply);
             }
         }
@@ -4766,12 +4767,28 @@ void AuraEffect::HandleModDamagePercentDone(AuraApplication const* aurApp, uint8
 
     if ((GetMiscValue() & SPELL_SCHOOL_MASK_NORMAL) && (GetSpellInfo()->EquippedItemClass == -1 || target->GetTypeId() != TYPEID_PLAYER))
     {
-        target->HandleStatModifier(UNIT_MOD_DAMAGE_MAINHAND, TOTAL_PCT, float(GetAmount()), apply);
-        target->HandleStatModifier(UNIT_MOD_DAMAGE_OFFHAND,  TOTAL_PCT, float(GetAmount()), apply);
-        target->HandleStatModifier(UNIT_MOD_DAMAGE_RANGED,   TOTAL_PCT, float(GetAmount()), apply);
+        if (sSwitch->GetOnOff(ST_DAMAGE_PCT))
+        {
+            target->HandleStatModifier(UNIT_MOD_DAMAGE_MAINHAND, TOTAL_PCT_ADD, float(GetAmount()), apply);
+            target->HandleStatModifier(UNIT_MOD_DAMAGE_OFFHAND, TOTAL_PCT_ADD, float(GetAmount()), apply);
+            target->HandleStatModifier(UNIT_MOD_DAMAGE_RANGED, TOTAL_PCT_ADD, float(GetAmount()), apply);
 
-        if (target->GetTypeId() == TYPEID_PLAYER)
-            target->ToPlayer()->ApplyPercentModFloatValue(PLAYER_FIELD_MOD_DAMAGE_DONE_PCT, float (GetAmount()), apply);
+            if (target->GetTypeId() == TYPEID_PLAYER)
+            {
+                float value = target->ToPlayer()->GetFloatValue(PLAYER_FIELD_MOD_DAMAGE_DONE_PCT);
+                value += float(GetAmount()) / 100.0f;
+                target->ToPlayer()->SetFloatValue(PLAYER_FIELD_MOD_DAMAGE_DONE_PCT, value);
+            }
+        }
+        else
+        {
+            target->HandleStatModifier(UNIT_MOD_DAMAGE_MAINHAND, TOTAL_PCT, float(GetAmount()), apply);
+            target->HandleStatModifier(UNIT_MOD_DAMAGE_OFFHAND, TOTAL_PCT, float(GetAmount()), apply);
+            target->HandleStatModifier(UNIT_MOD_DAMAGE_RANGED, TOTAL_PCT, float(GetAmount()), apply);
+
+            if (target->GetTypeId() == TYPEID_PLAYER)
+                target->ToPlayer()->ApplyPercentModFloatValue(PLAYER_FIELD_MOD_DAMAGE_DONE_PCT, float(GetAmount()), apply);
+        }
     }
     else
     {

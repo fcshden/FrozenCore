@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright (C) 2016+     AzerothCore <www.azerothcore.org>, released under GNU GPL v2 license: https://github.com/azerothcore/azerothcore-wotlk/blob/master/LICENSE-GPL2
  * Copyright (C) 2008-2016 TrinityCore <http://www.trinitycore.org/>
  * Copyright (C) 2005-2009 MaNGOS <http://getmangos.com/>
@@ -17,6 +17,8 @@
 #include "Channel.h"
 #include "ScriptMgr.h"
 #include <unordered_map>
+#pragma execution_character_set("utf-8")
+#include "../Custom/CustomEvent/FixedTimeBG/FixedTimeBG.h"
 
 std::unordered_map<uint64, uint32> BGSpamProtection;
 
@@ -389,6 +391,9 @@ void BattlegroundQueue::FillPlayersToBG(Battleground* bg, const int32 aliFree, c
     auto Horde_itr = m_QueuedGroups[bracket_id][BG_QUEUE_NORMAL_HORDE].begin();
     for (; Horde_itr != m_QueuedGroups[bracket_id][BG_QUEUE_NORMAL_HORDE].end() && m_SelectionPools[TEAM_HORDE].AddGroup((*Horde_itr), hordeFree); ++Horde_itr);
 
+    //cfbg
+    if (sFTB->GetCFFlag(m_bgTypeId)) return;
+
     // calculate free space after adding
     int32 aliDiff = aliFree - int32(m_SelectionPools[TEAM_ALLIANCE].GetPlayerCount());
     int32 hordeDiff = hordeFree - int32(m_SelectionPools[TEAM_HORDE].GetPlayerCount());
@@ -471,6 +476,10 @@ void BattlegroundQueue::FillPlayersToBGWithSpecific(Battleground* bg, const int3
     // horde: at first fill as much as possible
     auto Horde_itr = m_QueuedBoth[TEAM_HORDE].begin();
     for (; Horde_itr != m_QueuedBoth[TEAM_HORDE].end() && m_SelectionPools[TEAM_HORDE].AddGroup((*Horde_itr), hordeFree); ++Horde_itr);
+
+    //cfbg
+    if (sFTB->GetCFFlag(m_bgTypeId))
+        return;
 
     // calculate free space after adding
     int32 aliDiff = aliFree - int32(m_SelectionPools[TEAM_ALLIANCE].GetPlayerCount());
@@ -594,6 +603,11 @@ bool BattlegroundQueue::CheckNormalMatch(Battleground * bgTemplate, Battleground
     if (sBattlegroundMgr->isTesting() && bgTemplate->isBattleground() && (m_SelectionPools[TEAM_ALLIANCE].GetPlayerCount() || m_SelectionPools[TEAM_HORDE].GetPlayerCount()))
         return true;
 
+    /*cfbg*/
+
+    if (sFTB->GetCFFlag(m_bgTypeId))
+        return m_SelectionPools[TEAM_ALLIANCE].GetPlayerCount() + m_SelectionPools[TEAM_HORDE].GetPlayerCount() >= minPlayers * 2;
+
     switch (sWorld->getIntConfig(CONFIG_BATTLEGROUND_INVITATION_TYPE))
     {
     case BG_QUEUE_INVITATION_TYPE_NO_BALANCE: // in this case, as soon as both teams have > mincount, start
@@ -663,6 +677,88 @@ bool BattlegroundQueue::CheckSkirmishForSameFaction(BattlegroundBracketId bracke
 void BattlegroundQueue::UpdateEvents(uint32 diff)
 {
     m_events.Update(diff);
+}
+
+void BattlegroundQueue::UpdateAnnounce(uint32 diff)
+{
+    Battleground* bg_template = sBattlegroundMgr->GetBattlegroundTemplate(m_bgTypeId);
+    if (!bg_template)
+        return;
+
+    //战场开始不再公告
+    const BattlegroundContainer& bgList = sBattlegroundMgr->GetBattlegroundList();
+    for (BattlegroundContainer::const_iterator ii = bgList.begin(); ii != bgList.end(); ++ii)
+    {
+        Battleground* bg = ii->second;
+        if (!bg)
+            continue;
+
+        if (bg->GetBgTypeID() == m_bgTypeId)
+            return;
+    }
+
+    if (m_QueuedPlayers.size() > 0)
+    {
+        auto itr = FixedTimeBGMap.find(m_bgTypeId);
+        if (itr != FixedTimeBGMap.end())
+        {
+            uint32 qHorde = 0;
+            uint32 qAlliance = 0;
+
+            for (auto i = m_QueuedPlayers.begin(); i != m_QueuedPlayers.end(); i++)
+            {
+                if (i->second->BgTypeId != m_bgTypeId)
+                    continue;
+
+                Player* pl = sObjectAccessor->FindPlayer(i->first);
+
+                if (!pl)
+                    continue;
+
+                if (pl->getLevel() < sWorld->getIntConfig(CONFIG_MAX_PLAYER_LEVEL))
+                    continue;
+
+                if (i->second->teamId == TEAM_ALLIANCE)
+                    qAlliance++;
+                else
+                    qHorde++;
+            }
+
+            uint32 size = qHorde + qAlliance;
+
+            if (size == 0)
+                return;
+
+            if (itr->second.crossFaction)
+            {
+                qHorde = size / 2;
+                qAlliance = size - qHorde;
+            }
+
+            uint32 MinPlayersPerTeam = bg_template->GetMinPlayersPerTeam();
+            uint32 MaxPlayersPerTeam = bg_template->GetMaxPlayersPerTeam();
+
+            std::ostringstream oss;
+            oss << "|cffff0000[战场队列公告]|r" << itr->second.bgName;
+            oss << "===联盟" << qAlliance << "/" << MinPlayersPerTeam << "======";
+            oss << "===部落" << qHorde << "/" << MinPlayersPerTeam << "===";
+
+            WorldPacket data(SMSG_SERVER_MESSAGE, 50);
+            data << uint32(SERVER_MSG_STRING);
+            data << oss.str().c_str();
+
+            SessionMap::const_iterator itr;
+            for (itr = sWorld->GetAllSessions().begin(); itr != sWorld->GetAllSessions().end(); ++itr)
+            {
+                if (itr->second &&
+                    itr->second->GetPlayer() &&
+                    itr->second->GetPlayer()->IsInWorld() && !itr->second->GetPlayer()->InBattleground())
+                {
+                    itr->second->SendPacket(&data);
+                }
+            }
+        }
+    }
 }
 
 struct BgEmptinessComp { bool operator()(Battleground* const& bg1, Battleground* const& bg2) const { return ((float)bg1->GetMaxFreeSlots() / (float)bg1->GetMaxPlayersPerTeam()) > ((float)bg2->GetMaxFreeSlots() / (float)bg2->GetMaxPlayersPerTeam()); } };

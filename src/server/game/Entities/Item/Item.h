@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright (C) 2016+     AzerothCore <www.azerothcore.org>, released under GNU GPL v2 license: https://github.com/azerothcore/azerothcore-wotlk/blob/master/LICENSE-GPL2
  * Copyright (C) 2008-2016 TrinityCore <http://www.trinitycore.org/>
  * Copyright (C) 2005-2009 MaNGOS <http://getmangos.com/>
@@ -201,6 +201,24 @@ class Item : public Object
 
         Item();
 
+        //无补丁物品
+        _Spell Spells[MAX_ITEM_PROTO_SPELLS];
+        _ItemStat Stats[MAX_ITEM_PROTO_STATS];
+        _Damage Damages[MAX_ITEM_PROTO_DAMAGES];
+        std::string Name;
+        uint64 LevelData;
+        uint32 NpDelay;
+        uint32 TempIndex;
+        uint64 MapData;
+        bool IsNoPatch() { return (LevelData > 0 || MapData > 0); }
+
+        //随机FM位置所用属性
+        uint32 enchantMask;
+        uint8 enchantType;
+
+        bool UnBinded;
+
+
         virtual bool Create(uint32 guidlow, uint32 itemid, Player const* owner);
 
         ItemTemplate const* GetTemplate() const;
@@ -209,14 +227,14 @@ class Item : public Object
         void SetOwnerGUID(uint64 guid) { SetUInt64Value(ITEM_FIELD_OWNER, guid); }
         Player* GetOwner() const;
 
-        void SetBinding(bool val) { ApplyModFlag(ITEM_FIELD_FLAGS, ITEM_FIELD_FLAG_SOULBOUND, val); }
+        void SetBinding(bool val) { UnBinded ? ApplyModFlag(ITEM_FIELD_FLAGS, ITEM_FIELD_FLAG_SOULBOUND, false) : ApplyModFlag(ITEM_FIELD_FLAGS, ITEM_FIELD_FLAG_SOULBOUND, val); }
         bool IsSoulBound() const { return HasFlag(ITEM_FIELD_FLAGS, ITEM_FIELD_FLAG_SOULBOUND); }
         bool IsBoundAccountWide() const { return (GetTemplate()->Flags & ITEM_FLAG_IS_BOUND_TO_ACCOUNT) != 0; }
         bool IsBindedNotWith(Player const* player) const;
         bool IsBoundByEnchant() const;
         bool IsBoundByTempEnchant() const;
         virtual void SaveToDB(SQLTransaction& trans);
-        virtual bool LoadFromDB(uint32 guid, uint64 owner_guid, Field* fields, uint32 entry);
+        virtual bool LoadFromDB(uint32 guid, uint64 owner_guid, Field* fields, uint32 entry, uint8 type);
         static void DeleteFromDB(SQLTransaction& trans, uint32 itemGuid);
         virtual void DeleteFromDB(SQLTransaction& trans);
         static void DeleteFromInventoryDB(SQLTransaction& trans, uint32 itemGuid);
@@ -269,7 +287,7 @@ class Item : public Object
         void SetItemRandomProperties(int32 randomPropId);
         void UpdateItemSuffixFactor();
         static int32 GenerateItemRandomPropertyId(uint32 item_id);
-        void SetEnchantment(EnchantmentSlot slot, uint32 id, uint32 duration, uint32 charges, uint64 caster = 0);
+        void SetEnchantment(EnchantmentSlot slot, uint32 id, uint32 duration, uint32 charges, uint64 caster = 0, bool custom = false);
         void SetEnchantmentDuration(EnchantmentSlot slot, uint32 duration, Player* owner);
         void SetEnchantmentCharges(EnchantmentSlot slot, uint32 charges);
         void ClearEnchantment(EnchantmentSlot slot);

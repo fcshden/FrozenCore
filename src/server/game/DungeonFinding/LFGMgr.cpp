@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright (C) 2016+     AzerothCore <www.azerothcore.org>, released under GNU GPL v2 license: https://github.com/azerothcore/azerothcore-wotlk/blob/master/LICENSE-GPL2
  * Copyright (C) 2008-2016 TrinityCore <http://www.trinitycore.org/>
  * Copyright (C) 2005-2009 MaNGOS <http://getmangos.com/>
@@ -23,6 +23,8 @@
 #include "GameEventMgr.h"
 #include "WorldSession.h"
 #include "Opcodes.h"
+#include "../Custom/Switch/Switch.h"
+#include "../Custom/Reward/Reward.h"
 
 namespace lfg
 {
@@ -102,7 +104,7 @@ void LFGMgr::LoadRewards()
     RewardMapStore.clear();
 
     // ORDER BY is very important for GetRandomDungeonReward!
-    QueryResult result = WorldDatabase.Query("SELECT dungeonId, maxLevel, firstQuestId, otherQuestId FROM lfg_dungeon_rewards ORDER BY dungeonId, maxLevel ASC");
+    QueryResult result = WorldDatabase.Query("SELECT dungeonId, maxLevel, firstQuestId, otherQuestId, tankRewId, healRewId, dpsRewId FROM lfg_dungeon_rewards ORDER BY dungeonId, maxLevel ASC");
 
     if (!result)
     {
@@ -120,6 +122,9 @@ void LFGMgr::LoadRewards()
         uint32 maxLevel = fields[1].GetUInt8();
         uint32 firstQuestId = fields[2].GetUInt32();
         uint32 otherQuestId = fields[3].GetUInt32();
+        uint32 tankRewId = fields[4].GetUInt32();
+        uint32 healRewId = fields[5].GetUInt32();
+        uint32 dpsRewId = fields[6].GetUInt32();
 
         if (!GetLFGDungeonEntry(dungeonId))
         {
@@ -145,7 +150,7 @@ void LFGMgr::LoadRewards()
             otherQuestId = 0;
         }
 
-        RewardMapStore.insert(LfgRewardContainer::value_type(dungeonId, new LfgReward(maxLevel, firstQuestId, otherQuestId)));
+        RewardMapStore.insert(LfgRewardContainer::value_type(dungeonId, new LfgReward(maxLevel, firstQuestId, otherQuestId, tankRewId, healRewId, dpsRewId)));
         ++count;
     }
     while (result->NextRow());
@@ -2088,6 +2093,28 @@ void LFGMgr::FinishDungeon(uint64 gguid, const uint32 dungeonId, const Map* curr
         sLog->outDebug(LOG_FILTER_LFG, "LFGMgr::FinishDungeon: [" UI64FMTD "] done dungeon %u, %s previously done.", player->GetGUID(), GetDungeon(gguid), done? " " : " not");
         LfgPlayerRewardData data = LfgPlayerRewardData(dungeon->Entry(), GetDungeon(gguid, false), done, quest);
         player->GetSession()->SendLfgPlayerReward(data);
+
+        if (Group* group = player->GetGroup())
+        {
+            uint32 rewId = 0;
+
+            switch (group->GetLfgRoles(player->GetGUID()))
+            {
+            case PLAYER_ROLE_TANK:
+                rewId = reward->tankRewId;
+                break;
+            case PLAYER_ROLE_HEALER:
+                rewId = reward->healRewId;
+                break;
+            case PLAYER_ROLE_DAMAGE:
+                rewId = reward->dpsRewId;
+                break;
+            default:
+                break;
+            }
+
+            sRew->Rew(player, rewId);
+        }
     }
 }
 
@@ -2402,8 +2429,8 @@ void LFGMgr::SetLeader(uint64 gguid, uint64 leader)
 
 void LFGMgr::SetTeam(uint64 guid, TeamId teamId)
 {
-    if (sWorld->getBoolConfig(CONFIG_ALLOW_TWO_SIDE_INTERACTION_GROUP))
-        teamId = TEAM_ALLIANCE; // @Not Sure About That TeamId is supposed to be uint8 Team = 0(@TrinityCore)
+    if (sSwitch->GetOnOff(ST_CF_GROUP))
+        teamId = TEAM_ALLIANCE;
 
     PlayersStore[guid].SetTeam(teamId);
 }

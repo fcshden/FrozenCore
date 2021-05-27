@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright (C) 2016+     AzerothCore <www.azerothcore.org>, released under GNU GPL v2 license: https://github.com/azerothcore/azerothcore-wotlk/blob/master/LICENSE-GPL2
  * Copyright (C) 2008-2016 TrinityCore <http://www.trinitycore.org/>
  * Copyright (C) 2005-2009 MaNGOS <http://getmangos.com/>
@@ -288,9 +288,6 @@ public:
         char* fextendedcost = strtok(nullptr, " ");                //add ExtendedCost, default: 0
         uint32 extendedcost = fextendedcost ? atol(fextendedcost) : 0;
 
-        char* fneedcost = strtok(nullptr, " ");                //add ExtendedCost, default: 0
-        uint32 needcost = fneedcost ? atol(fneedcost) : 0;
-
         Creature* vendor = handler->getSelectedCreature();
         if (!vendor)
         {
@@ -300,7 +297,7 @@ public:
         }
 
         char* addMulti = strtok(nullptr, " ");
-        uint32 vendor_entry = addMulti ? handler->GetSession()->GetCurrentVendor() : vendor->GetEntry();
+        uint32 vendor_entry = addMulti ? handler->GetSession()->GetCurrentVendorEntry() : vendor->GetEntry();
 
         if (!sObjectMgr->IsVendorItemValid(vendor_entry, itemId, maxcount, incrtime, extendedcost, handler->GetSession()->GetPlayer()))
         {
@@ -308,7 +305,7 @@ public:
             return false;
         }
 
-        sObjectMgr->AddVendorItem(vendor_entry, itemId, maxcount, incrtime, extendedcost, needcost);
+        sObjectMgr->AddVendorItem(vendor_entry, itemId, maxcount, incrtime, extendedcost);
 
         ItemTemplate const* itemTemplate = sObjectMgr->GetItemTemplate(itemId);
 
@@ -524,7 +521,7 @@ public:
         uint32 itemId = atol(pitem);
 
         char* addMulti = strtok(NULL, " ");
-        if (!sObjectMgr->RemoveVendorItem(addMulti ? handler->GetSession()->GetCurrentVendor() : vendor->GetEntry(), itemId))
+        if (!sObjectMgr->RemoveVendorItem(addMulti ? handler->GetSession()->GetCurrentVendorEntry() : vendor->GetEntry(), itemId))
         {
             handler->PSendSysMessage(LANG_ITEM_NOT_IN_LIST, itemId);
             handler->SetSentErrorMessage(true);

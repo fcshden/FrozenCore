@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright (C) 2016+     AzerothCore <www.azerothcore.org>, released under GNU GPL v2 license: https://github.com/azerothcore/azerothcore-wotlk/blob/master/LICENSE-GPL2
  * Copyright (C) 2008-2016 TrinityCore <http://www.trinitycore.org/>
  * Copyright (C) 2005-2009 MaNGOS <http://getmangos.com/>
@@ -16,6 +16,11 @@
 #include "ConditionMgr.h"
 #include "Player.h"
 #include "WorldSession.h"
+#include "../Custom/ItemMod/ItemMod.h"
+#include "../Custom/ItemMod/NoPatchItem.h"
+#include "../Custom/EquipmentManager/EquipmentManager.h"
+#include "../Custom/GCAddon/GCAddon.h"
+#include "../../../scripts/Custom/Transmogrification/Transmogrification.h"
 
 void AddItemsSetItem(Player* player, Item* item)
 {
@@ -224,6 +229,42 @@ bool ItemCanGoIntoBag(ItemTemplate const* pProto, ItemTemplate const* pBagProto)
 
 Item::Item()
 {
+    for (size_t i = 0; i < MAX_ITEM_PROTO_SPELLS; i++)
+    {
+        Spells[i].SpellCategory = 0;
+        Spells[i].SpellCategoryCooldown = -1;
+        Spells[i].SpellCharges = 0;
+        Spells[i].SpellCooldown = -1;
+        Spells[i].SpellId = 0;
+        Spells[i].SpellPPMRate = 0;
+        Spells[i].SpellTrigger = 0;
+    }
+
+    for (size_t i = 0; i < MAX_ITEM_PROTO_STATS; i++)
+    {
+        Stats[i].ItemStatType = 0;
+        Stats[i].ItemStatValue = 0;
+    }
+
+    for (size_t i = 0; i < MAX_ITEM_PROTO_DAMAGES; i++)
+    {
+        Damages[i].DamageMax = 0;
+        Damages[i].DamageMin = 0;
+        Damages[i].DamageType = 0;
+    }
+
+    Name = "";
+    LevelData = 0;
+    MapData = 0;
+    NpDelay = 0;
+    TempIndex = 0;
+
+    //随机FM位置所用属性
+    enchantMask = 0;
+    enchantType = 0;
+
+    UnBinded = false;
+
     m_objectType |= TYPEMASK_ITEM;
     m_objectTypeId = TYPEID_ITEM;
 
@@ -266,6 +307,19 @@ bool Item::Create(uint32 guidlow, uint32 itemid, Player const* owner)
 
     SetUInt32Value(ITEM_FIELD_DURATION, itemProto->Duration);
     SetUInt32Value(ITEM_FIELD_CREATE_PLAYED_TIME, 0);
+
+    //随机FM
+    if (owner && owner->IsInWorld())
+    {
+        for (uint8 slot = PERM_ENCHANTMENT_SLOT; slot < MAX_ENCHANTMENT_SLOT; slot++)
+        {
+            uint32 enchant_id = sItemMod->GenerateEnchantId(itemProto->ItemId, slot);
+
+            if (SpellItemEnchantmentEntry const* enchantEntry = sSpellItemEnchantmentStore.LookupEntry(enchant_id))
+                SetEnchantment(EnchantmentSlot(slot), enchant_id, 0, 0);
+        }
+    }
+
     return true;
 }
 
@@ -339,6 +393,48 @@ void Item::SaveToDB(SQLTransaction& trans)
             stmt->setUInt16(++index, GetUInt32Value(ITEM_FIELD_DURABILITY));
             stmt->setUInt32(++index, GetUInt32Value(ITEM_FIELD_CREATE_PLAYED_TIME));
             stmt->setString(++index, m_text);
+
+            //无补丁物品
+            std::ostringstream sssSpells;
+            for (uint8 i = 0; i < MAX_ITEM_PROTO_SPELLS; ++i)
+            {
+                sssSpells << Spells[i].SpellCategory << ',';
+                sssSpells << Spells[i].SpellCategoryCooldown << ',';
+                sssSpells << Spells[i].SpellCharges << ',';
+                sssSpells << Spells[i].SpellCooldown << ',';
+                sssSpells << Spells[i].SpellId << ',';
+                sssSpells << Spells[i].SpellPPMRate << ',';
+                sssSpells << Spells[i].SpellTrigger << ',';
+                sssSpells << ' ';
+            }
+            stmt->setString(++index, sssSpells.str());
+
+            std::ostringstream ssStats;
+            for (uint8 i = 0; i < MAX_ITEM_PROTO_STATS; ++i)
+            {
+                ssStats << Stats[i].ItemStatType << ',';
+                ssStats << Stats[i].ItemStatValue << ',';
+                ssStats << ' ';
+            }
+            stmt->setString(++index, ssStats.str());
+
+            std::ostringstream ssDamages;
+            for (uint8 i = 0; i < MAX_ITEM_PROTO_DAMAGES; ++i)
+            {
+                ssDamages << uint32(Damages[i].DamageMax) << ',';
+                ssDamages << uint32(Damages[i].DamageMin) << ',';
+                ssDamages << Damages[i].DamageType << ',';
+                ssDamages << ' ';
+            }
+            stmt->setString(++index, ssDamages.str());
+
+            stmt->setString(++index, Name);
+            stmt->setUInt64(++index, LevelData);
+            stmt->setUInt64(++index, MapData);
+            stmt->setUInt32(++index, NpDelay);
+            stmt->setUInt32(++index, TempIndex);
+            stmt->setBool(++index, UnBinded);
+
             stmt->setUInt32(++index, guid);
 
             trans->Append(stmt);
@@ -368,6 +464,11 @@ void Item::SaveToDB(SQLTransaction& trans)
             if (!isInTransaction)
                 CharacterDatabase.CommitTransaction(trans);
 
+            //清除ItemQueryMap中对应数据
+            auto itr = ItemQueryMap.find(GetGUIDLow());
+            if (itr != ItemQueryMap.end())
+                ItemQueryMap.erase(itr);
+
             delete this;
             return;
         }
@@ -381,7 +482,7 @@ void Item::SaveToDB(SQLTransaction& trans)
         CharacterDatabase.CommitTransaction(trans);
 }
 
-bool Item::LoadFromDB(uint32 guid, uint64 owner_guid, Field* fields, uint32 entry)
+bool Item::LoadFromDB(uint32 guid, uint64 owner_guid, Field* fields, uint32 entry, uint8 type)
 {
     //                                                    0                1      2         3        4      5             6                 7           8           9    10
     //result = CharacterDatabase.PQuery("SELECT creatorGuid, giftCreatorGuid, count, duration, charges, flags, enchantments, randomPropertyId, durability, playedTime, text FROM item_instance WHERE guid = '%u'", guid);
@@ -461,12 +562,89 @@ bool Item::LoadFromDB(uint32 guid, uint64 owner_guid, Field* fields, uint32 entr
         CharacterDatabase.Execute(stmt);
     }
 
+    //无补丁物品
+    uint32 index = 15;
+
+    switch (type)
+    {
+    case 0://bag inv
+        index = 15;
+        break;
+    case 1://actionhouse
+        index = 13;
+        break;
+    case 2://guild bank
+        index = 16;
+        break;
+    case 3://mail
+        index = 14;
+        break;
+    case 4://mail asynch
+        index = 28;
+        break;
+    }
+
+    Tokenizer t0(fields[index++].GetString(), ' ', MAX_ITEM_PROTO_SPELLS);
+    if (t0.size() == MAX_ITEM_PROTO_SPELLS)
+    {
+        for (uint8 i = 0; i < MAX_ITEM_PROTO_SPELLS; ++i)
+        {
+            Tokenizer t(std::string(t0[i]), ',', 7);
+            Spells[i].SpellCategory = atoi(t[0]);
+            Spells[i].SpellCategoryCooldown = atoi(t[1]);
+            Spells[i].SpellCharges = atoi(t[2]);
+            Spells[i].SpellCooldown = atoi(t[3]);
+            Spells[i].SpellId = atoi(t[4]);
+            Spells[i].SpellPPMRate = atof(t[5]);
+            Spells[i].SpellTrigger = atoi(t[6]);
+        }
+    }
+
+    Tokenizer t1(fields[index++].GetString(), ' ', MAX_ITEM_PROTO_STATS);
+    if (t1.size() == MAX_ITEM_PROTO_STATS)
+    {
+        for (uint8 i = 0; i < MAX_ITEM_PROTO_STATS; ++i)
+        {
+            Tokenizer t(std::string(t1[i]), ',', 2);
+            Stats[i].ItemStatType = atoi(t[0]);
+            Stats[i].ItemStatValue = atoi(t[1]);
+        }
+    }
+
+    Tokenizer t2(fields[index++].GetString(), ' ', MAX_ITEM_PROTO_DAMAGES);
+    if (t2.size() == MAX_ITEM_PROTO_DAMAGES)
+    {
+        for (uint8 i = 0; i < MAX_ITEM_PROTO_DAMAGES; ++i)
+        {
+            Tokenizer t(std::string(t2[i]), ',', 3);
+            Damages[i].DamageMax = atoi(t[0]);
+            Damages[i].DamageMin = atoi(t[1]);
+            Damages[i].DamageType = atoi(t[2]);
+        }
+    }
+
+
+    Name = fields[index++].GetString();
+    LevelData = fields[index++].GetUInt64();
+    MapData = fields[index++].GetUInt64();
+    NpDelay = fields[index++].GetUInt32();
+    TempIndex = fields[index++].GetUInt32();
+    UnBinded = fields[index++].GetBool();
+
+    if (IsNoPatch())
+    {
+        SetUInt32Value(ITEM_FIELD_RANDOM_PROPERTIES_ID, GetUInt32Value(ITEM_FIELD_RANDOM_PROPERTIES_ID));
+        SetUInt32Value(ITEM_FIELD_PROPERTY_SEED, sNoPatchItem->GetQueryId(this));
+        ItemQueryMap[guid] = this;
+    }
+
     return true;
 }
 
 /*static*/
 void Item::DeleteFromDB(SQLTransaction& trans, uint32 itemGuid)
 {
+    sTransmogrification->DeleteFakeFromDB(itemGuid, &trans); // custom
     sScriptMgr->OnGlobalItemDelFromDB(trans,itemGuid);
     PreparedStatement* stmt = CharacterDatabase.GetPreparedStatement(CHAR_DEL_ITEM_INSTANCE);
     stmt->setUInt32(0, itemGuid);
@@ -641,6 +819,9 @@ void Item::UpdateItemSuffixFactor()
 
 void Item::SetState(ItemUpdateState state, Player* forplayer)
 {
+    if (state == ITEM_CHANGED)
+        sNoPatchItem->SetItemFlag(this);
+
     if (uState == ITEM_NEW && state == ITEM_REMOVED)
     {
         // pretend the item never existed
@@ -649,6 +830,11 @@ void Item::SetState(ItemUpdateState state, Player* forplayer)
             RemoveFromUpdateQueueOf(forplayer);
             forplayer->DeleteRefundReference(GetGUIDLow());
         }
+
+        auto itr = ItemQueryMap.find(GetGUIDLow());
+        if (itr != ItemQueryMap.end())
+            ItemQueryMap.erase(itr);
+
         delete this;
         return;
     }
@@ -853,8 +1039,16 @@ bool Item::IsFitToSpellRequirements(SpellInfo const* spellInfo) const
     return true;
 }
 
-void Item::SetEnchantment(EnchantmentSlot slot, uint32 id, uint32 duration, uint32 charges, uint64 caster /*= 0*/)
+void Item::SetEnchantment(EnchantmentSlot slot, uint32 id, uint32 duration, uint32 charges, uint64 caster /*= 0*/, bool custom)
 {
+    //检测幻化标识
+    if (!custom && sItemMod->HasTransFlag(this))
+    {
+        if (Player* owner = GetOwner())
+            owner->SendEquipError(EQUIP_ERR_CANT_DO_RIGHT_NOW, this, NULL);
+        return;
+    }
+
     // Better lost small time at check in comparison lost time at item save to DB.
     if ((GetEnchantmentId(slot) == id) && (GetEnchantmentDuration(slot) == duration) && (GetEnchantmentCharges(slot) == charges))
         return;

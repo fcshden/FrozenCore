@@ -31,6 +31,7 @@
 #include "SpellMgr.h"
 #include "World.h"
 #include "WorldPacket.h"
+#include "../Custom/Switch/Switch.h"
 
 namespace acore
 {
@@ -2152,6 +2153,8 @@ void AchievementMgr::RemoveTimedAchievement(AchievementCriteriaTimedTypes type, 
 
 void AchievementMgr::CompletedAchievement(AchievementEntry const* achievement)
 {
+    if (!sSwitch->GetOnOff(ST_ACHIEVEMENT))
+        return;
     // disable for gamemasters with GM-mode enabled
     if (m_player->IsGameMaster())
     {

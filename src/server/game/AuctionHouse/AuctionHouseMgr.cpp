@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright (C) 2016+     AzerothCore <www.azerothcore.org>, released under GNU GPL v2 license: https://github.com/azerothcore/azerothcore-wotlk/blob/master/LICENSE-GPL2
  * Copyright (C) 2008-2016 TrinityCore <http://www.trinitycore.org/>
  * Copyright (C) 2005-2009 MaNGOS <http://getmangos.com/>
@@ -21,6 +21,11 @@
 #include <vector>
 #include "AvgDiffTracker.h"
 #include "AsyncAuctionListing.h"
+
+ #include "../Custom/DataLoader/DataLoader.h"
+ #include "../Custom/CommonFunc/CommonFunc.h"
+ #include "../Custom/Switch/Switch.h"
+ #include "../Custom/String/myString.h"
 
 enum eAuctionHouse
 {
@@ -45,7 +50,7 @@ AuctionHouseMgr* AuctionHouseMgr::instance()
 
 AuctionHouseObject* AuctionHouseMgr::GetAuctionsMap(uint32 factionTemplateId)
 {
-    if (sWorld->getBoolConfig(CONFIG_ALLOW_TWO_SIDE_INTERACTION_AUCTION))
+    if (sSwitch->GetOnOff(ST_CF_AUCTION))
         return &mNeutralAuctions;
 
     // team have linked auction houses
@@ -130,6 +135,10 @@ void AuctionHouseMgr::SendAuctionWonMail(AuctionEntry* auction, SQLTransaction& 
 
 void AuctionHouseMgr::SendAuctionSalePendingMail(AuctionEntry* auction, SQLTransaction& trans, bool sendMail)
 {
+    //token auction
+    if (sSwitch->GetOnOff(ST_TOKEN_AUCTION))
+        return;
+
     uint64 owner_guid = MAKE_NEW_GUID(auction->owner, 0, HIGHGUID_PLAYER);
     Player* owner = ObjectAccessor::FindPlayerInOrOutOfWorld(owner_guid);
     uint32 owner_accId = sObjectMgr->GetPlayerAccountIdByGUID(owner_guid);
@@ -155,22 +164,48 @@ void AuctionHouseMgr::SendAuctionSuccessfulMail(AuctionEntry* auction, SQLTransa
         uint32 profit = auction->bid + auction->deposit - auction->GetAuctionCut();
         sScriptMgr->OnBeforeAuctionHouseMgrSendAuctionSuccessfulMail(this, auction, owner, owner_accId, profit, sendNotification, updateAchievementCriteria, sendMail);
 
-        if (owner)
+        if (sSwitch->GetOnOff(ST_TOKEN_AUCTION))
         {
-            if (updateAchievementCriteria) // can be changed in the hook
+            uint32 token = auction->bid / 10000;
+
+            token = token - uint32(token * sSwitch->GetValue(ST_TOKEN_AUCTION_CUT) / 100);
+
+            if (owner)
             {
                 owner->UpdateAchievementCriteria(ACHIEVEMENT_CRITERIA_TYPE_GOLD_EARNED_BY_AUCTIONS, profit);
                 owner->UpdateAchievementCriteria(ACHIEVEMENT_CRITERIA_TYPE_HIGHEST_AUCTION_SOLD, auction->bid);
+                owner->GetSession()->SendAuctionOwnerNotification(auction);
+                sCF->UpdateTokenAmount(owner, token, true, "[拍卖]拍卖成功");
+                std::ostringstream oss;
+                oss << "拍卖成功，获得" << token << "[" << sString->GetText(CORE_STR_TYPES(STR_TOKEN)) << "]";
+                owner->GetSession()->SendAreaTriggerMessage(oss.str().c_str());
+            }
+            else
+            {
+                if (owner_accId)
+                    LoginDatabase.DirectPExecute("UPDATE account SET tokenAmount =tokenAmount + '%u' WHERE id = '%u'", token, owner_accId);
+            }
+        }
+        else
+        {
+            if (owner)
+            {
+                if (updateAchievementCriteria) // can be changed in the hook
+                {
+                    owner->UpdateAchievementCriteria(ACHIEVEMENT_CRITERIA_TYPE_GOLD_EARNED_BY_AUCTIONS, profit);
+                    owner->UpdateAchievementCriteria(ACHIEVEMENT_CRITERIA_TYPE_HIGHEST_AUCTION_SOLD, auction->bid);
+                }
+
+                if (sendNotification) // can be changed in the hook
+                    owner->GetSession()->SendAuctionOwnerNotification(auction);
             }
 
-            if (sendNotification) // can be changed in the hook
-                owner->GetSession()->SendAuctionOwnerNotification(auction);
-        }
-
-        if (sendMail) // can be changed in the hook
-            MailDraft(auction->BuildAuctionMailSubject(AUCTION_SUCCESSFUL), AuctionEntry::BuildAuctionMailBody(auction->bidder, auction->bid, auction->buyout, auction->deposit, auction->GetAuctionCut()))
+            if (sendMail) // can be changed in the hook
+                MailDraft(auction->BuildAuctionMailSubject(AUCTION_SUCCESSFUL), AuctionEntry::BuildAuctionMailBody(auction->bidder, auction->bid, auction->buyout, auction->deposit, auction->GetAuctionCut()))
                 .AddMoney(profit)
                 .SendMailTo(trans, MailReceiver(owner, auction->owner), auction, MAIL_CHECK_MASK_COPIED, sWorld->getIntConfig(CONFIG_MAIL_DELIVERY_DELAY));
+        }
+
 
         if (auction->bid >= 500*GOLD)
             if (const GlobalPlayerData* gpd = sWorld->GetGlobalPlayerData(auction->bidder))
@@ -238,8 +273,21 @@ void AuctionHouseMgr::SendAuctionOutbiddedMail(AuctionEntry* auction, uint32 new
 
         if (sendMail) // can be changed in the hook
             MailDraft(auction->BuildAuctionMailSubject(AUCTION_OUTBIDDED), AuctionEntry::BuildAuctionMailBody(auction->owner, auction->bid, auction->buyout, auction->deposit, auction->GetAuctionCut()))
-                .AddMoney(auction->bid)
+            .AddMoney(sSwitch->GetOnOff(ST_TOKEN_AUCTION) ? 0 : auction->bid)
                 .SendMailTo(trans, MailReceiver(oldBidder, auction->bidder), auction, MAIL_CHECK_MASK_COPIED);
+    }
+
+    if (sSwitch->GetOnOff(ST_TOKEN_AUCTION))
+    {
+        uint32 token = auction->bid / 10000;
+
+        if (Player* oldBidder = ObjectAccessor::FindPlayerInOrOutOfWorld(oldBidder_guid))
+            sCF->UpdateTokenAmount(oldBidder, token, true, "[拍卖]竞标被超过");
+        else
+        {
+            uint32 oldBidder_accId = sObjectMgr->GetPlayerAccountIdByGUID(oldBidder_guid);
+            LoginDatabase.DirectPExecute("UPDATE account SET tokenAmount = tokenAmount -'%u' + '%u' WHERE id = '%u'", 0, token, oldBidder_accId);
+        }
     }
 }
 
@@ -259,8 +307,21 @@ void AuctionHouseMgr::SendAuctionCancelledToBidderMail(AuctionEntry* auction, SQ
         sScriptMgr->OnBeforeAuctionHouseMgrSendAuctionCancelledToBidderMail(this, auction, bidder, bidder_accId, sendMail);
         if (sendMail) // can be changed in the hook
             MailDraft(auction->BuildAuctionMailSubject(AUCTION_CANCELLED_TO_BIDDER), AuctionEntry::BuildAuctionMailBody(auction->owner, auction->bid, auction->buyout, auction->deposit, 0))
-                .AddMoney(auction->bid)
+            .AddMoney(sSwitch->GetOnOff(ST_TOKEN_AUCTION) ? 0 : auction->bid)
                 .SendMailTo(trans, MailReceiver(bidder, auction->bidder), auction, MAIL_CHECK_MASK_COPIED);
+    }
+
+    if (sSwitch->GetOnOff(ST_TOKEN_AUCTION))
+    {
+        uint32 token = auction->bid / 10000;
+
+        if (Player* oldBidder = ObjectAccessor::FindPlayerInOrOutOfWorld(bidder_guid))
+            sCF->UpdateTokenAmount(oldBidder, token, true, "[拍卖]取消拍卖");
+        else
+        {
+            uint32 oldBidder_accId = sObjectMgr->GetPlayerAccountIdByGUID(bidder_guid);
+            LoginDatabase.DirectPExecute("UPDATE account SET tokenAmount = tokenAmount -'%u' + '%u' WHERE id = '%u'", 0, token, oldBidder_accId);
+        }
     }
 }
 
@@ -306,7 +367,7 @@ void AuctionHouseMgr::LoadAuctionItems()
         }
 
         Item* item = NewItemOrBag(proto);
-        if (!item->LoadFromDB(item_guid, 0, fields, item_template))
+        if (!item->LoadFromDB(item_guid, 0, fields, item_template, 1))
         {
             delete item;
             continue;
@@ -397,7 +458,7 @@ AuctionHouseEntry const* AuctionHouseMgr::GetAuctionHouseEntry(uint32 factionTem
 {
     uint32 houseid = 7; // goblin auction house
 
-    if (!sWorld->getBoolConfig(CONFIG_ALLOW_TWO_SIDE_INTERACTION_AUCTION))
+    if (!sSwitch->GetOnOff(ST_CF_AUCTION))
     {
         //FIXME: found way for proper auctionhouse selection by another way
         // AuctionHouse.dbc have faction field with _player_ factions associated with auction house races.

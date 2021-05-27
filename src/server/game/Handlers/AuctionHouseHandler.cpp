@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright (C) 2016+     AzerothCore <www.azerothcore.org>, released under GNU GPL v2 license: https://github.com/azerothcore/azerothcore-wotlk/blob/master/LICENSE-GPL2
  * Copyright (C) 2008-2016 TrinityCore <http://www.trinitycore.org/>
  * Copyright (C) 2005-2009 MaNGOS <http://getmangos.com/>
@@ -19,6 +19,11 @@
 #include "AccountMgr.h"
 #include "Chat.h"
 #include "AsyncAuctionListing.h"
+#pragma execution_character_set("utf-8")
+#include "../Custom/DataLoader/DataLoader.h"
+#include "../Custom/CommonFunc/CommonFunc.h"
+#include "../Custom/Switch/Switch.h"
+#include "../Custom/String/myString.h"
 
 //void called when player click on auctioneer npc
 void WorldSession::HandleAuctionHelloOpcode(WorldPacket & recvData)
@@ -33,6 +38,14 @@ void WorldSession::HandleAuctionHelloOpcode(WorldPacket & recvData)
         sLog->outDebug(LOG_FILTER_NETWORKIO, "WORLD: HandleAuctionHelloOpcode - Unit (GUID: %u) not found or you can't interact with him.", uint32(GUID_LOPART(guid)));
 #endif
         return;
+    }
+
+
+    if (sSwitch->GetOnOff(ST_TOKEN_AUCTION))
+    {
+        std::ostringstream oss;
+        oss << "欢迎使用" << sString->GetText(CORE_STR_TYPES(STR_TOKEN)) << "拍卖，1[金币]已经修改为1[" << sString->GetText(CORE_STR_TYPES(STR_TOKEN)) << "]";
+        unit->MonsterWhisper(oss.str().c_str(), GetPlayer(), false);
     }
 
     // remove fake death
@@ -243,6 +256,21 @@ void WorldSession::HandleAuctionSellItem(WorldPacket & recvData)
         }
     }
 
+    if (sSwitch->GetOnOff(ST_TOKEN_AUCTION))
+    {
+        //token auction
+        std::string nameLink = "";
+        std::string nameLinkWithColor = "";
+        sCF->GetNameLink(GetPlayer(), nameLink, nameLinkWithColor);
+
+        std::ostringstream oss1, oss2;
+        oss1 << "[" << sString->GetText(CORE_STR_TYPES(STR_TOKEN)) << "拍卖]:" << nameLinkWithColor << "拍卖了" << sCF->GetItemLink(itemEntry) << "X" << itemsCount;
+        oss2 << "[" << sString->GetText(CORE_STR_TYPES(STR_TOKEN)) << "拍卖]:" << "起拍价" << bid / 10000 << "[" << sString->GetText(CORE_STR_TYPES(STR_TOKEN)) << "]/每个,一口价" << buyout / 10000 << "[" << sString->GetText(CORE_STR_TYPES(STR_TOKEN)) << "]/每个";
+
+        sWorld->SendServerMessage(SERVER_MSG_STRING, oss1.str().c_str());
+        sWorld->SendServerMessage(SERVER_MSG_STRING, oss2.str().c_str());
+    }
+
     for (uint32 i = 0; i < itemsCount; ++i)
     {
         Item* item = items[i];
@@ -262,7 +290,7 @@ void WorldSession::HandleAuctionSellItem(WorldPacket & recvData)
         AuctionEntry* AH = new AuctionEntry;
         AH->Id = sObjectMgr->GenerateAuctionID();
 
-        if (sWorld->getBoolConfig(CONFIG_ALLOW_TWO_SIDE_INTERACTION_AUCTION))
+        if (sSwitch->GetOnOff(ST_CF_AUCTION))
             AH->auctioneer = 23442;
         else
             AH->auctioneer = GUID_LOPART(auctioneer);
@@ -434,11 +462,27 @@ void WorldSession::HandleAuctionPlaceBid(WorldPacket & recvData)
         return;
     }
 
-    if (!player->HasEnoughMoney(price))
+    if (sSwitch->GetOnOff(ST_TOKEN_AUCTION))
     {
-        //you don't have enought money!, client tests!
-        //SendAuctionCommandResult(auction->auctionId, AUCTION_PLACE_BID, ???);
-        return;
+        uint32 hasToken = sCF->GetTokenAmount(player);
+        uint32 reqToken = price / 10000;
+
+        if (hasToken < reqToken)
+        {
+            std::ostringstream oss;
+            oss << "[" << sString->GetText(CORE_STR_TYPES(STR_TOKEN)) << "]不足，缺少" << reqToken - hasToken << "[" << sString->GetText(CORE_STR_TYPES(STR_TOKEN)) << "]";
+            player->GetSession()->SendNotification(oss.str().c_str());
+            return;
+        }
+    }
+    else
+    {
+        if (!player->HasEnoughMoney(price))
+        {
+            //you don't have enought money!, client tests!
+            //SendAuctionCommandResult(auction->auctionId, AUCTION_PLACE_BID, ???);
+            return;
+        }
     }
 
     SQLTransaction trans = CharacterDatabase.BeginTransaction();
@@ -448,16 +492,52 @@ void WorldSession::HandleAuctionPlaceBid(WorldPacket & recvData)
         if (auction->bidder > 0)
         {
             if (auction->bidder == player->GetGUIDLow())
-                player->ModifyMoney(-int32(price - auction->bid));
+            {
+                //token auction
+                if (!sSwitch->GetOnOff(ST_TOKEN_AUCTION))
+                    player->ModifyMoney(-int32(price - auction->bid));
+                else
+                {
+                    uint32 token = (price - auction->bid) / 10000;
+                    sCF->UpdateTokenAmount(player, token, false, "[拍卖]竞标");
+                    std::ostringstream oss;
+                    oss << "扣除" << token << "[" << sString->GetText(CORE_STR_TYPES(STR_TOKEN)) << "]";
+                    player->GetSession()->SendAreaTriggerMessage(oss.str().c_str());
+                }
+            }
             else
             {
                 // mail to last bidder and return money
                 sAuctionMgr->SendAuctionOutbiddedMail(auction, price, GetPlayer(), trans);
-                player->ModifyMoney(-int32(price));
+                if (!sSwitch->GetOnOff(ST_TOKEN_AUCTION))
+                {
+                    // mail to last bidder and return money					
+                    player->ModifyMoney(-int32(price));
+                }
+                else
+                {
+                    uint32 token = price / 10000;
+                    sCF->UpdateTokenAmount(player, token, false, "[拍卖]竞标");
+                    std::ostringstream oss;
+                    oss << "扣除" << token << "[" << sString->GetText(CORE_STR_TYPES(STR_TOKEN)) << "]";
+                    player->GetSession()->SendAreaTriggerMessage(oss.str().c_str());
+                }
             }
         }
         else
-            player->ModifyMoney(-int32(price));
+        {
+            if (!sSwitch->GetOnOff(ST_TOKEN_AUCTION))
+                player->ModifyMoney(-int32(price));
+            else
+            {
+                uint32 token = price / 10000;
+                sCF->UpdateTokenAmount(player, token, false, "[拍卖]竞标");
+                std::ostringstream oss;
+                oss << "扣除" << token << "[" << sString->GetText(CORE_STR_TYPES(STR_TOKEN)) << "]";
+                player->GetSession()->SendAreaTriggerMessage(oss.str().c_str());
+            }
+        }
+
 
         auction->bidder = player->GetGUIDLow();
         auction->bid = price;
@@ -475,10 +555,30 @@ void WorldSession::HandleAuctionPlaceBid(WorldPacket & recvData)
     {
         //buyout:
         if (player->GetGUIDLow() == auction->bidder)
-            player->ModifyMoney(-int32(auction->buyout - auction->bid));
+        {
+            if (!sSwitch->GetOnOff(ST_TOKEN_AUCTION))
+                player->ModifyMoney(-int32(auction->buyout - auction->bid));
+            else
+            {
+                uint32 token = (auction->buyout - auction->bid) / 10000;
+                sCF->UpdateTokenAmount(player, token, false, "[拍卖]一口价");
+                std::ostringstream oss;
+                oss << "扣除" << token << "[" << sString->GetText(CORE_STR_TYPES(STR_TOKEN)) << "]";
+                player->GetSession()->SendAreaTriggerMessage(oss.str().c_str());
+            }
+        }
         else
         {
-            player->ModifyMoney(-int32(auction->buyout));
+            if (!sSwitch->GetOnOff(ST_TOKEN_AUCTION))
+                player->ModifyMoney(-int32(auction->buyout));
+            else
+            {
+                uint32 token = auction->buyout / 10000;
+                sCF->UpdateTokenAmount(player, token, false, "[拍卖]一口价");
+                std::ostringstream oss;
+                oss << "扣除" << token << "[" << sString->GetText(CORE_STR_TYPES(STR_TOKEN)) << "]";
+                player->GetSession()->SendAreaTriggerMessage(oss.str().c_str());
+            }
             if (auction->bidder)                          //buyout for bidded auction ..
                 sAuctionMgr->SendAuctionOutbiddedMail(auction, auction->buyout, GetPlayer(), trans);
         }

@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright (C) 2016+     AzerothCore <www.azerothcore.org>, released under GNU GPL v2 license: https://github.com/azerothcore/azerothcore-wotlk/blob/master/LICENSE-GPL2
  * Copyright (C) 2008-2016 TrinityCore <http://www.trinitycore.org/>
  * Copyright (C) 2005-2009 MaNGOS <http://getmangos.com/>
@@ -664,7 +664,7 @@ DumpReturn PlayerDumpReader::LoadDump(const std::string& file, uint32 account, s
     CharacterDatabase.CommitTransaction(trans);
 
     // in case of name conflict player has to rename at login anyway
-    sWorld->AddGlobalPlayerData(guid, account, name, gender, race, playerClass, level, mails.size(), 0);
+    sWorld->AddGlobalPlayerData(guid, account, name, gender, race, playerClass, level, mails.size(), 0, "");
 
     sObjectMgr->_hiItemGuid += items.size();
     sObjectMgr->_mailId     += mails.size();

@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright (C) 2016+     AzerothCore <www.azerothcore.org>, released under GNU GPL v2 license: https://github.com/azerothcore/azerothcore-wotlk/blob/master/LICENSE-GPL2
  * Copyright (C) 2008-2016 TrinityCore <http://www.trinitycore.org/>
  * Copyright (C) 2005-2009 MaNGOS <http://getmangos.com/>
@@ -345,7 +345,7 @@ void GuildMgr::LoadGuilds()
                                                      //          0            1                2      3         4        5      6             7                 8           9           10
         QueryResult result = CharacterDatabase.Query("SELECT creatorGuid, giftCreatorGuid, count, duration, charges, flags, enchantments, randomPropertyId, durability, playedTime, text, "
                                                      //   11       12     13      14         15
-                                                     "guildid, TabId, SlotId, item_guid, itemEntry FROM guild_bank_item gbi INNER JOIN item_instance ii ON gbi.item_guid = ii.guid");
+                                                     "guildid, TabId, SlotId, item_guid, itemEntry, spells, stats, damages, name, leveldata, mapdata, delay,tempindex, unbind FROM guild_bank_item gbi INNER JOIN item_instance ii ON gbi.item_guid = ii.guid");
 
         if (!result)
         {

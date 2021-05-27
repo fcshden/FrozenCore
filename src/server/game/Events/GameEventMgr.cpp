@@ -19,6 +19,12 @@
 #include "GameObjectAI.h"
 #include "Transport.h"
 #include "ScriptMgr.h"
+#include "../Custom/CustomEvent/Event.h"
+#include "../Custom/ServerAnnounce/ServerAnnounce.h"
+#include "../../scripts/Custom/CharPvpTop/CharPvpTop.h"
+#include "../../scripts/Custom/Switch/Switch.h"
+#include "../../scripts/Custom/GvgSys/GvgSys.h"
+
 #ifdef ELUNA
 #include "LuaEngine.h"
 #endif
@@ -127,6 +133,22 @@ bool GameEventMgr::StartEvent(uint16 event_id, bool overwrite)
     GameEventData &data = mGameEvent[event_id];
     if (data.state == GAMEEVENT_NORMAL || data.state == GAMEEVENT_INTERNAL)
     {
+        if (sSwitch->GetValue(TOP_93) == event_id)
+        {
+            if (sCharPvpTop->SpawnGob(sSwitch->GetValue(TOP_96), true))
+            {
+                CharacterDatabase.PExecute("update _xlchar set lasttop = 0");
+                sCharPvpTop->m_playertopph.clear();
+                sCharPvpTop->topevent = true;
+                sCharPvpTop->SendTopTitle(true);
+                sCharPvpTop->RollTopTeamID();
+                sCharPvpTop->pvptime = time(NULL);
+                sCharPvpTop->isfirst = true;
+            }
+        }
+
+        sGvgSys->StartEventSys(event_id);
+
         AddActiveEvent(event_id);
         ApplyNewEvent(event_id);
         if (overwrite)
@@ -169,13 +191,35 @@ bool GameEventMgr::StartEvent(uint16 event_id, bool overwrite)
     }
 }
 
-void GameEventMgr::StopEvent(uint16 event_id, bool overwrite)
+void GameEventMgr::StopEvent(uint16 event_id, bool overwrite, bool custom)
 {
+    sEvent->Stop(event_id);
+
+    if (sSwitch->GetValue(TOP_93) == event_id)
+    {
+        sCharPvpTop->pvpcount = 0;
+        sCharPvpTop->SendTopTitle(false);
+        sCharPvpTop->topevent = false;
+        if (GameObject *ob = sCharPvpTop->SpawnGob(sSwitch->GetValue(TOP_96), false))
+        {
+            ob->Delete();
+        }
+    }
+    sGvgSys->StopEventSys(event_id);
+
     GameEventData &data = mGameEvent[event_id];
     bool serverwide_evt = data.state != GAMEEVENT_NORMAL && data.state != GAMEEVENT_INTERNAL;
 
     RemoveActiveEvent(event_id);
     UnApplyEvent(event_id);
+
+    if (custom)
+    {
+        data.start = time(NULL) + data.occurence * MINUTE - ((time(NULL) - data.originStartTime) % (data.occurence * MINUTE));
+        if (data.end <= data.start)
+            data.end = data.start + data.length;
+        return;
+    }
 
     if (overwrite && !serverwide_evt)
     {
@@ -241,6 +285,7 @@ void GameEventMgr::LoadFromDB()
             GameEventData& pGameEvent = mGameEvent[event_id];
             uint64 starttime        = fields[1].GetUInt64();
             pGameEvent.start        = time_t(starttime);
+            pGameEvent.originStartTime = time_t(starttime);
             uint64 endtime          = fields[2].GetUInt64();
             if (fields[2].IsNull())
                 endtime             = time(nullptr) + 63072000; // add 2 years to current date
@@ -254,6 +299,7 @@ void GameEventMgr::LoadFromDB()
             pGameEvent.state        = (GameEventState)(fields[8].GetUInt8());
             pGameEvent.announce     = fields[9].GetUInt8();
             pGameEvent.nextstart    = 0;
+            pGameEvent.eventId = event_id;
 
             ++count;
 
@@ -1237,6 +1283,9 @@ void GameEventMgr::ApplyNewEvent(uint16 event_id)
     UpdateEventNPCVendor(event_id, true);
     // update bg holiday
     UpdateBattlegroundSettings();
+
+    //在此做自定义事件处理
+    sEvent->Start(event_id);
 }
 
 void GameEventMgr::UpdateEventNPCFlags(uint16 event_id)
@@ -1276,7 +1325,7 @@ void GameEventMgr::UpdateEventNPCVendor(uint16 event_id, bool activate)
     for (NPCVendorList::iterator itr = mGameEventVendors[event_id].begin(); itr != mGameEventVendors[event_id].end(); ++itr)
     {
         if (activate)
-            sObjectMgr->AddVendorItem(itr->entry, itr->item, itr->maxcount, itr->incrtime, itr->ExtendedCost, itr->Needid, false);
+            sObjectMgr->AddVendorItem(itr->entry, itr->item, itr->maxcount, itr->incrtime, itr->ExtendedCost, false);
         else
             sObjectMgr->RemoveVendorItem(itr->entry, itr->item, false);
     }
@@ -1309,6 +1358,8 @@ void GameEventMgr::GameEventSpawn(int16 event_id)
                 //sLog->outDebug("Spawning creature %u", *itr);
                 if (!creature->LoadCreatureFromDB(*itr, map))
                     delete creature;
+                else
+                    sServerAnnounce->CreatureRespawn(creature);
             }
         }
     }

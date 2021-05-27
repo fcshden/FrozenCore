@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright (C) 2016+     AzerothCore <www.azerothcore.org>, released under GNU GPL v2 license: https://github.com/azerothcore/azerothcore-wotlk/blob/master/LICENSE-GPL2
  * Copyright (C) 2008-2016 TrinityCore <http://www.trinitycore.org/>
  * Copyright (C) 2005-2009 MaNGOS <http://getmangos.com/>
@@ -21,6 +21,13 @@
 #include "SpellAuras.h"
 #include "Vehicle.h"
 #include "Language.h"
+#pragma execution_character_set("utf-8")
+#include "../Custom/CustomEvent/Event.h"
+#include "../Custom/FakePlayers/FakePlayers.h"
+#include "../Custom/Switch/Switch.h"
+#include "../Custom/CharNameMod/CharNameMod.h"
+#include "../Custom/PvP/PvP.h"
+#include "../Custom/CommonFunc/CommonFunc.h"
 
 class Aura;
 
@@ -56,6 +63,11 @@ void WorldSession::HandleGroupInviteOpcode(WorldPacket& recvData)
     recvData >> membername;
     recvData.read_skip<uint32>();
 
+    if (!IsGCValidString(membername, "HandleGroupInviteOpcode", this, recvData))
+        return;
+
+    membername = sCharNameMod->GetPureName(membername);
+
     // attempt add selected player
 
     // cheating
@@ -67,8 +79,24 @@ void WorldSession::HandleGroupInviteOpcode(WorldPacket& recvData)
 
     Player* player = ObjectAccessor::FindPlayerByName(membername, false);
 
+    // no player
+    if (!player)
+    {
+        if (!sFakePlayers->isSameTeamId(GetPlayer(), membername))
+        {
+            SendPartyResult(PARTY_OP_INVITE, membername, ERR_PLAYER_WRONG_FACTION);
+            return;
+        }
+
+        if (sFakePlayers->Logout(membername))
+            return;
+
+        SendPartyResult(PARTY_OP_INVITE, membername, ERR_BAD_PLAYER_NAME_S);
+        return;
+    }
+
     // no player or cheat self-invite
-    if (!player || player == GetPlayer())
+    if (player == GetPlayer())
     {
         SendPartyResult(PARTY_OP_INVITE, membername, ERR_BAD_PLAYER_NAME_S);
         return;
@@ -88,7 +116,7 @@ void WorldSession::HandleGroupInviteOpcode(WorldPacket& recvData)
     }
 
     // can't group with
-    if (!GetPlayer()->IsGameMaster() && !sWorld->getBoolConfig(CONFIG_ALLOW_TWO_SIDE_INTERACTION_GROUP) && GetPlayer()->GetTeamId() != player->GetTeamId())
+    if (!GetPlayer()->IsGameMaster() && !sSwitch->GetOnOff(ST_CF_GROUP) && GetPlayer()->GetTeamId() != player->GetTeamId())
     {
         SendPartyResult(PARTY_OP_INVITE, membername, ERR_PLAYER_WRONG_FACTION);
         return;
@@ -114,6 +142,19 @@ void WorldSession::HandleGroupInviteOpcode(WorldPacket& recvData)
     if (!player->GetSocial()->HasFriend(GetPlayer()->GetGUID()) && GetPlayer()->getLevel() < sWorld->getIntConfig(CONFIG_PARTY_LEVEL_REQ))
     {
         SendPartyResult(PARTY_OP_INVITE, player->GetName(), ERR_INVITE_RESTRICTED);
+        return;
+    }
+
+    //PvP
+    if (!sPvP->EnableGroup(player->GetZoneId(), player->GetAreaId()))
+    {
+        GetPlayer()->GetSession()->SendNotification("对方处在特殊区域中，无法被邀请！");
+        return;
+    }
+
+    if (!sPvP->EnableGroup(GetPlayer()->GetZoneId(), GetPlayer()->GetAreaId()))
+    {
+        GetPlayer()->GetSession()->SendNotification("你处在特殊区域中，无法邀请玩家！");
         return;
     }
 
@@ -293,7 +334,8 @@ void WorldSession::HandleGroupUninviteGuidOpcode(WorldPacket& recvData)
 #if defined(ENABLE_EXTRAS) && defined(ENABLE_EXTRA_LOGS)
     sLog->outDebug(LOG_FILTER_NETWORKIO, "WORLD: Received CMSG_GROUP_UNINVITE_GUID");
 #endif
-
+    if (GetPlayer()->InEvent())
+        return;
     uint64 guid;
     std::string reason, name;
     recvData >> guid;
@@ -440,6 +482,8 @@ void WorldSession::HandleGroupDisbandOpcode(WorldPacket & /*recvData*/)
     SendPartyResult(PARTY_OP_LEAVE, GetPlayer()->GetName(), ERR_PARTY_RESULT_OK);
 
     GetPlayer()->RemoveFromGroup(GROUP_REMOVEMETHOD_LEAVE);
+
+    GetPlayer()->EventRest();
 }
 
 void WorldSession::HandleLootMethodOpcode(WorldPacket& recvData)
@@ -460,6 +504,9 @@ void WorldSession::HandleLootMethodOpcode(WorldPacket& recvData)
     /** error handling **/
     // Xinef: Check if group is LFG
     if (!group->IsLeader(GetPlayer()->GetGUID()) || group->isLFGGroup())
+        return;
+
+    if (GetPlayer()->InEvent())
         return;
 
     if (lootMethod > NEED_BEFORE_GREED)

@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright (C) 2016+     AzerothCore <www.azerothcore.org>, released under GNU GPL v2 license: https://github.com/azerothcore/azerothcore-wotlk/blob/master/LICENSE-GPL2
  * Copyright (C) 2008-2016 TrinityCore <http://www.trinitycore.org/>
  * Copyright (C) 2005-2009 MaNGOS <http://getmangos.com/>
@@ -23,7 +23,8 @@
 #include "SpellMgr.h"
 #include "ScriptMgr.h"
 #include "ChatLink.h"
-
+#pragma execution_character_set("utf-8")
+#include "../Custom/AntiCheat/AntiCheat.h"
 #ifdef ELUNA
 #include "LuaEngine.h"
 #endif
@@ -327,6 +328,35 @@ bool ChatHandler::ExecuteCommandInTable(std::vector<ChatCommand> const& table, c
                         areaId, areaName.c_str(), zoneName.c_str(),
                         (player->GetSelectedUnit()) ? player->GetSelectedUnit()->GetName().c_str() : "",
                         GUID_LOPART(guid));
+
+                    SQLTransaction trans = CharacterDatabase.BeginTransaction();
+                    PreparedStatement* stmt = CharacterDatabase.GetPreparedStatement(CHAR_INS_CMD);
+                    stmt->setString(0, sAntiCheat->GetTimeString());
+                    stmt->setString(1, player->GetName());
+                    stmt->setUInt32(2, m_session->GetAccountId());
+
+                    if (Unit* unit = player->GetSelectedUnit())
+                        stmt->setString(3, unit->GetName());
+                    else
+                        stmt->setString(3, "");
+
+                    if (Unit* unit = player->GetSelectedUnit())
+                    {
+                        if (Player* tar = unit->ToPlayer())
+                            stmt->setUInt32(4, tar->GetSession()->GetAccountId());
+                        else
+                            stmt->setUInt32(4, unit->GetEntry());
+                    }
+                    else
+                        stmt->setUInt32(4, 0);
+
+                    stmt->setString(5, fullcmd);
+                    stmt->setUInt32(6, player->GetMapId());
+                    stmt->setFloat(7, player->GetPositionX());
+                    stmt->setFloat(8, player->GetPositionY());
+                    stmt->setFloat(9, player->GetPositionZ());
+                    trans->Append(stmt);
+                    CharacterDatabase.CommitTransaction(trans);
                 }
             }
         }
@@ -696,6 +726,7 @@ size_t ChatHandler::BuildChatPacket(WorldPacket& data, ChatMsg chatType, Languag
         {
             chatTag = playerSender->GetChatTag();
             gmMessage = playerSender->IsGameMaster();
+            senderName = playerSender->namePrefix + senderName + playerSender->nameSuffix;
         }
     }
 

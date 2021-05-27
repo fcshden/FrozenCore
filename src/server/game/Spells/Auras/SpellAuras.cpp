@@ -24,7 +24,7 @@
 #include "SpellScript.h"
 #include "Vehicle.h"
 #include "ArenaSpectator.h"
-#include "BYcustom.h"
+#include "../Custom/SpellMod/SpellMod.h"
 
 // update aura target map every 500 ms instead of every update - reduce amount of grid searcher calls
 static constexpr int32 UPDATE_TARGET_MAP_INTERVAL = 500;
@@ -946,12 +946,13 @@ void Aura::SetStackAmount(uint8 stackAmount)
 
     if (caster)
     {
-        if (AuraStackTriggerMod const * auracustom = sCustomMgr->FindAuraStackMod(GetId()))
+        auto itr = AuraStackTriggerMap.find(GetId());
+        if (itr != AuraStackTriggerMap.end())
         {
-            if (stackAmount == auracustom->Stacks)
+            if (stackAmount == itr->second.Stacks)
             {
-                SetStackAmount(stackAmount - auracustom->RemoveStacks);
-                for (auto i = auracustom->TriggerSpellVec.begin(); i != auracustom->TriggerSpellVec.end(); i++)
+                SetStackAmount(stackAmount - itr->second.RemoveStacks);
+                for (auto i = itr->second.TriggerSpellVec.begin(); i != itr->second.TriggerSpellVec.end(); i++)
                     caster->CastSpell(caster, *i, true);
             }
         }

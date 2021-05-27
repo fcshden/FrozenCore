@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright (C) 2016+     AzerothCore <www.azerothcore.org>
  * Copyright (C) 2008-2016 TrinityCore <http://www.trinitycore.org/>
  * Copyright (C) 2005-2009 MaNGOS <http://getmangos.com/>
@@ -111,6 +111,13 @@ enum LoginDatabaseStatements
     LOGIN_INS_ACCOUNT_MUTE,
     LOGIN_SEL_ACCOUNT_MUTE_INFO,
     LOGIN_DEL_ACCOUNT_MUTEDEL,
+
+    LOGIN_INS_PCCODE,
+    LOGIN_DEL_PCCODE,
+    LOGIN_UPD_PWD,
+    LOGIN_INS_ACCOUNT_SPELL,
+    LOGIN_UPD_RANKVALUE,
+    LOGIN_SEL_ACCOUNT_ID_BY_NAME_BUG,
 
     MAX_LOGINDATABASE_STATEMENTS
 };

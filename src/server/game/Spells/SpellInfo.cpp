@@ -14,7 +14,7 @@
 #include "Player.h"
 #include "Battleground.h"
 #include "Chat.h"
-#include "BYcustom.h"
+#include "../Custom/SpellMod/SpellMod.h"
 
 uint32 GetTargetFlagMask(SpellTargetObjectTypes objType)
 {
@@ -497,7 +497,7 @@ int32 SpellEffectInfo::CalcValue(Unit const* caster, int32 const* bp, Unit const
     }
 
     if (Effect == SPELL_EFFECT_HEALTH_LEECH || Effect == SPELL_EFFECT_HEAL || ApplyAuraName == SPELL_AURA_PERIODIC_HEAL || ApplyAuraName == SPELL_AURA_PERIODIC_LEECH)
-        value = value * sCustomMgr->GetSpellModHeal(_spellInfo->Id);
+        value = value * sSpellMod->GetHealMod(_spellInfo->Id);
 
     return int32(value);
 }
@@ -848,6 +848,13 @@ SpellInfo::SpellInfo(SpellEntry const* spellEntry)
     _isSpellValid = true;
     _isCritCapable = false;
     _requireCooldownInfo = false;
+
+    {
+        CusTargetMask = SPELL_CUS_TARGET_MASK_NONE;
+        auto iter = SpellCusTargetMaskMap.find(Id);
+        if (iter != SpellCusTargetMaskMap.end())
+            CusTargetMask = iter->second;
+    }
 }
 
 SpellInfo::~SpellInfo()
@@ -2272,8 +2279,10 @@ float SpellInfo::GetMaxRange(bool positive, Unit* caster, Spell* spell) const
 
 int32 SpellInfo::GetDuration() const
 {
-    if (sCustomMgr->GetSpellModDuration(Id))
-        return sCustomMgr->GetSpellModDuration(Id);
+    auto iter = SpellModMap.find(Id);
+    if (iter != SpellModMap.end())
+        if (iter->second.duration != 0)
+            return iter->second.duration;
 
     if (!DurationEntry)
         return 0;
@@ -2289,7 +2298,11 @@ int32 SpellInfo::GetMaxDuration() const
 
 uint32 SpellInfo::CalcCastTime(Unit* caster, Spell* spell) const
 {
-    int32 custime = sCustomMgr->GetSpellModCastTime(Id);
+    int32 custime = -1;
+    auto iter = SpellModMap.find(Id);
+    if (iter != SpellModMap.end())
+        if (iter->second.castingtime != 0)
+            custime = iter->second.castingtime;
     // not all spells have cast time index and this is all is pasiive abilities
     if (!CastTimeEntry || custime == 0)
         return 0;

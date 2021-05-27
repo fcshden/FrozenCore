@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright (C) 2016+     AzerothCore <www.azerothcore.org>, released under GNU GPL v2 license: https://github.com/azerothcore/azerothcore-wotlk/blob/master/LICENSE-GPL2
  * Copyright (C) 2008-2016 TrinityCore <http://www.trinitycore.org/>
  * Copyright (C) 2005-2009 MaNGOS <http://getmangos.com/>
@@ -1337,6 +1337,23 @@ namespace acore
             const WorldObject* m_pObject;
             uint32 m_uiEntry;
             float m_fRange;
+    };
+
+    class AllCreaturesInRange
+    {
+    public:
+        AllCreaturesInRange(const WorldObject* object, float maxRange) : m_pObject(object), m_fRange(maxRange) {}
+        bool operator() (Unit* unit)
+        {
+            if (m_pObject->IsWithinDist(unit, m_fRange, false))
+                return true;
+
+            return false;
+        }
+
+    private:
+        const WorldObject* m_pObject;
+        float m_fRange;
     };
 
     class PlayerAtMinimumRangeAway

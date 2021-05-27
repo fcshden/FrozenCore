@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright (C) 2016+     AzerothCore <www.azerothcore.org>, released under GNU GPL v2 license: https://github.com/azerothcore/azerothcore-wotlk/blob/master/LICENSE-GPL2
  * Copyright (C) 2008-2016 TrinityCore <http://www.trinitycore.org/>
  * Copyright (C) 2005-2009 MaNGOS <http://getmangos.com/>
@@ -11,6 +11,7 @@
 #include "WorldPacket.h"
 #include "WorldSession.h"
 #include "Formulas.h"
+#include "../../scripts/Custom/Quest/QuestMod.h"
 
 GossipMenu::GossipMenu()
 {
@@ -372,7 +373,7 @@ void PlayerMenu::SendQuestGiverQuestDetails(Quest const* quest, uint64 npcGUID, 
     data << uint64(_session->GetPlayer()->GetDivider());
     data << uint32(quest->GetQuestId());
     data << questTitle;
-    data << questDetails;
+    data << questDetails + sQuestMod->GetExtraDes(quest->GetQuestId(), _session->GetPlayer());
     data << questObjectives;
     data << uint8(activateAccept ? 1 : 0);                  // auto finish
     data << uint32(quest->GetFlags());                      // 3.3.3 questFlags

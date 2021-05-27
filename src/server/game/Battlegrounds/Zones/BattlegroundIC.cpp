@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright (C) 2016+     AzerothCore <www.azerothcore.org>, released under GNU GPL v2 license: https://github.com/azerothcore/azerothcore-wotlk/blob/master/LICENSE-GPL2
  * Copyright (C) 2008-2016 TrinityCore <http://www.trinitycore.org/>
  * Copyright (C) 2005-2009 MaNGOS <http://getmangos.com/>
@@ -16,9 +16,17 @@
 #include "WorldSession.h"
 #include "ScriptedCreature.h"
 #include "GameGraveyard.h"
+#include "../Custom/DataLoader/DataLoader.h"
+#include "../Custom/CommonFunc/CommonFunc.h"
+#include "../Custom/CustomEvent/FixedTimeBG/FixedTimeBG.h"
+
+
+uint32 MAX_REINFORCEMENTS;
 
 BattlegroundIC::BattlegroundIC()
 {
+    MAX_REINFORCEMENTS = sFTB->GetMaxRes(BATTLEGROUND_IC);
+
     BgObjects.resize(MAX_NORMAL_GAMEOBJECTS_SPAWNS + MAX_AIRSHIPS_SPAWNS + MAX_HANGAR_TELEPORTERS_SPAWNS + MAX_FORTRESS_TELEPORTERS_SPAWNS + MAX_HANGAR_TELEPORTER_EFFECTS_SPAWNS + MAX_FORTRESS_TELEPORTER_EFFECTS_SPAWNS);
     BgCreatures.resize(MAX_NORMAL_NPCS_SPAWNS + MAX_WORKSHOP_SPAWNS + MAX_DOCKS_SPAWNS + MAX_SPIRIT_GUIDES_SPAWNS + MAX_HANGAR_NPCS_SPAWNS);
 

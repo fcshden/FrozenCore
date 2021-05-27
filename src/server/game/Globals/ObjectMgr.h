@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright (C) 2016+     AzerothCore <www.azerothcore.org>, released under GNU GPL v2 license: https://github.com/azerothcore/azerothcore-wotlk/blob/master/LICENSE-GPL2
  * Copyright (C) 2008-2016 TrinityCore <http://www.trinitycore.org/>
  * Copyright (C) 2005-2009 MaNGOS <http://getmangos.com/>
@@ -693,6 +693,17 @@ class ObjectMgr
         ~ObjectMgr();
 
     public:
+        void RestItemQueryData()
+        {
+            for (ItemTemplateContainer::iterator itr = _itemTemplateStore.begin(); itr != _itemTemplateStore.end(); ++itr)
+                itr->second.InitializeQueryData();
+        }
+
+        void RestQuestQueryData()
+        {
+            for (QuestMap::iterator itr = _questTemplates.begin(); itr != _questTemplates.end(); ++itr)
+                itr->second->InitializeQueryData();
+        }
         static ObjectMgr* instance();
 
         typedef std::unordered_map<uint32, Item*> ItemMap;
@@ -730,6 +741,7 @@ class ObjectMgr
 
         CreatureTemplate const* GetCreatureTemplate(uint32 entry);
         CreatureTemplateContainer const* GetCreatureTemplates() const { return &_creatureTemplateStore; }
+        CreatureTemplateContainer * GetCreatureTemplatesStore() { return &_creatureTemplateStore; }
         CreatureModelInfo const* GetCreatureModelInfo(uint32 modelId);
         CreatureModelInfo const* GetCreatureModelRandomGender(uint32* displayID);
         static uint32 ChooseDisplayId(CreatureTemplate const* cinfo, CreatureData const* data = nullptr);
@@ -1284,7 +1296,7 @@ class ObjectMgr
             return &iter->second;
         }
 
-        void AddVendorItem(uint32 entry, uint32 item, int32 maxcount, uint32 incrtime, uint32 extendedCost, uint32 needid, bool persist = true); // for event
+        void AddVendorItem(uint32 entry, uint32 item, int32 maxcount, uint32 incrtime, uint32 extendedCost, bool persist = true); // for event
         bool RemoveVendorItem(uint32 entry, uint32 item, bool persist = true); // for event
         bool IsVendorItemValid(uint32 vendor_entry, uint32 item, int32 maxcount, uint32 ptime, uint32 ExtendedCost, Player* player = NULL, std::set<uint32>* skip_vendors = NULL, uint32 ORnpcflag = 0) const;
 

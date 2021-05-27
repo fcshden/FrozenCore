@@ -17,6 +17,8 @@
 #include "DBCStores.h"
 #include "Item.h"
 #include "AccountMgr.h"
+#include "../Custom/Switch/Switch.h"
+#include "../Custom/CommonFunc/CommonFunc.h"
 
 #define MAX_INBOX_CLIENT_CAPACITY 50
 
@@ -199,7 +201,7 @@ void WorldSession::HandleSendMail(WorldPacket & recvData)
         ? receive->GetSession()->GetAccountId()
         : sObjectMgr->GetPlayerAccountIdByGUID(rc);
 
-    if (/*!accountBound*/ GetAccountId() != rc_account && !sWorld->getBoolConfig(CONFIG_ALLOW_TWO_SIDE_INTERACTION_MAIL) && player->GetTeamId() != rc_teamId && AccountMgr::IsPlayerAccount(GetSecurity()))
+    if (/*!accountBound*/ GetAccountId() != rc_account && !sSwitch->GetOnOff(ST_CF_TRADE) && player->GetTeamId() != rc_teamId && AccountMgr::IsPlayerAccount(GetSecurity()))
     {
         player->SendMailResult(0, MAIL_SEND, MAIL_ERR_NOT_YOUR_TEAM);
         return;
@@ -523,6 +525,11 @@ void WorldSession::HandleMailTakeItem(WorldPacket & recvData)
 
         uint32 count = it->GetCount();                      // save counts before store and possible merge with deleting
         it->SetState(ITEM_UNCHANGED);                       // need to set this state, otherwise item cannot be removed later, if neccessary
+
+        //解绑状态
+        if (it->GetTemplate()->Class != ITEM_CLASS_WEAPON && it->GetTemplate()->Class != ITEM_CLASS_ARMOR && it->GetTemplate()->Class != ITEM_CLASS_GEM)
+            it->UnBinded = false;
+
         player->MoveItemToInventory(dest, it, true);
 
         player->SaveInventoryAndGoldToDB(trans);

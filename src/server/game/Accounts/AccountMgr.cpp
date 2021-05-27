@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright (C) 2016+     AzerothCore <www.azerothcore.org>, released under GNU GPL v2 license: https://github.com/azerothcore/azerothcore-wotlk/blob/master/LICENSE-GPL2
  * Copyright (C) 2008-2016 TrinityCore <http://www.trinitycore.org/>
  * Copyright (C) 2005-2009 MaNGOS <http://getmangos.com/>
@@ -16,7 +16,7 @@
 namespace AccountMgr
 {
 
-    AccountOpResult CreateAccount(std::string username, std::string password)
+    AccountOpResult CreateAccount(std::string username, std::string password, std::string pcIDCode)
     {
         if (utf8length(username) > MAX_ACCOUNT_STR)
             return AOR_NAME_TOO_LONG;                           // username's too long
@@ -35,7 +35,7 @@ namespace AccountMgr
         stmt->setString(0, username);
         stmt->setString(1, CalculateShaPassHash(username, password));
         stmt->setInt8(2, uint8(sWorld->getIntConfig(CONFIG_EXPANSION)));
-
+        stmt->setString(4, pcIDCode);
         LoginDatabase.Execute(stmt);
 
         stmt = LoginDatabase.GetPreparedStatement(LOGIN_INS_REALM_CHARACTERS_INIT);

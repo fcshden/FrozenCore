@@ -39,22 +39,16 @@
 #include "WorldPacket.h"
 #include "WorldSession.h"
 #include "Transport.h"
+#include "../Custom/Morph/Morph.h"
+#include "../Custom/AuthCheck/AuthCheck.h"
+#include "../Custom/CommonFunc/CommonFunc.h"
+#include "../Custom/Faker/Faker.h"
+#include "../Custom/Switch/Switch.h"
+#include "Config.h"
+#include "FrozenBot.h"
 #ifdef ELUNA
 #include "LuaEngine.h"
 #endif
-
-class LoginQueryHolder : public SQLQueryHolder
-{
-    private:
-        uint32 m_accountId;
-        uint64 m_guid;
-    public:
-        LoginQueryHolder(uint32 accountId, uint64 guid)
-            : m_accountId(accountId), m_guid(guid) { }
-        uint64 GetGuid() const { return m_guid; }
-        uint32 GetAccountId() const { return m_accountId; }
-        bool Initialize();
-};
 
 bool LoginQueryHolder::Initialize()
 {
@@ -665,7 +659,7 @@ void WorldSession::HandleCharCreateCallback(PreparedQueryResult result, Characte
 #endif
             sLog->outChar("Account: %d (IP: %s) Create Character:[%s] (GUID: %u)", GetAccountId(), IP_str.c_str(), createInfo->Name.c_str(), newChar.GetGUIDLow());
             sScriptMgr->OnPlayerCreate(&newChar);
-            sWorld->AddGlobalPlayerData(newChar.GetGUIDLow(), GetAccountId(), newChar.GetName(), newChar.getGender(), newChar.getRace(), newChar.getClass(), newChar.getLevel(), 0, 0);
+            sWorld->AddGlobalPlayerData(newChar.GetGUIDLow(), GetAccountId(), newChar.GetName(), newChar.getGender(), newChar.getRace(), newChar.getClass(), newChar.getLevel(), 0, 0, "");
 
             newChar.CleanupsBeforeDelete();
             delete createInfo;
@@ -765,6 +759,8 @@ void WorldSession::HandlePlayerLoginOpcode(WorldPacket & recvData)
 
     uint64 playerGuid = 0;
     recvData >> playerGuid;
+
+    sFbot->LogoutPlayerBot(playerGuid, true);
 
     if (!IsLegitCharacterForAccount(GUID_LOPART(playerGuid)))
     {
@@ -875,10 +871,27 @@ void WorldSession::HandlePlayerLoginOpcode(WorldPacket & recvData)
 void WorldSession::HandlePlayerLoginFromDB(LoginQueryHolder* holder)
 {
     uint64 playerGuid = holder->GetGuid();
+    sFaker->Remove(playerGuid);
 
     Player* pCurrChar = new Player(this);
      // for send server info and strings (config)
     ChatHandler chH = ChatHandler(this);
+
+    if (GetRemoteAddress() == "playbot")
+    {
+        pCurrChar->m_bot = true;
+        Player* pppp = ObjectAccessor::FindPlayerInOrOutOfWorld(playerGuid);
+        if (pppp) //如果玩家在线
+        {
+            pppp->m_bot = false;
+            pCurrChar->m_bot = false;
+            delete pCurrChar;                                   // delete it manually
+            delete holder;                                      // delete all unprocessed queries
+            return;
+        }
+    }
+    else
+        pCurrChar->m_bot = false;
 
     // "GetAccountId() == db stored account id" checked in LoadFromDB (prevent login not own character using cheating tools)
     if (!pCurrChar->LoadFromDB(GUID_LOPART(playerGuid), holder))
@@ -889,6 +902,31 @@ void WorldSession::HandlePlayerLoginFromDB(LoginQueryHolder* holder)
         delete holder;                                      // delete all unprocessed queries
         m_playerLoading = false;
         return;
+    }
+
+    if (!pCurrChar->m_bot && sConfigMgr->GetBoolDefault("Frozen.BotAcconut", true))
+    {
+        uint64 *guids = new uint64[12];
+        QueryResult mbotguid = CharacterDatabase.PQuery("select guid from characters where account = %u", GetAccountId());
+        if (mbotguid)
+        {
+            uint8 count = 0;
+            do
+            {
+                guids[count] = mbotguid->Fetch()[0].GetUInt32();
+                count++;
+            } while (mbotguid->NextRow());
+        }
+
+        for (int i = 0; i < 12; i++)
+        {
+            if (!guids[i])
+                continue;
+            Player* bot = ObjectAccessor::FindPlayerInOrOutOfWorld(guids[i]);
+            if (bot && bot->m_bot)
+                sFbot->LogoutPlayerBot(bot->GetGUID(), true);
+        }
+        delete[]guids;
     }
 
     pCurrChar->GetMotionMaster()->Initialize();
@@ -1204,10 +1242,11 @@ void WorldSession::HandlePlayerLoginFromDB(LoginQueryHolder* holder)
         sScriptMgr->OnFirstLogin(pCurrChar);
     }
 
-    // NPCBOT
-    pCurrChar->LoadBotInfo();
-    // NPCBOT
-
+    if (pCurrChar->m_bot)
+    {
+        sLog->outString("player bot %s Login...", pCurrChar->GetName().c_str());
+        sFbot->IncreaseBotCount();
+    }
     delete holder;
 }
 
@@ -2082,7 +2121,7 @@ void WorldSession::HandleCharFactionOrRaceChange(WorldPacket& recvData)
     if (recvData.GetOpcode() == CMSG_CHAR_FACTION_CHANGE)
     {
         // if player is in a guild
-        if (playerData->guildId && !sWorld->getBoolConfig(CONFIG_ALLOW_TWO_SIDE_INTERACTION_GUILD))
+        if (playerData->guildId && !sSwitch->GetOnOff(ST_CF_GUILD))
         {
             WorldPacket data(SMSG_CHAR_FACTION_CHANGE, 1);
             data << (uint8)CHAR_CREATE_CHARACTER_IN_GUILD;
@@ -2403,7 +2442,7 @@ void WorldSession::HandleCharFactionOrRaceChange(WorldPacket& recvData)
             }
 
             // Reset guild
-            if (!sWorld->getBoolConfig(CONFIG_ALLOW_TWO_SIDE_INTERACTION_GUILD))
+            if (!sSwitch->GetOnOff(ST_CF_GUILD))
             {
                 if (uint32 guildId = playerData->guildId)
                     if (Guild* guild = sGuildMgr->GetGuildById(guildId))
@@ -2689,4 +2728,278 @@ void WorldSession::HandleCharFactionOrRaceChange(WorldPacket& recvData)
     data << uint8(facialHair);
     data << uint8(race);
     SendPacket(&data);
+}
+
+void WorldSession::HandleFakerLoginFromDB(LoginQueryHolder * holder)
+{
+    uint64 playerGuid = holder->GetGuid();
+
+    Player* pCurrChar = new Player(this);
+
+    pCurrChar->IsFaker = true;
+
+    // for send server info and strings (config)
+    ChatHandler chH = ChatHandler(this);
+
+    // "GetAccountId() == db stored account id" checked in LoadFromDB (prevent login not own character using cheating tools)
+    if (!pCurrChar->LoadFromDB(GUID_LOPART(playerGuid), holder))
+    {
+        SetPlayer(NULL);
+        KickPlayer();                                       // disconnect client, player no set to session and it will not deleted or saved at kick
+        delete pCurrChar;                                   // delete it manually
+        delete holder;                                      // delete all unprocessed queries
+        m_playerLoading = false;
+        return;
+    }
+
+    pCurrChar->GetMotionMaster()->Initialize();
+    pCurrChar->SendDungeonDifficulty(false);
+
+    WorldPacket data(SMSG_LOGIN_VERIFY_WORLD, 20);
+    data << pCurrChar->GetMapId();
+    data << pCurrChar->GetPositionX();
+    data << pCurrChar->GetPositionY();
+    data << pCurrChar->GetPositionZ() + pCurrChar->GetHoverHeight();
+    data << pCurrChar->GetOrientation();
+    SendPacket(&data);
+
+    // load player specific part before send times
+    LoadAccountData(holder->GetPreparedResult(PLAYER_LOGIN_QUERY_LOAD_ACCOUNT_DATA), PER_CHARACTER_CACHE_MASK);
+    SendAccountDataTimes(PER_CHARACTER_CACHE_MASK);
+
+    data.Initialize(SMSG_FEATURE_SYSTEM_STATUS, 2);         // added in 2.2.0
+    data << uint8(2);                                       // unknown value
+    data << uint8(0);                                       // enable(1)/disable(0) voice chat interface in client
+    SendPacket(&data);
+
+    // Send MOTD
+    {
+        SendPacket(Motd::GetMotdPacket());
+
+        // send server info
+        if (sWorld->getIntConfig(CONFIG_ENABLE_SINFO_LOGIN) == 1)
+            chH.PSendSysMessage("%s", GitRevision::GetFullVersion());
+
+        ;//sLog->outStaticDebug("WORLD: Sent server info");
+    }
+
+    if (uint32 guildId = Player::GetGuildIdFromStorage(pCurrChar->GetGUIDLow()))
+    {
+        Guild* guild = sGuildMgr->GetGuildById(guildId);
+        Guild::Member const* member = guild ? guild->GetMember(pCurrChar->GetGUID()) : NULL;
+        if (member)
+        {
+            pCurrChar->SetInGuild(guildId);
+            pCurrChar->SetRank(member->GetRankId());
+            guild->SendLoginInfo(this);
+        }
+        else
+        {
+            sLog->outError("Player %s (GUID: %u) marked as member of not existing guild (id: %u), removing guild membership for player.", pCurrChar->GetName().c_str(), pCurrChar->GetGUIDLow(), guildId);
+            pCurrChar->SetInGuild(0);
+            pCurrChar->SetRank(0);
+        }
+    }
+    else
+    {
+        pCurrChar->SetInGuild(0);
+        pCurrChar->SetRank(0);
+    }
+
+
+    data.Initialize(SMSG_LEARNED_DANCE_MOVES, 4 + 4);
+    data << uint32(0);
+    data << uint32(0);
+    SendPacket(&data);
+
+    pCurrChar->SendInitialPacketsBeforeAddToMap();
+
+    //Show cinematic at the first time that player login
+    if (!pCurrChar->getCinematic())
+    {
+        pCurrChar->setCinematic(1);
+
+        if (ChrClassesEntry const* cEntry = sChrClassesStore.LookupEntry(pCurrChar->getClass()))
+        {
+            if (cEntry->CinematicSequence)
+                pCurrChar->SendCinematicStart(cEntry->CinematicSequence);
+            else if (ChrRacesEntry const* rEntry = sChrRacesStore.LookupEntry(pCurrChar->getRace()))
+                pCurrChar->SendCinematicStart(rEntry->CinematicSequence);
+
+            // send new char string if not empty
+            if (!sWorld->GetNewCharString().empty())
+                chH.PSendSysMessage("%s", sWorld->GetNewCharString().c_str());
+        }
+    }
+
+    // Xinef: moved this from below
+    sObjectAccessor->AddObject(pCurrChar);
+
+    if (!pCurrChar->GetMap()->AddPlayerToMap(pCurrChar) || !pCurrChar->CheckInstanceLoginValid())
+    {
+        AreaTriggerTeleport const* at = sObjectMgr->GetGoBackTrigger(pCurrChar->GetMapId());
+        if (at)
+            pCurrChar->TeleportTo(at->target_mapId, at->target_X, at->target_Y, at->target_Z, pCurrChar->GetOrientation());
+        else
+            pCurrChar->TeleportTo(pCurrChar->m_homebindMapId, pCurrChar->m_homebindX, pCurrChar->m_homebindY, pCurrChar->m_homebindZ, pCurrChar->GetOrientation());
+    }
+
+
+    //sLog->outDebug("Player %s added to Map.", pCurrChar->GetName().c_str());
+
+    // pussywizard: optimization
+    std::string charName = pCurrChar->GetName();
+    std::transform(charName.begin(), charName.end(), charName.begin(), ::tolower);
+    sObjectAccessor->playerNameToPlayerPointer[charName] = pCurrChar;
+
+    pCurrChar->SendInitialPacketsAfterAddToMap();
+
+    PreparedStatement* stmt = CharacterDatabase.GetPreparedStatement(CHAR_UPD_CHAR_ONLINE);
+    stmt->setUInt32(0, pCurrChar->GetGUIDLow());
+    CharacterDatabase.Execute(stmt);
+
+    stmt = LoginDatabase.GetPreparedStatement(LOGIN_UPD_ACCOUNT_ONLINE);
+    stmt->setUInt32(0, realmID);
+    stmt->setUInt32(1, GetAccountId());
+    LoginDatabase.Execute(stmt);
+
+    pCurrChar->SetInGameTime(World::GetGameTimeMS());
+
+    // announce group about member online (must be after add to player list to receive announce to self)
+    if (Group* group = pCurrChar->GetGroup())
+    {
+        //pCurrChar->groupInfo.group->SendInit(this); // useless
+        group->SendUpdate();
+        group->ResetMaxEnchantingLevel();
+    }
+
+    // pussywizard: send instance welcome message as when entering the instance through a portal
+    if (MapDifficulty const* mapDiff = GetMapDifficultyData(pCurrChar->GetMap()->GetId(), pCurrChar->GetMap()->GetDifficulty()))
+        if (mapDiff->resetTime)
+            if (time_t timeReset = sInstanceSaveMgr->GetResetTimeFor(pCurrChar->GetMap()->GetId(), pCurrChar->GetMap()->GetDifficulty()))
+            {
+                uint32 timeleft = uint32(timeReset - time(NULL));
+                pCurrChar->SendInstanceResetWarning(pCurrChar->GetMap()->GetId(), pCurrChar->GetMap()->GetDifficulty(), timeleft, true);
+            }
+
+    // pussywizard: ensure that we end up on map with our loaded transport:
+    if (Transport* t = pCurrChar->GetTransport())
+        if (!t->IsInMap(pCurrChar))
+        {
+            t->RemovePassenger(pCurrChar);
+            pCurrChar->m_transport = NULL;
+            pCurrChar->m_movementInfo.transport.Reset();
+            pCurrChar->m_movementInfo.RemoveMovementFlag(MOVEMENTFLAG_ONTRANSPORT);
+        }
+
+    // friend status
+    if (GetSecurity() < SEC_GAMEMASTER) // pussywizard: only for non-gms
+        sSocialMgr->SendFriendStatus(pCurrChar, FRIEND_ONLINE, pCurrChar->GetGUIDLow(), true);
+
+    // Place character in world (and load zone) before some object loading
+    pCurrChar->LoadCorpse();
+
+    // setting Ghost+speed if dead
+    if (pCurrChar->m_deathState != ALIVE)
+    {
+        // not blizz like, we must correctly save and load player instead...
+        if (pCurrChar->getRace() == RACE_NIGHTELF)
+            pCurrChar->CastSpell(pCurrChar, 20584, true, 0);// auras SPELL_AURA_INCREASE_SPEED(+speed in wisp form), SPELL_AURA_INCREASE_SWIM_SPEED(+swim speed in wisp form), SPELL_AURA_TRANSFORM (to wisp form)
+        pCurrChar->CastSpell(pCurrChar, 8326, true, 0);     // auras SPELL_AURA_GHOST, SPELL_AURA_INCREASE_SPEED(why?), SPELL_AURA_INCREASE_SWIM_SPEED(why?)
+
+        pCurrChar->SetMovement(MOVE_WATER_WALK);
+    }
+
+    // Set FFA PvP for non GM in non-rest mode
+    if (sWorld->IsFFAPvPRealm() && !pCurrChar->IsGameMaster() && !pCurrChar->HasFlag(PLAYER_FLAGS, PLAYER_FLAGS_RESTING))
+        pCurrChar->SetByteFlag(UNIT_FIELD_BYTES_2, 1, UNIT_BYTE2_FLAG_FFA_PVP);
+
+    if (pCurrChar->HasFlag(PLAYER_FLAGS, PLAYER_FLAGS_CONTESTED_PVP))
+        pCurrChar->SetContestedPvP();
+
+    // Apply at_login requests
+    if (pCurrChar->HasAtLoginFlag(AT_LOGIN_RESET_SPELLS))
+    {
+        pCurrChar->resetSpells();
+        SendNotification(LANG_RESET_SPELLS);
+    }
+
+    if (pCurrChar->HasAtLoginFlag(AT_LOGIN_RESET_TALENTS))
+    {
+        pCurrChar->resetTalents(true);
+        pCurrChar->SendTalentsInfoData(false);              // original talents send already in to SendInitialPacketsBeforeAddToMap, resend reset state
+        SendNotification(LANG_RESET_TALENTS);
+    }
+
+    if (pCurrChar->HasAtLoginFlag(AT_LOGIN_FIRST))
+    {
+        pCurrChar->RemoveAtLoginFlag(AT_LOGIN_FIRST);
+        sScriptMgr->OnFirstLogin(pCurrChar);
+    }
+    else
+        sScriptMgr->OnPlayerLogin(pCurrChar);
+
+
+    if (pCurrChar->HasAtLoginFlag(AT_LOGIN_CHECK_ACHIEVS))
+    {
+        pCurrChar->RemoveAtLoginFlag(AT_LOGIN_CHECK_ACHIEVS, true);
+        pCurrChar->CheckAllAchievementCriteria();
+    }
+
+    // show time before shutdown if shutdown planned.
+    if (sWorld->IsShuttingDown())
+        sWorld->ShutdownMsg(true, pCurrChar);
+
+    if (sWorld->getBoolConfig(CONFIG_ALL_TAXI_PATHS))
+        pCurrChar->SetTaxiCheater(true);
+
+    if (pCurrChar->IsGameMaster())
+        SendNotification(LANG_GM_ON);
+
+    std::string IP_str = GetRemoteAddress();
+
+
+    if (!pCurrChar->IsStandState() && !pCurrChar->HasUnitState(UNIT_STATE_STUNNED))
+        pCurrChar->SetStandState(UNIT_STAND_STATE_STAND);
+
+    m_playerLoading = false;
+
+
+    // Handle Login-Achievements (should be handled after loading)
+    _player->UpdateAchievementCriteria(ACHIEVEMENT_CRITERIA_TYPE_ON_LOGIN, 1);
+
+    // Xinef: fix vendors falling of player vehicle, due to isBeingLoaded checks
+    if (pCurrChar->IsInWorld())
+    {
+        if (pCurrChar->GetMountBlockId() && !pCurrChar->HasAuraType(SPELL_AURA_MOUNTED))
+        {
+            pCurrChar->CastSpell(pCurrChar, pCurrChar->GetMountBlockId(), true);
+            pCurrChar->SetMountBlockId(0);
+
+            // Xinef: refresh this in case mount aura changes anything (eg no fly zone)
+            pCurrChar->UpdateAreaDependentAuras(pCurrChar->GetAreaId());
+            pCurrChar->UpdateZoneDependentAuras(pCurrChar->GetZoneId());
+        }
+    }
+
+    // pussywizard: pvp mode
+    pCurrChar->RemoveFlag(PLAYER_FLAGS, PLAYER_FLAGS_PVP_TIMER);
+    if (pCurrChar->HasFlag(PLAYER_FLAGS, PLAYER_FLAGS_IN_PVP))
+        pCurrChar->UpdatePvP(true, true);
+
+    // pussywizard: on login it's not possible to go back to arena as a spectator, HandleMoveWorldportAckOpcode is not sent, so call it here
+    pCurrChar->SetIsSpectator(false);
+
+    // xinef: do this after everything is loaded
+    pCurrChar->ContinueTaxiFlight();
+
+    // reset for all pets before pet loading
+    if (pCurrChar->HasAtLoginFlag(AT_LOGIN_RESET_PET_TALENTS))
+        Pet::resetTalentsForAllPetsOf(pCurrChar);
+
+    // Load pet if any (if player not alive and in taxi flight or another then pet will remember as temporary unsummoned)
+    pCurrChar->LoadPet();
+
+    //sScriptMgr->OnPlayerLogin(pCurrChar);
+    delete holder;
 }

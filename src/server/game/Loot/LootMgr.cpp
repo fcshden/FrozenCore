@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright (C) 2016+     AzerothCore <www.azerothcore.org>, released under GNU GPL v2 license: https://github.com/azerothcore/azerothcore-wotlk/blob/master/LICENSE-GPL2
  * Copyright (C) 2008-2016 TrinityCore <http://www.trinitycore.org/>
  * Copyright (C) 2005-2009 MaNGOS <http://getmangos.com/>
@@ -16,6 +16,7 @@
 #include "Player.h"
 #include "Containers.h"
 #include "ScriptMgr.h"
+#include "../Custom/ItemMod/ItemMod.h"
 
 static Rates const qualityToRate[MAX_ITEM_QUALITY] =
 {
@@ -475,6 +476,16 @@ bool Loot::FillLoot(uint32 lootId, LootStore const& store, Player* lootOwner, bo
 
     tab->Process(*this, store, lootMode, lootOwner);          // Processing is done there, callback via Loot::AddItem()
 
+        //添加额外掉落
+    if (!LootExtraItems.empty())
+        for (auto itr = LootExtraItems.begin(); itr != LootExtraItems.end(); itr++)
+            if (LootStoreItem* storeitem = new LootStoreItem(itr->first, 0, 100, false, 1, 0, itr->second, itr->second))
+            {
+                AddItem(*storeitem);
+                delete storeitem;
+                storeitem = NULL;
+            }
+
     // Setting access rights for group loot case
     Group* group = lootOwner->GetGroup();
     if (!personal && group)
@@ -484,7 +495,29 @@ bool Loot::FillLoot(uint32 lootId, LootStore const& store, Player* lootOwner, bo
         for (GroupReference* itr = group->GetFirstMember(); itr != nullptr; itr = itr->next())
             if (Player* player = itr->GetSource())   // should actually be looted object instead of lootOwner but looter has to be really close so doesnt really matter
                 if (player->IsInMap(lootOwner)) // pussywizard: multithreading crashfix
+                {
+                    for (uint8 i = 0; i < items.size(); ++i)
+                    {
+                        LootItem &item = items[i];
+                        uint32 count = item.count;
+                        uint32 itemid = item.itemid;
+
+                        if (ItemTemplate const* proto = sObjectMgr->GetItemTemplate(itemid))
+                            if (sItemMod->IsCurrencyLike(itemid))
+                            {
+                                if (lootOwner->GetGUID() == player->GetGUID())
+                                {
+                                    player->StoreLootItem(i, this);
+                                    item.is_looted = true;
+                                }
+                                else
+                                {
+                                    player->AddItem(proto->ItemId, count);
+                                }
+                            }
+                    }
                     FillNotNormalLootFor(player, player->IsAtGroupRewardDistance(lootOwner));
+                }
 
         for (uint8 i = 0; i < items.size(); ++i)
         {
@@ -495,7 +528,22 @@ bool Loot::FillLoot(uint32 lootId, LootStore const& store, Player* lootOwner, bo
     }
     // ... for personal loot
     else
+    {
+        for (uint8 i = 0; i < items.size(); ++i)
+        {
+            LootItem &item = items[i];
+            uint32 count = item.count;
+            uint32 itemid = item.itemid;
+
+            if (ItemTemplate const* proto = sObjectMgr->GetItemTemplate(itemid))
+                if (sItemMod->IsCurrencyLike(itemid))
+                {
+                    lootOwner->StoreLootItem(i, this);
+                    item.is_looted = true;
+                }
+        }
         FillNotNormalLootFor(lootOwner, true);
+    }
 
     return true;
 }
@@ -1315,7 +1363,15 @@ void LootTemplate::CopyConditions(LootItem* li) const
 void LootTemplate::Process(Loot& loot, LootStore const& store, uint16 lootMode, Player const* player, uint8 groupId) const
 {
     bool rate = store.IsRatesAllowed();
-    
+
+    float customRate = 0;
+
+    if (player)
+        customRate = player->GetCustomLootRate();
+
+    if (customRate == 0)
+        return;
+
     if (groupId)                                            // Group reference uses own processing of the group
     {
         if (groupId > Groups.size())

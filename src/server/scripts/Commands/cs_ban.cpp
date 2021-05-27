@@ -19,7 +19,7 @@ EndScriptData */
 #include "Player.h"
 #include "ScriptMgr.h"
 #include "BanManager.h"
-
+#include "../Custom/GateWay/GateWay.h"
 /// Ban function modes
 enum BanMode
 {
@@ -40,7 +40,8 @@ public:
             { "account",        SEC_GAMEMASTER,  true,  &HandleUnBanAccountCommand,          "" },
             { "character",      SEC_GAMEMASTER,  true,  &HandleUnBanCharacterCommand,        "" },
             { "playeraccount",  SEC_GAMEMASTER,  true,  &HandleUnBanAccountByCharCommand,    "" },
-            { "ip",             SEC_GAMEMASTER,  true,  &HandleUnBanIPCommand,               "" }
+            { "ip",             SEC_GAMEMASTER,  true,  &HandleUnBanIPCommand,               "" },
+            { "pc",             SEC_GAMEMASTER,  true,  &HandleUnBanPCCommand,               "" }
         };
 
         static std::vector<ChatCommand> banlistCommandTable =
@@ -62,7 +63,8 @@ public:
             { "account",        SEC_GAMEMASTER,  true,  &HandleBanAccountCommand,            "" },
             { "character",      SEC_GAMEMASTER,  true,  &HandleBanCharacterCommand,          "" },
             { "playeraccount",  SEC_GAMEMASTER,  true,  &HandleBanAccountByCharCommand,      "" },
-            { "ip",             SEC_GAMEMASTER,  true,  &HandleBanIPCommand,                 "" }
+            { "ip",             SEC_GAMEMASTER,  true,  &HandleBanIPCommand,                 "" },
+            { "pc",             SEC_GAMEMASTER,  true,  &HandleBanPCCommand,                 "" }
         };
 
         static std::vector<ChatCommand> commandTable =
@@ -74,6 +76,48 @@ public:
         };
 
         return commandTable;
+    }
+
+    static bool HandleBanPCCommand(ChatHandler* handler, char const* args)
+    {
+        char* nameStr = strtok((char*)args, " ");
+        if (!nameStr)
+            return false;
+
+        std::string name = nameStr;
+
+        if (!normalizePlayerName(name))
+        {
+            handler->SendSysMessage(LANG_PLAYER_NOT_FOUND);
+            handler->SetSentErrorMessage(true);
+            return false;
+        }
+
+        sGateWay->BanPc(name);
+
+        ChatHandler(handler->GetSession()).PSendSysMessage("%s机器码已被封禁", name.c_str());
+
+        return true;
+    }
+
+    static bool HandleUnBanPCCommand(ChatHandler* handler, char const* args)
+    {
+        char* nameStr = strtok((char*)args, " ");
+        if (!nameStr)
+            return false;
+
+        std::string name = nameStr;
+
+        if (!normalizePlayerName(name))
+        {
+            handler->SendSysMessage(LANG_PLAYER_NOT_FOUND);
+            handler->SetSentErrorMessage(true);
+            return false;
+        }
+
+        sGateWay->UnBanPc(name);
+        ChatHandler(handler->GetSession()).PSendSysMessage("%s机器码已被解封", name.c_str());
+        return true;
     }
 
     static bool HandleBanAccountCommand(ChatHandler* handler, char const* args)

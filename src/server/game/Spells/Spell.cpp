@@ -52,7 +52,12 @@
 #include "BattlegroundIC.h"
 #include "GameObjectAI.h"
 #include "ArenaSpectator.h"
-#include "BYcustom.h"
+#include "../Custom/DataLoader/DataLoader.h"
+#include "../Custom/CommonFunc/CommonFunc.h"
+#include "../Custom/AntiFarm/AntiFarm.h"
+#include "../Custom/SpellMod/SpellMod.h"
+#include "../Custom/Switch/Switch.h"
+#include "../Custom/CustomEvent/BattleIC/BattleIC.h"
 
 extern pEffect SpellEffects[TOTAL_SPELL_EFFECTS];
 
@@ -2798,8 +2803,8 @@ void Spell::DoAllEffectOnTarget(TargetInfo* target)
             }
         }
 
-        sCustomMgr->HealOnDamage(m_caster, unitTarget, m_spellInfo, damageInfo.damage);
-        sCustomMgr->ShieldOnDamage(unitTarget, m_caster, m_spellInfo, damageInfo.damage);
+        sSpellMod->HealOnDamage(m_caster, unitTarget, m_spellInfo, damageInfo.damage);
+
         // Send log damage message to client
         caster->SendSpellNonMeleeDamageLog(&damageInfo);
         // Xinef: send info to target about reflect
@@ -2849,8 +2854,7 @@ void Spell::DoAllEffectOnTarget(TargetInfo* target)
             if (unitTarget->ToCreature()->IsAIEnabled)
                 unitTarget->ToCreature()->AI()->AttackStart(m_caster);
         }
-
-        sCustomMgr->HealOnDamage(m_caster, unitTarget, m_spellInfo, damageInfo.damage);
+        sSpellMod->HealOnDamage(m_caster, unitTarget, m_spellInfo, damageInfo.damage);
     }
 
     if (m_caster)
@@ -3350,6 +3354,33 @@ bool Spell::UpdateChanneledTargetList()
 
 void Spell::prepare(SpellCastTargets const* targets, AuraEffect const* triggeredByAura)
 {
+
+    if (m_caster && m_caster->GetTypeId() == TYPEID_PLAYER)
+    {
+        if (int32 debug = sSwitch->GetValue(ST_SPELL_DEBUG))
+        {
+            switch (debug)
+            {
+            case 1:
+                if (m_spellInfo->HasAnyAura())
+                    sLog->outString("[SpellDebug][Caster GUID ====> %d][SpellID ====> %d]", m_caster->GetGUIDLow(), m_spellInfo->Id);
+                break;
+            case 2:
+                if (!m_spellInfo->HasAnyAura())
+                    sLog->outString("[SpellDebug][Caster GUID ====> %d][SpellID ====> %d]", m_caster->GetGUIDLow(), m_spellInfo->Id);
+                break;
+            case 3:
+                if (triggeredByAura)
+                    sLog->outString("[SpellDebug][Caster GUID ====> %d][%d ====> %d]", m_caster->GetGUIDLow(), triggeredByAura->GetId(), m_spellInfo->Id);
+                else
+                    sLog->outString("[SpellDebug][Caster GUID ====> %d][SpellID ====> %d]", m_caster->GetGUIDLow(), m_spellInfo->Id);
+                break;
+            default:
+                break;
+            }
+        }
+    }
+
     if (m_CastItem)
         m_castItemGUID = m_CastItem->GetGUID();
     else
@@ -3389,6 +3420,13 @@ void Spell::prepare(SpellCastTargets const* targets, AuraEffect const* triggered
     SpellEvent* Event = new SpellEvent(this);
     m_caster->m_Events.AddEvent(Event, m_caster->m_Events.CalculateTime(1));
 
+    if (m_caster && m_caster->GetTypeId() == TYPEID_PLAYER && (!sSpellMod->Enable(m_caster->ToPlayer(), m_spellInfo->Id) || sAntiFarm->DisableCombat(m_caster->ToPlayer())))
+    {
+        SendCastResult(SPELL_FAILED_SPELL_UNAVAILABLE);
+        finish(false);
+        return;
+    }
+
     //Prevent casting at cast another spell (ServerSide check)
     if (!(_triggeredCastFlags & TRIGGERED_IGNORE_CAST_IN_PROGRESS) && m_caster->IsNonMeleeSpellCast(false, true, true, m_spellInfo->Id == 75) && m_cast_count)
     {
@@ -3398,13 +3436,6 @@ void Spell::prepare(SpellCastTargets const* targets, AuraEffect const* triggered
     }
 
     if (DisableMgr::IsDisabledFor(DISABLE_TYPE_SPELL, m_spellInfo->Id, m_caster))
-    {
-        SendCastResult(SPELL_FAILED_SPELL_UNAVAILABLE);
-        finish(false);
-        return;
-    }
-
-    if (m_caster && m_caster->GetTypeId() == TYPEID_PLAYER && sCustomMgr->CheckSpellDisable(m_caster->ToPlayer(), m_spellInfo->Id))
     {
         SendCastResult(SPELL_FAILED_SPELL_UNAVAILABLE);
         finish(false);
@@ -3662,20 +3693,6 @@ void Spell::_cast(bool skipCheck)
     {
         cancel();
         return;
-    }
-
-    if (Player* playerCaster = m_caster->ToPlayer())
-    {
-        if (!isdelete)
-        {
-            if (!sCustomMgr->CheckSpellCast(playerCaster, GetSpellInfo()->Id))
-            {
-                cancel();
-                return;
-            }
-            sCustomMgr->DeleteAndRewSpellCast(playerCaster, GetSpellInfo()->Id);
-            isdelete = true;
-        }
     }
 
     // Xinef: implement attribute SPELL_ATTR1_DISMISS_PET, on spell cast current pet is dismissed and charms are removed
@@ -5336,14 +5353,6 @@ void Spell::HandleEffects(Unit* pUnitTarget, Item* pItemTarget, GameObject* pGOT
 
 SpellCastResult Spell::CheckCast(bool strict)
 {
-
-    if (Player* playerCaster = m_caster->ToPlayer())
-    {
-        if (!isdelete)
-            if (!sCustomMgr->CheckSpellCast(playerCaster, m_spellInfo->Id))
-                return SPELL_FAILED_NO_POWER;
-    }
-
     // check death state
     if (!m_caster->IsAlive() && !m_spellInfo->HasAttribute(SPELL_ATTR0_PASSIVE) && !(m_spellInfo->HasAttribute(SPELL_ATTR0_CASTABLE_WHILE_DEAD) || (IsTriggered() && !m_triggeredByAuraSpell)))
         return SPELL_FAILED_CASTER_DEAD;
@@ -6272,13 +6281,34 @@ SpellCastResult Spell::CheckCast(bool strict)
                 if (m_caster->IsInWater() && !m_spellInfo->HasAura(SPELL_AURA_MOD_INCREASE_SWIM_SPEED))
                     return SPELL_FAILED_ONLY_ABOVEWATER;
 
-                // Ignore map check if spell have AreaId. AreaId already checked and this prevent special mount spells
-                bool allowMount = !m_caster->GetMap()->IsDungeon() || m_caster->GetMap()->IsBattlegroundOrArena();
-                InstanceTemplate const* it = sObjectMgr->GetInstanceTemplate(m_caster->GetMapId());
-                if (it)
-                    allowMount = it->AllowMount;
-                if (m_caster->GetTypeId() == TYPEID_PLAYER && !allowMount && !m_spellInfo->AreaGroupId)
-                    return SPELL_FAILED_NO_MOUNTS_ALLOWED;
+                std::unordered_map<uint32, MountAllowedTemplate>::iterator iter = MountAllowedMap.find(m_spellInfo->Id);
+
+                if (iter != MountAllowedMap.end())
+                {
+
+                    for (size_t i = 0; i < BAN_MAP_MAX; i++)
+                        if (m_caster->GetMapId() == iter->second.BanMap[i])
+                            return SPELL_FAILED_NO_MOUNTS_ALLOWED;
+
+                    if (!m_caster->IsOutdoors() && !iter->second.indoor)
+                        return SPELL_FAILED_NO_MOUNTS_ALLOWED;
+
+                    if (m_caster->GetMap()->IsDungeon() && !iter->second.instance)
+                        return SPELL_FAILED_NO_MOUNTS_ALLOWED;
+
+                    if (m_caster->GetMap()->IsBattlegroundOrArena() && !iter->second.battleground)
+                        return SPELL_FAILED_NO_MOUNTS_ALLOWED;
+                }
+                else
+                {
+                    // Ignore map check if spell have AreaId. AreaId already checked and this prevent special mount spells
+                    bool allowMount = !m_caster->GetMap()->IsDungeon() || m_caster->GetMap()->IsBattlegroundOrArena();
+                    InstanceTemplate const* it = sObjectMgr->GetInstanceTemplate(m_caster->GetMapId());
+                    if (it)
+                        allowMount = it->AllowMount;
+                    if (m_caster->GetTypeId() == TYPEID_PLAYER && !allowMount && !m_spellInfo->AreaGroupId)
+                        return SPELL_FAILED_NO_MOUNTS_ALLOWED;
+                }
 
                 if (m_caster->IsInDisallowedMountForm())
                     return SPELL_FAILED_NOT_SHAPESHIFT;
@@ -6287,9 +6317,8 @@ SpellCastResult Spell::CheckCast(bool strict)
                 if (m_caster->getTransForm())
                     if (SpellInfo const* transformSpellInfo = sSpellMgr->GetSpellInfo(m_caster->getTransForm()))
                         if (transformSpellInfo->HasAttribute(SPELL_ATTR0_UNAFFECTED_BY_INVULNERABILITY) &&
-                            !transformSpellInfo->HasAttribute(SpellAttr0(SPELL_ATTR0_CASTABLE_WHILE_MOUNTED|SPELL_ATTR0_NEGATIVE_1)))
+                            !transformSpellInfo->HasAttribute(SpellAttr0(SPELL_ATTR0_CASTABLE_WHILE_MOUNTED | SPELL_ATTR0_NEGATIVE_1)))
                             return SPELL_FAILED_NOT_SHAPESHIFT;
-
                 break;
             }
             case SPELL_AURA_RANGED_ATTACK_POWER_ATTACKER_BONUS:
@@ -6493,6 +6522,9 @@ SpellCastResult Spell::CheckCasterAuras(bool preventionOnly) const
         else if (unitflag & UNIT_FLAG_FLEEING && !m_spellInfo->HasAttribute(SPELL_ATTR5_USABLE_WHILE_FEARED))
             prevented_reason = SPELL_FAILED_FLEEING;
     }
+
+    if (sBGIC->IsAllowed(m_caster, m_spellInfo->Id))
+        return SPELL_CAST_OK;
 
     // Xinef: if there is no prevented_reason, check prevention types
     if (prevented_reason == SPELL_CAST_OK)

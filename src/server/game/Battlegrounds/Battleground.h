@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright (C) 2016+     AzerothCore <www.azerothcore.org>, released under GNU GPL v2 license: https://github.com/azerothcore/azerothcore-wotlk/blob/master/LICENSE-GPL2
  * Copyright (C) 2008-2016 TrinityCore <http://www.trinitycore.org/>
  * Copyright (C) 2005-2009 MaNGOS <http://getmangos.com/>
@@ -341,6 +341,7 @@ class Battleground
         virtual bool AllNodesConrolledByTeam(TeamId /*teamId*/) const { return false; }
         void StartTimedAchievement(AchievementCriteriaTimedTypes type, uint32 entry);
 
+        int32 RandomBuffInterval;
         /* Battleground */
         // Get methods:
         char const* GetName() const         { return m_Name; }
@@ -365,7 +366,12 @@ class Battleground
         uint32 GetBonusHonorFromKill(uint32 kills) const;
 
         bool IsRandom()                     { return m_IsRandom; }
+        //击杀人数
+        uint32 GetAllyKills() { return m_AllyKills; }
+        uint32 GetHordeKills() { return m_HordeKills; }
 
+        void SetAllyKills(uint32 kills) { m_AllyKills = kills; }
+        void SetHordeKills(uint32 kills) { m_HordeKills = kills; }
         // Set methods:
         void SetName(char const* Name)      { m_Name = Name; }
         void SetBgTypeID(BattlegroundTypeId TypeID) { m_RealTypeID = TypeID; }
@@ -655,6 +661,8 @@ class Battleground
         // pussywizard:
         uint32 m_UpdateTimer;
     private:
+        uint32 m_AllyKills;
+        uint32 m_HordeKills;
         // Battleground
         BattlegroundTypeId m_RealTypeID;
         BattlegroundTypeId m_RandomTypeID;                  // TypeID created from Random Battleground list

@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright (C) 2016+     AzerothCore <www.azerothcore.org>, released under GNU GPL v2 license: https://github.com/azerothcore/azerothcore-wotlk/blob/master/LICENSE-GPL2
  * Copyright (C) 2008-2016 TrinityCore <http://www.trinitycore.org/>
  * Copyright (C) 2005-2009 MaNGOS <http://getmangos.com/>
@@ -22,6 +22,7 @@
 #include "AccountMgr.h"
 #include "BanManager.h"
 #include "Opcodes.h"
+#include "ObjectDefines.h"
 
 class Creature;
 class GameObject;
@@ -190,38 +191,17 @@ struct PacketCounter
     uint32 amountCounter;
 };
 
-
-// NPCBOT
-struct NpcBotMap
-{
-    friend class Player;
-protected:
-    NpcBotMap() : m_guid(0), m_entry(0), m_race(0), m_class(0), m_creature(NULL), m_reviveTimer(0)
-    {
-        for (uint8 i = 0; i != 18; ++i)
-            equips[i] = 0;
-    }
-    uint64 m_guid;
-    uint32 m_entry;
-    uint8  m_race;
-    uint8  m_class;
-    Creature* m_creature;
-    uint32 m_reviveTimer;
-    uint32 equips[18];
-
-public:
-    uint64 _Guid() const { return m_guid; }
-    Creature* _Cre() const { return m_creature; }
-    uint32 const getEquips(uint8 slot) const { return equips[slot]; }
-};
-// NPCBOT
-
 /// Player session in the World
 class WorldSession
 {
     public:
         WorldSession(uint32 id, WorldSocket* sock, AccountTypes sec, uint8 expansion, time_t mute_time, LocaleConstant locale, uint32 recruiter, bool isARecruiter, bool skipQueue, uint32 TotalTime);
         ~WorldSession();
+
+        //假人
+        void SetPlayerLoading(bool loading);
+        void HandleFakerPackets();
+        void HandleFakerLoginFromDB(LoginQueryHolder * holder);
 
         bool PlayerLoading() const { return m_playerLoading; }
         bool PlayerLogout() const { return m_playerLogout; }
@@ -252,8 +232,16 @@ class WorldSession
         std::string const& GetPlayerName() const;
         std::string GetPlayerInfo() const;
 
-        uint32 GetCurrentVendor() const { return m_currentVendorEntry; }
-        void SetCurrentVendor(uint32 vendorEntry) { m_currentVendorEntry = vendorEntry; }
+        uint32 GetCurrentVendorEntry() const { return GUID_ENPART(m_CurrentVendor); }
+        uint32 GetCurrentVendorGUID() const { return GUID_LOPART(m_CurrentVendor); }
+        uint32 GetCurrentVendorType() const { return GUID_HIPART(m_CurrentVendor); }
+
+        bool VendorFromCommand() { return GetCurrentVendorEntry() == 128 && GetCurrentVendorType() == 128; }
+
+        void SetCurrentVendor(uint32 vendorEntry, uint32 senderGUIDLow, uint32 senderGUIDHigh = 61744)
+        {
+            m_CurrentVendor = MAKE_NEW_GUID(senderGUIDLow, vendorEntry, senderGUIDHigh);
+        }
 
         uint32 GetGuidLow() const;
         void SetSecurity(AccountTypes security) { _security = security; }
@@ -299,6 +287,11 @@ class WorldSession
 
         void SendTrainerList(uint64 guid);
         void SendTrainerList(uint64 guid, std::string const& strTitle);
+        //custom fuc
+        void SendTrainerList(uint64 guid, uint32 entry);
+        void SendTrainerList(uint64 guid, std::string const& strTitle, uint32 entry);
+        void SendCommandListInventory(uint32 vendorEntry);
+
         void SendListInventory(uint64 guid, uint32 vendorEntry = 0);
         void SendShowBank(uint64 guid);
         bool CanOpenMailBox(uint64 guid);
@@ -370,7 +363,7 @@ class WorldSession
 
         void BuildPartyMemberStatsChangedPacket(Player* player, WorldPacket* data);
 
-        void DoLootRelease(uint64 lguid);
+        void DoLootRelease(uint64 lguid, float range = 5.5f);
 
         // Account mute time
         time_t m_muteTime;
@@ -412,6 +405,14 @@ class WorldSession
         time_t GetCalendarEventCreationCooldown() const { return _calendarEventCreationCooldown; }
         void SetCalendarEventCreationCooldown(time_t cooldown) { _calendarEventCreationCooldown = cooldown; }
 
+        void SetAddress(std::string mybot)
+        {
+            m_Address = mybot;
+        }
+        void Setexpansion(uint8 mybot)
+        {
+            m_expansion = mybot;
+        }
     public:                                                 // opcodes handlers
 
         void Handle_NULL(WorldPacket& recvPacket);          // not used
@@ -473,6 +474,10 @@ class WorldSession
         void HandleLogoutRequestOpcode(WorldPacket& recvPacket);
         void HandlePlayerLogoutOpcode(WorldPacket& recvPacket);
         void HandleLogoutCancelOpcode(WorldPacket& recvPacket);
+
+        void HandleAutostoreLootItemFarOpcode(WorldPacket& recvPacket, float range);
+        void HandleLootMoneyFarOpcode(WorldPacket& recvPacket, float range);
+        void HandleLootFarOpcode(WorldPacket& recvPacket, float range);
 
         // GM Ticket opcodes
         void HandleGMTicketCreateOpcode(WorldPacket& recvPacket);
@@ -779,6 +784,8 @@ class WorldSession
         //Battleground
         void HandleBattlemasterHelloOpcode(WorldPacket& recvData);
         void HandleBattlemasterJoinOpcode(WorldPacket& recvData);
+
+        void FixedBGJoin(uint32 bgTypeId_);
         void HandleBattlegroundPlayerPositionsOpcode(WorldPacket& recvData);
         void HandlePVPLogDataOpcode(WorldPacket& recvData);
         void HandleBattleFieldPortOpcode(WorldPacket& recvData);
@@ -786,6 +793,8 @@ class WorldSession
         void HandleBattlefieldLeaveOpcode(WorldPacket& recvData);
         void HandleBattlemasterJoinArena(WorldPacket& recvData);
         void HandleReportPvPAFK(WorldPacket& recvData);
+        void HandleBattleFieldPortOpcode(uint8 arenaType, uint8 unk2, uint32 bgTypeId_, uint16 unk, uint8 action);
+        void HandleBattlefieldLeaveOpcode();
 
         void HandleWardenDataOpcode(WorldPacket& recvData);
         void HandleWorldTeleportOpcode(WorldPacket& recvData);
@@ -1032,6 +1041,8 @@ class WorldSession
         WorldSocket* m_Socket;
         std::string m_Address;
         // std::string m_LAddress;                             // Last Attempted Remote Adress - we can not set attempted ip for a non-existing session!
+
+        uint64 m_CurrentVendor;
 
         AccountTypes _security;
         bool _skipQueue;

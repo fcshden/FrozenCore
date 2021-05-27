@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Originally written by Xinef - Copyright (C) 2016+ AzerothCore <www.azerothcore.org>, released under GNU AGPL v3 license: http://github.com/azerothcore/azerothcore-wotlk/blob/master/LICENSE-AGPL3
 */
 
@@ -17,11 +17,11 @@ enum BG_WS_Events
     BG_WS_EVENT_BOTH_FLAGS_KEPT10   = 6,
     BG_WS_EVENT_BOTH_FLAGS_KEPT15   = 7
 };
+extern uint32 BG_WS_MAX_TEAM_SCORE;
+extern uint32 BG_WS_MAX_KILLS;
 
 enum BG_WS_TimerOrScore
 {
-    BG_WS_MAX_TEAM_SCORE            = 3,
-
     BG_WS_TOTAL_GAME_TIME           = 27*MINUTE*IN_MILLISECONDS,
     BG_WS_FLAG_RESPAWN_TIME         = 23*IN_MILLISECONDS,
     BG_WS_FLAG_DROP_TIME            = 10*IN_MILLISECONDS,
@@ -54,6 +54,10 @@ enum BG_WS_SpellId
 
 enum BG_WS_WorldStates
 {
+    BG_WS_FLAG_ALLIANCE_KILLS = 1583,
+    BG_WS_FLAG_HORDE_KILLS = 1584,
+    BG_WS_FLAG_MAX_KILLS = 1602,
+
     BG_WS_FLAG_CAPTURES_ALLIANCE  = 1581,
     BG_WS_FLAG_CAPTURES_HORDE     = 1582,
     BG_WS_FLAG_CAPTURES_MAX       = 1601,

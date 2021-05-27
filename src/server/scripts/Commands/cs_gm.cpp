@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright (C) 2016+     AzerothCore <www.azerothcore.org>, released under GNU GPL v2 license: https://github.com/azerothcore/azerothcore-wotlk/blob/master/LICENSE-GPL2
  * Copyright (C) 2008-2016 TrinityCore <http://www.trinitycore.org/>
  * Copyright (C) 2005-2009 MaNGOS <http://getmangos.com/>
@@ -88,9 +88,16 @@ public:
 
         WorldPacket data(12);
         if (strncmp(args, "on", 3) == 0)
+        {
+            target->GMFlyON = true;
             data.SetOpcode(SMSG_MOVE_SET_CAN_FLY);
+        }
         else if (strncmp(args, "off", 4) == 0)
+        {
+            target->GMFlyON = false;
+            target->SetUnderACKmount();
             data.SetOpcode(SMSG_MOVE_UNSET_CAN_FLY);
+        }
         else
         {
             handler->SendSysMessage(LANG_USE_BOL);

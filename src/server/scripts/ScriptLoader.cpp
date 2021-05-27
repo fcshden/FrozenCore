@@ -64,6 +64,8 @@ void AddSC_titles_commandscript();
 void AddSC_wp_commandscript();
 void AddSC_player_commandscript();
 
+
+
 #ifdef SCRIPTS
 //world
 void AddSC_areatrigger_scripts();
@@ -78,7 +80,160 @@ void AddSC_npcs_special();
 void AddSC_npc_taxi();
 void AddSC_achievement_scripts();
 void AddSC_action_ip_logger();
+void AddSC_CustomGameObjectScript();
 
+void AddSC_CustomCreatureScript();
+
+void AddSC_CPWS_Transmogrification();
+//void AddSC_SuperStone();//多功能炉石
+void AddSC_npc_1v1arena();// 1v1 Arena
+void AddSC_arena_top_teams();//天梯不完美
+void AddSC_cs_world_chat();
+void AddSC_TRAINER_NPC();
+void AddSC_Data_Loader();
+void AddSC_PvP_System();
+void AddSC_CreatureKillRew();
+void AddSC_ITEM_MOD();
+void AddSC_TRANS_ITEM_NPC();
+
+//boss
+void AddSC_boss_darksaw();
+void AddSC_BossScript_Collection();
+void AddSC_boss_bartimus();
+
+//auto join guild
+void AddSC_AutoJoinGuild();
+
+void AddSC_Camp_Attack();
+
+void AddSC_Quest_Scripts();
+
+void AddSC_WorldRank_NPC();
+
+void AddSC_FactionBOSS_BATTLE();
+
+void AddSC_RECRUIT();
+
+void AddSC_Gurubashi();
+
+void AddSC_LOTTERY();
+
+void AddSC_StatPoints();
+
+void AddSC_ExtraEquipment();
+
+//void AddSC_FunctionCollection();
+void AddSC_MainFunc();
+
+void AddSC_RankScript();
+
+void  AddSC_MapModPlayerScript();
+
+void AddSC_Challenge();
+
+void AddSC_CharModPlayerScript();
+
+void AddSC_VIP_LOGIN();
+
+void AddSC_Fountain();
+
+void AddSC_MountVendor();
+
+void AddSC_Stage();
+
+void AddSC_SATrigger();
+
+void AddSC_ResetInsNPC();
+
+void AddSC_CustomEventScript();
+
+void  AddSC_FakePlayerScript();
+
+//void AddSC_Thunderbluff_Scripts();
+
+void AddSC_Test_Command();
+
+void AddSC_Time_Reward();
+
+void AddSC_SpellMod();
+
+void AddSC_DeadLine();
+
+void AddSC_LeaderReward();
+
+void AddSC_TriggerScript();
+void AddSC_QuickResponse();
+
+void AddSC_custom_spell_scripts();
+
+void AddSC_GateWayScript();
+
+void AddSC_Armory();
+
+void AddSC_GCAddon();
+
+void AddSC_SignIn();
+
+void AddSC_CharNameMod();
+
+void AddSC_CharPvpTop();
+
+void AddSC_GvgSys();
+
+void AddSC_ItemSet();
+
+void AddSC_custom_commandscript();
+
+void AddSC_Talisman();
+
+void AddSC_CUSTOM_SKILL();
+
+void AddSC_UkBG();
+
+void AddSC_FFAPvP();
+
+void AddSC_FactionScript();
+
+void AddSC_SpellScripts();
+
+void AddSC_SpiritPower();
+
+void AddSC_Market();
+
+//void AddSC_Morph();
+void AddSC_AntiFarm();
+
+void AddSC_FakerLogin();
+
+void AddSC_LoginCodeScript();
+
+void AddSC_Random_Enchant();
+
+void AddSC_StoryNPC();
+
+void AddSC_Reincarnation();
+
+void AddSC_TalentReq();
+
+void AddSC_BGICScript();
+
+void AddSC_ZoneAura();
+
+void AddSC_PlayerLoot();
+
+void AddSC_ItemGUID();
+
+void AddSC_QQMsg();
+
+void AddSC_ArenaDuel();
+
+void AddSC_WhenLogin();
+
+//fix
+void AddSC_queldelar();
+
+void AddSC_SoulStoneScripts();
+void AddSC_SoulStoneExScripts();
 //events
 void AddSC_event_brewfest_scripts();
 void AddSC_event_hallows_end_scripts();
@@ -582,21 +737,7 @@ void AddSC_chat_log();
 void AddSC_character_creation();
 void AddSC_action_ip_logger();
 
-// NPCBOT
-void AddSC_death_knight_bot();
-void AddSC_druid_bot();
-void AddSC_hunter_bot();
-void AddSC_mage_bot();
-void AddSC_paladin_bot();
-void AddSC_priest_bot();
-void AddSC_rogue_bot();
-void AddSC_shaman_bot();
-void AddSC_warlock_bot();
-void AddSC_warrior_bot();
-void AddSC_script_bot_commands();
-void AddSC_BotQuests_chapter1();
-// NPCBOT
-void AddSC_custom_Player();
+
 #endif
 
 void AddSpellScripts()
@@ -676,21 +817,162 @@ void AddWorldScripts()
     AddSC_character_creation();
     AddSC_action_ip_logger(); // location: scripts\World\action_ip_logger.cpp
 
-    // NPCBOT
-    AddSC_death_knight_bot();
-    AddSC_druid_bot();
-    AddSC_hunter_bot();
-    AddSC_mage_bot();
-    AddSC_paladin_bot();
-    AddSC_priest_bot();
-    AddSC_rogue_bot();
-    AddSC_shaman_bot();
-    AddSC_warlock_bot();
-    AddSC_warrior_bot();
-    AddSC_script_bot_commands();
-    AddSC_BotQuests_chapter1();
-    // NPCBOT
-    AddSC_custom_Player();
+
+    AddSC_CustomGameObjectScript();
+
+    AddSC_CustomCreatureScript();
+
+    AddSC_CPWS_Transmogrification();
+    //AddSC_SuperStone();
+    AddSC_npc_1v1arena();
+    AddSC_arena_top_teams();
+    AddSC_TRAINER_NPC();
+    AddSC_Data_Loader();
+    AddSC_PvP_System();
+
+    AddSC_CreatureKillRew();
+
+    AddSC_ITEM_MOD();
+
+    AddSC_TRANS_ITEM_NPC();
+    //boss
+    AddSC_boss_darksaw();
+    AddSC_BossScript_Collection();
+    AddSC_boss_bartimus();
+
+    //auoto join guild
+    AddSC_AutoJoinGuild();
+
+    AddSC_Camp_Attack();
+
+    AddSC_Quest_Scripts();
+
+    AddSC_WorldRank_NPC();
+
+    AddSC_FactionBOSS_BATTLE();
+
+    AddSC_RECRUIT();
+
+    AddSC_Gurubashi();
+
+    AddSC_LOTTERY();
+
+    AddSC_StatPoints();
+
+    AddSC_ExtraEquipment();
+
+    AddSC_RankScript();
+
+    AddSC_MapModPlayerScript();
+
+    AddSC_Challenge();
+
+    AddSC_CharModPlayerScript();
+
+    AddSC_VIP_LOGIN();
+
+    //AddSC_FunctionCollection();
+    AddSC_MainFunc();
+
+    AddSC_Fountain();
+
+    AddSC_MountVendor();
+
+    AddSC_Stage();
+
+    AddSC_SATrigger();
+
+    AddSC_ResetInsNPC();
+
+    AddSC_CustomEventScript();
+
+    AddSC_FakePlayerScript();
+
+    //AddSC_Thunderbluff_Scripts();
+
+    AddSC_Test_Command();
+
+    AddSC_Time_Reward();
+
+    AddSC_SpellMod();
+
+    AddSC_DeadLine();
+
+    AddSC_cs_world_chat();
+    AddSC_LeaderReward();
+    AddSC_TriggerScript();
+    AddSC_QuickResponse();
+
+    AddSC_custom_spell_scripts();
+
+    AddSC_GateWayScript();
+
+    AddSC_Armory();
+
+    AddSC_GCAddon();
+
+    AddSC_SignIn();
+
+    AddSC_CharNameMod();
+
+    AddSC_CharPvpTop();
+
+    AddSC_GvgSys();
+
+    AddSC_ItemSet();
+
+    AddSC_custom_commandscript();
+
+    AddSC_Talisman();
+
+    AddSC_CUSTOM_SKILL();
+
+    AddSC_UkBG();
+
+    AddSC_FFAPvP();
+
+    AddSC_FactionScript();
+
+    AddSC_SpellScripts();
+
+    AddSC_SpiritPower();
+
+    AddSC_Market();
+    //AddSC_Morph();
+    AddSC_AntiFarm();
+
+    AddSC_FakerLogin();
+
+    AddSC_LoginCodeScript();
+
+    AddSC_Random_Enchant();
+
+    AddSC_StoryNPC();
+
+    AddSC_Reincarnation();
+
+    AddSC_TalentReq();
+
+    AddSC_BGICScript();
+
+    AddSC_ZoneAura();
+
+    AddSC_PlayerLoot();
+
+    AddSC_ItemGUID();
+
+    AddSC_QQMsg();
+
+    AddSC_ArenaDuel();
+
+    AddSC_WhenLogin();
+
+    //fix
+    AddSC_queldelar();
+
+    AddSC_SoulStoneScripts();
+    AddSC_SoulStoneExScripts();
+
 #endif
 }
 
@@ -1228,5 +1510,7 @@ void AddCustomScripts()
 {
 #ifdef SCRIPTS
 	//~ AddSC_MySuperScript();
+
+
 #endif
 }

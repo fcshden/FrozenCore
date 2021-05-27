@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Originally written by Xinef - Copyright (C) 2016+ AzerothCore <www.azerothcore.org>, released under GNU AGPL v3 license: http://github.com/azerothcore/azerothcore-wotlk/blob/master/LICENSE-AGPL3
 */
 
@@ -14,9 +14,31 @@
 #include "Util.h"
 #include "WorldSession.h"
 #include "GameGraveyard.h"
+#include "../Custom/DataLoader/DataLoader.h"
+#include "../Custom/CommonFunc/CommonFunc.h"
+#include "../Custom/CustomEvent/FixedTimeBG/FixedTimeBG.h"
+
+uint32 BG_AB_MAX_KILLS;
+uint32 BG_AB_WARNING_NEAR_VICTORY_SCORE;
+uint32 BG_AB_MAX_TEAM_SCORE;
+
+void BattlegroundAB::HandleKillPlayer(Player* player, Player* killer)
+{
+    if (GetStatus() != STATUS_IN_PROGRESS)
+        return;
+    Battleground::HandleKillPlayer(player, killer);
+
+    UpdateWorldState(BG_AB_FLAG_ALLY_KILLS, GetAllyKills());
+    UpdateWorldState(BG_AB_FLAG_HORDE_KILLS, GetHordeKills());
+}
+
 
 BattlegroundAB::BattlegroundAB()
 {
+    BG_AB_MAX_KILLS = sFTB->GetEndKilss(BATTLEGROUND_AB);;
+    BG_AB_MAX_TEAM_SCORE = sFTB->GetMaxRes(BATTLEGROUND_AB);
+    BG_AB_WARNING_NEAR_VICTORY_SCORE = BG_AB_MAX_TEAM_SCORE - 200;
+
     m_BuffChange = true;
     BgObjects.resize(BG_AB_OBJECT_MAX);
     BgCreatures.resize(BG_AB_ALL_NODES_COUNT + BG_AB_DYNAMIC_NODES_COUNT); // xinef: +BG_AB_DYNAMIC_NODES_COUNT buff triggers
@@ -209,6 +231,10 @@ void BattlegroundAB::DeleteBanner(uint8 node)
 
 void BattlegroundAB::FillInitialWorldStates(WorldPacket& data)
 {
+    data << uint32(BG_AB_FLAG_ALLY_KILLS) << uint32(GetAllyKills());
+    data << uint32(BG_AB_FLAG_HORDE_KILLS) << uint32(GetHordeKills());
+    data << uint32(BG_AB_FLAG_MAX_KILLS) << uint32(BG_AB_MAX_KILLS);
+
     for (auto & node : _capturePointInfo)
     {
         if (node._state == BG_AB_NODE_STATE_NEUTRAL)

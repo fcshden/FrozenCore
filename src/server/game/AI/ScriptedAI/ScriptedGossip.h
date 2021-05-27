@@ -1,4 +1,4 @@
-/* Copyright (C) 2016+     AzerothCore <www.azerothcore.org>, released under GNU GPL v2 license: https://github.com/azerothcore/azerothcore-wotlk/blob/master/LICENSE-GPL2
+﻿/* Copyright (C) 2016+     AzerothCore <www.azerothcore.org>, released under GNU GPL v2 license: https://github.com/azerothcore/azerothcore-wotlk/blob/master/LICENSE-GPL2
  *
  *
  * This program is free software licensed under GPL version 2
@@ -56,6 +56,13 @@ enum eTradeskill
     GOSSIP_ACTION_UNLEARN               = 12,
     GOSSIP_ACTION_INFO_DEF              = 1000,
 
+    GOSSIP_ACTION_SS_ERR = 106000,
+    GOSSIP_ACTION_SS = 107000,
+    GOSSIP_ACTION_SS_BUY = 108000,
+    GOSSIP_ACTION_SSEX_ERR = 109000,
+    GOSSIP_ACTION_SSEX = 110000,
+    GOSSIP_ACTION_SSEX_BUY = 111000,
+
     GOSSIP_SENDER_MAIN                  = 1,
     GOSSIP_SENDER_INN_INFO              = 2,
     GOSSIP_SENDER_INFO                  = 3,
@@ -65,7 +72,14 @@ enum eTradeskill
     GOSSIP_SENDER_SEC_BANK              = 7,
     GOSSIP_SENDER_SEC_INN               = 8,
     GOSSIP_SENDER_SEC_MAILBOX           = 9,
-    GOSSIP_SENDER_SEC_STABLEMASTER      = 10
+    GOSSIP_SENDER_SEC_STABLEMASTER      = 10,
+
+    GOSSIP_SENDER_SEC_SS_ERR = 106000,
+    GOSSIP_SENDER_SEC_SS = 107000,
+    GOSSIP_SENDER_SEC_SS_BUY = 108000,
+    GOSSIP_SENDER_SEC_SSEX_ERR = 109000,
+    GOSSIP_SENDER_SEC_SSEX = 110000,
+    GOSSIP_SENDER_SEC_SSEX_BUY = 111000
 };
 
 class Creature;

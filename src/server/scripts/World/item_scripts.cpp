@@ -258,6 +258,71 @@ public:
     }
 };
 
+class item_add_spell : public ItemScript
+{
+public:
+    item_add_spell() : ItemScript("item_add_spell") { }
+
+    bool OnUse(Player* player, Item* item, SpellCastTargets const& targets)
+    {
+        Item* tar = targets.GetItemTarget();
+
+        if (!tar || !item)
+            return false;
+        uint32 idd = tar->GetEntry();
+        if (idd < 920000 && idd > 920018)
+        {
+            ChatHandler(player->GetSession()).SendSysMessage("这件装备没有符文槽.");
+            return false;
+        }
+
+        ItemTemplate const* it = item->GetTemplate();
+
+        uint32 ok = 0;
+        bool okk = true;
+        uint32 sl = 0;
+        if (it->Spells[1].SpellId)
+        {
+            if (SpellItemEnchantmentEntry const* enchantEntry = sSpellItemEnchantmentStore.LookupEntry(it->Spells[1].SpellId))
+                for (uint8 slot = PERM_ENCHANTMENT_SLOT; slot < MAX_ENCHANTMENT_SLOT; slot++)
+                {
+                    if (slot > 1 && slot < 7)
+                        continue;
+
+                    if (tar->GetEnchantmentId((EnchantmentSlot)slot))
+                    {
+                        sl++;
+                        continue;
+                    }
+
+                    if (okk)
+                    {
+                        okk = false;
+                        ok = slot;
+                    }
+                }
+        }
+
+
+        ItemTemplate const* its = tar->GetTemplate();
+        if (sl >= its->ItemLevel)
+        {
+            ChatHandler(player->GetSession()).SendSysMessage("符文槽已经镶满了.");
+            return true;
+        }
+
+
+
+        tar->SetEnchantment((EnchantmentSlot)ok, it->Spells[1].SpellId, 0, 0);
+        player->DestroyItemCount(item->GetEntry(), 1, true);
+        //	ChatHandler(player->GetSession()).PSendSysMessage("=%u =%u. sl=%u", ok, it->Spells[1].SpellId, sl);
+
+
+        ChatHandler(player->GetSession()).SendSysMessage("符文已经插如成功了.");
+        return true;
+    }
+};
+
 void AddSC_item_scripts()
 {
     new item_only_for_flight();
@@ -269,4 +334,5 @@ void AddSC_item_scripts()
     new item_petrov_cluster_bombs();
     new item_captured_frog();
     new item_generic_limit_chance_above_60();
+    new item_add_spell();
 }

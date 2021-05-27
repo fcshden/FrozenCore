@@ -43,11 +43,21 @@
 
 #include "Transport.h"
 
-#include "../game/AI/NpcBots/bot_ai.h"
 
 #ifdef ELUNA
 #include "LuaEngine.h"
 #endif
+
+#pragma execution_character_set("utf-8")
+#include "../Custom/DataLoader/DataLoader.h"
+#include "../Custom/CommonFunc/CommonFunc.h"
+#include "../Custom/AntiCheat/AntiCheat.h"
+#include "../Custom/UnitMod/CreatureMod/CreatureMod.h"
+#include "../Custom/Challenge/challenge.h"
+#include "../Custom/MapMod/MapMod.h"
+#include "../Custom/Scripts/CustomScripts.h"
+#include "../Custom/Reward/Reward.h"
+
 
 TrainerSpell const* TrainerSpellData::Find(uint32 spell_id) const
 {
@@ -188,14 +198,44 @@ m_homePosition(), m_transportHomePosition(), m_creatureInfo(nullptr), m_creature
     m_isTempWorldObject = false;
     _focusSpell = nullptr;
 
-    // NPCBOT
-    m_bot_owner = NULL;
-    m_creature_owner = NULL;
-    m_bots_pet = NULL;
-    m_bot_class = CLASS_NONE;
-    bot_AI = NULL;
-    m_canUpdate = true;
-    // NPCBOT
+    stage = 1;
+    summonsClear = true;
+
+    //anticheat
+    reset_timer = 0;
+
+    //creature mod
+    C_Level = 0;				//等级
+    C_Health = 0;				//生命值
+    C_HpMod = 1.0f;				//生命值倍率
+    C_Armor = -1;				//护甲-1 creature_template表确定
+    C_MeleeDmg = 0;				//物理伤害
+    C_SpellDmgMod = 1;				//法术伤害倍率
+    C_HealMod = 1;				//治疗倍率
+    C_ReduceDmgPct = 0;				//减伤百分比
+    C_Resistance = -1;				//抗性-1 creature_template表确定
+
+    for (size_t i = 0; i < MAX_CUSTOM_LOOT_COUNT; i++)
+        C_LootId[i] = 0;				//掉落 creaute_loot_template
+    C_SrcLoot = true;				//是否包含原Loot
+
+    C_KillRewId = 0;				//击杀者获得奖励
+    C_KillRewChance = 0;				//击杀者获得奖励几率
+    C_KillGroupRewId = 0;				//击杀者队伍获得奖励
+    C_KillGroupRewChance = 0;			//击杀者队伍获得奖励几率
+    C_KillAnnounce = false;			//击杀时广播内容
+    C_AttackTime = 0;				//攻击间隔
+    C_ResetDistance = 0;
+    C_AddTalismanValue = 0;
+    C_AddAddRankValue = 0;
+    C_KillRewGameObject = 0;
+    C_AuraVec.clear();
+    ISDam_Player.clear();
+    ISTmpDam_Player.clear();
+    m_paidam.clear();
+
+    RandSpellGroupId = 0;
+    RandSpellTimer = 0;
 }
 
 Creature::~Creature()
@@ -279,11 +319,6 @@ void Creature::RemoveCorpse(bool setSpawnTime, bool skipVisibility)
 { 
     if (getDeathState() != CORPSE)
         return;
-
-    // NPCBOT
-    if (bot_AI)
-        return;
-    // NPCBOT
 
     m_corpseRemoveTime = time(nullptr);
     setDeathState(DEAD);
@@ -445,9 +480,20 @@ bool Creature::UpdateEntry(uint32 Entry, const CreatureData* data, bool changele
 
     SetUInt32Value(UNIT_DYNAMIC_FLAGS, dynamicflags);
 
+    //这里加载生物属性调整
+    sMapMod->SetMod(this);
+    sCreatureMod->SetMod(this);
+
     SetAttackTime(BASE_ATTACK,   cInfo->BaseAttackTime);
     SetAttackTime(OFF_ATTACK,    cInfo->BaseAttackTime);
     SetAttackTime(RANGED_ATTACK, cInfo->RangeAttackTime);
+
+    if (C_AttackTime != 0)
+    {
+        SetAttackTime(BASE_ATTACK, C_AttackTime);
+        SetAttackTime(OFF_ATTACK, C_AttackTime);
+        SetAttackTime(RANGED_ATTACK, C_AttackTime);
+    }
 
     SelectLevel(changelevel);
 
@@ -503,11 +549,6 @@ bool Creature::UpdateEntry(uint32 Entry, const CreatureData* data, bool changele
 
 void Creature::Update(uint32 diff)
 {
-    // NPCBOT
-    if (!m_canUpdate && bot_AI)
-        return;
-    // NPCBOT
-
     if (IsAIEnabled && TriggerJustRespawned)
     {
         TriggerJustRespawned = false;
@@ -661,6 +702,12 @@ void Creature::Update(uint32 diff)
         }
 
         sScriptMgr->OnCreatureUpdate(this, diff);
+
+        //防止BOSS离开原位置过远
+        sAntiCheat->CreatureReset(this, diff);
+
+        //额外技能
+        sCustomScript->CastRandSpell(this, diff);
     }
 }
 
@@ -1161,6 +1208,10 @@ void Creature::SelectLevel(bool changelevel)
     uint32 basehp = std::max<uint32>(1, stats->GenerateHealth(cInfo));
     uint32 health = uint32(basehp * healthmod);
 
+    if (C_Health != 0)
+        health = C_Health;
+    health *= C_HpMod;
+
     SetCreateHealth(health);
     SetMaxHealth(health);
     SetHealth(health);
@@ -1422,12 +1473,6 @@ void Creature::SetCanDualWield(bool value)
 
 void Creature::LoadEquipment(int8 id, bool force /*= false*/)
 {
-
-    // NPCBOT
-    if (GetEntry() >= BOT_ENTRY_BEGIN && GetEntry() <= BOT_ENTRY_END) //temp hack
-        return;
-    // NPCBOT
-
     if (id == 0)
     {
         if (force)
@@ -1639,6 +1684,21 @@ void Creature::setDeathState(DeathState s, bool despawn)
 void Creature::Respawn(bool force)
 { 
     //DestroyForNearbyPlayers(); // pussywizard: not needed
+
+    {
+        //这里加载生物属性调整
+        sMapMod->SetMod(this);
+        sCreatureMod->SetMod(this);
+
+        if (C_AttackTime != 0)
+        {
+            SetAttackTime(BASE_ATTACK, C_AttackTime);
+            SetAttackTime(OFF_ATTACK, C_AttackTime);
+            SetAttackTime(RANGED_ATTACK, C_AttackTime);
+        }
+
+        SelectLevel(true);
+    }
 
     if (force)
     {
@@ -2192,7 +2252,10 @@ CreatureAddon const* Creature::GetCreatureAddon() const
 
 //creature_addon table
 bool Creature::LoadCreaturesAddon(bool reload)
-{ 
+{
+    for (auto itr = C_AuraVec.begin(); itr != C_AuraVec.end(); itr++)
+        AddAura(*itr, this);
+
     CreatureAddon const* cainfo = GetCreatureAddon();
     if (!cainfo)
         return false;
@@ -2894,4 +2957,62 @@ float Creature::GetAttackDistance(Unit const* player) const
         retDistance = 5.0f;
 
     return (retDistance*aggroRate);
+}
+
+void Creature::SendDamPHStdAndPH() //生成排行数据
+{
+    if (ISDam_Player.size())
+    {
+        for (int i = 1; i < ISDam_Player.size() + 1; i++) //写入排行数据
+        {
+            m_paidam[i] = GetGuidFromMaxDam();
+        }
+
+        uint32 maxdamsend = 10;
+        CreatureDamageSend* damcre = sRew->FindCreatureDamageSend(GetEntry());
+        if (damcre && damcre->sendgossipcount)
+        {
+            if (maxdamsend > damcre->sendgossipcount)
+                maxdamsend = damcre->sendgossipcount;
+        }
+
+        for (PlayerdamMap::const_iterator itr = ISDam_Player.begin(); itr != ISDam_Player.end(); ++itr)  //写入弹窗
+        {
+            uint64 plguid = MAKE_NEW_GUID(itr->first, 0, HIGHGUID_PLAYER);
+            if (Player* playersend = ObjectAccessor::FindPlayer(plguid))
+            {
+                playersend->PlayerTalkClass->ClearMenus();
+                for (int i = 1; i < maxdamsend + 1; i++)
+                {
+                    GlobalPlayerData const* playerData = sWorld->GetGlobalPlayerData(m_paidam[i]);
+                    if (playerData)
+                    {
+                        std::ostringstream damdata;
+                        damdata << "第" << i << "名:" << playerData->name.c_str() << ",伤害量: " << GetPlayerDamFromCre(m_paidam[i]);
+                        playersend->PlayerTalkClass->GetGossipMenu().AddMenuItem(-1, GOSSIP_ICON_CHAT, damdata.str().c_str(), i, 10, "", 0);
+                    }
+                }
+                playersend->PlayerTalkClass->SendGossipMenu(20001, playersend->GetGUID());
+            }
+        }
+
+        if (damcre && damcre->maxsend)
+        {
+            uint32 ddddd = damcre->maxsend;
+            if (damcre->maxsend > ISDam_Player.size())
+                ddddd = ISDam_Player.size();
+
+            for (int i = 0; i < ddddd; i++) //发放奖励
+            {
+                uint64 plguid = MAKE_NEW_GUID(m_paidam[i + 1], 0, HIGHGUID_PLAYER);
+                if (Player* pl = ObjectAccessor::FindPlayer(plguid))
+                {
+                    if (damcre->itemsends[i] && GetPlayerDamFromCre(m_paidam[i + 1]) >= damcre->mindamage)
+                    {
+                        pl->AddItem(damcre->itemsends[i], 1); // i+1 是排名
+                    }
+                }
+            }
+        }
+    }
 }

@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright (C) 2016+     AzerothCore <www.azerothcore.org>, released under GNU GPL v2 license: https://github.com/azerothcore/azerothcore-wotlk/blob/master/LICENSE-GPL2
  * Copyright (C) 2008-2016 TrinityCore <http://www.trinitycore.org/>
  * Copyright (C) 2005-2009 MaNGOS <http://getmangos.com/>
@@ -256,6 +256,7 @@ class AchievementMgr
         AchievementMgr(Player* player);
         ~AchievementMgr();
 
+        CompletedAchievementMap get_m_completedAchievements() { return m_completedAchievements; }
         void Reset();
         static void DeleteFromDB(uint32 lowguid);
         void LoadFromDB(PreparedQueryResult achievementResult, PreparedQueryResult criteriaResult);
@@ -273,7 +274,6 @@ class AchievementMgr
         void RemoveTimedAchievement(AchievementCriteriaTimedTypes type, uint32 entry);   // used for quest and scripted timed achievements
 
         void RemoveCriteriaProgress(AchievementCriteriaEntry const* entry);
-        CompletedAchievementMap get_m_completedAchievements() { return m_completedAchievements; }
     private:
         enum ProgressType { PROGRESS_SET, PROGRESS_ACCUMULATE, PROGRESS_HIGHEST, PROGRESS_RESET };
         void SendAchievementEarned(AchievementEntry const* achievement) const;

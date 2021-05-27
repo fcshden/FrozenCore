@@ -974,6 +974,8 @@ class WorldObject : public Object, public WorldLocation
         Player* SelectNearestPlayer(float distance = 0) const;
         void GetGameObjectListWithEntryInGrid(std::list<GameObject*>& lList, uint32 uiEntry, float fMaxSearchRange) const;
         void GetCreatureListWithEntryInGrid(std::list<Creature*>& lList, uint32 uiEntry, float fMaxSearchRange) const;
+        void GetCreatureListInGrid(std::list<Creature*>& lList, float fMaxSearchRange) const;
+        void GetPlayerListInGrid(std::list<Player*>& playerList, float maxSearchRange, bool reqAlive = true) const;
 
         void DestroyForNearbyPlayers();
         virtual void UpdateObjectVisibility(bool forced = true, bool fromUpdate = false);

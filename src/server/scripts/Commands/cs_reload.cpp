@@ -30,7 +30,7 @@ EndScriptData */
 #include "WardenCheckMgr.h"
 #include "WaypointManager.h"
 #include "GameGraveyard.h"
-#include "BYcustom.h"
+
 
 class reload_commandscript : public CommandScript
 {
@@ -147,7 +147,6 @@ public:
             { "waypoint_data",                SEC_ADMINISTRATOR, true,  &HandleReloadWpCommand,                         "" },
             { "vehicle_accessory",            SEC_ADMINISTRATOR, true,  &HandleReloadVehicleAccessoryCommand,           "" },
             { "vehicle_template_accessory",   SEC_ADMINISTRATOR, true,  &HandleReloadVehicleTemplateAccessoryCommand,   "" },
-            { "_all",                         SEC_ADMINISTRATOR, true,  &HandleReloadCustomCommand,                     "" },
             { "spellcool",                    SEC_ADMINISTRATOR, true,  &HandleReloadSpellxgCommand,                    "" }
         };
         static std::vector<ChatCommand> commandTable =
@@ -155,12 +154,6 @@ public:
             { "reload",         SEC_ADMINISTRATOR,  true,  nullptr,                                                     "", reloadCommandTable }
         };
         return commandTable;
-    }
-
-    static bool HandleReloadCustomCommand(ChatHandler* /*handler*/, const char* /*args*/)
-    {
-        sCustomMgr->LoadAllCustomData();
-        return true;
     }
 
     static bool HandleReloadSpellxgCommand(ChatHandler* handler, const char* args)

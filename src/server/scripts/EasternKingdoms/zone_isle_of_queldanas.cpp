@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright (C) 2016+     AzerothCore <www.azerothcore.org>, released under GNU GPL v2 license: https://github.com/azerothcore/azerothcore-wotlk/blob/master/LICENSE-GPL2
  * Copyright (C) 2008-2016 TrinityCore <http://www.trinitycore.org/>
  * Copyright (C) 2005-2009 MaNGOS <http://getmangos.com/>
@@ -448,7 +448,7 @@ enum PurificationIds
     NPC_THERON = 37764,
     NPC_AURIC = 37765,
 };
-
+/*
 class spell_bh_cleanse_quel_delar : public SpellScriptLoader
 {
 public:
@@ -458,7 +458,7 @@ public:
     {
         PrepareSpellScript(spell_bh_cleanse_quel_delar_SpellScript);
 
-        void OnEffect(SpellEffIndex  /*effIndex*/)
+        void OnEffect(SpellEffIndex  /*effIndex*)
         {
             if (Unit* caster = GetCaster())
                 if (Creature* c = caster->FindNearestCreature(NPC_ROMMATH, 50.0f, true))
@@ -475,7 +475,7 @@ public:
     {
         return new spell_bh_cleanse_quel_delar_SpellScript();
     }
-};
+};*/
 
 class npc_grand_magister_rommath : public CreatureScript
 {
@@ -686,7 +686,7 @@ void AddSC_isle_of_queldanas()
 {
     // OUR:
     new npc_bh_thalorien_dawnseeker();
-    new spell_bh_cleanse_quel_delar();
+    //new spell_bh_cleanse_quel_delar();
     new npc_grand_magister_rommath();
 
     // THEIR:

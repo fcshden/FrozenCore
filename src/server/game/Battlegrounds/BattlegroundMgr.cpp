@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright (C) 2016+     AzerothCore <www.azerothcore.org>, released under GNU GPL v2 license: https://github.com/azerothcore/azerothcore-wotlk/blob/master/LICENSE-GPL2
  * Copyright (C) 2008-2016 TrinityCore <http://www.trinitycore.org/>
  * Copyright (C) 2005-2009 MaNGOS <http://getmangos.com/>
@@ -37,7 +37,7 @@
 #include "GameGraveyard.h"
 #include <unordered_map>
 #include <random>
-
+#include "../Custom/Switch/Switch.h"
 #ifdef ELUNA
 #include "LuaEngine.h"
 #endif
@@ -47,7 +47,7 @@
 /*********************************************************/
 
 BattlegroundMgr::BattlegroundMgr() : m_ArenaTesting(false), m_Testing(false),
-    m_lastClientVisibleInstanceId(0), m_NextAutoDistributionTime(0), m_AutoDistributionTimeChecker(0), m_NextPeriodicQueueUpdateTime(5*IN_MILLISECONDS)
+    m_lastClientVisibleInstanceId(0), m_NextAutoDistributionTime(0), m_AutoDistributionTimeChecker(0), m_NextPeriodicQueueUpdateTime(5*IN_MILLISECONDS), m_QuequeAnnounceEnable(false), m_NextQuequeAnnounceTime(0)
 {
     for (uint32 qtype = BATTLEGROUND_QUEUE_NONE; qtype < MAX_BATTLEGROUND_QUEUE_TYPES; ++qtype)
         m_BattlegroundQueues[qtype].SetBgTypeIdAndArenaType(BGTemplateId(BattlegroundQueueTypeId(qtype)), BGArenaType(BattlegroundQueueTypeId(qtype)));
@@ -95,6 +95,20 @@ void BattlegroundMgr::Update(uint32 diff)
     // update events
     for (int qtype = BATTLEGROUND_QUEUE_NONE; qtype < MAX_BATTLEGROUND_QUEUE_TYPES; ++qtype)
         m_BattlegroundQueues[qtype].UpdateEvents(diff);
+
+    // 战场提示广播
+    if (m_QuequeAnnounceEnable)
+    {
+        if (m_NextQuequeAnnounceTime < diff)
+        {
+            for (int qtype = BATTLEGROUND_QUEUE_NONE; qtype < MAX_BATTLEGROUND_QUEUE_TYPES; ++qtype)
+                m_BattlegroundQueues[qtype].UpdateAnnounce(diff);
+
+            m_NextQuequeAnnounceTime = sSwitch->GetValue(ST_BG_QUEQUE_INTERVALS) * IN_MILLISECONDS;
+        }
+        else
+            m_NextQuequeAnnounceTime -= diff;
+    }
 
     // update using scheduled tasks (used only for rated arenas, initial opponent search works differently than periodic queue update)
     if (!m_ArenaQueueUpdateScheduler.empty())
@@ -492,7 +506,50 @@ bool BattlegroundMgr::CreateBattleground(CreateBattlegroundData& data)
 {
     // Create the BG
     Battleground* bg = nullptr;
-    bg = BattlegroundMgr::bgtypeToBattleground[data.bgTypeId];
+    switch (data.bgTypeId)
+    {
+    case BATTLEGROUND_AV:
+        bg = new BattlegroundAV;
+        break;
+    case BATTLEGROUND_WS:
+        bg = new BattlegroundWS;
+        break;
+    case BATTLEGROUND_AB:
+        bg = new BattlegroundAB;
+        break;
+    case BATTLEGROUND_NA:
+        bg = new BattlegroundNA;
+        break;
+    case BATTLEGROUND_BE:
+        bg = new BattlegroundBE;
+        break;
+    case BATTLEGROUND_EY:
+        bg = new BattlegroundEY;
+        break;
+    case BATTLEGROUND_RL:
+        bg = new BattlegroundRL;
+        break;
+    case BATTLEGROUND_SA:
+        bg = new BattlegroundSA;
+        break;
+    case BATTLEGROUND_DS:
+        bg = new BattlegroundDS;
+        break;
+    case BATTLEGROUND_RV:
+        bg = new BattlegroundRV;
+        break;
+    case BATTLEGROUND_IC:
+        bg = new BattlegroundIC;
+        break;
+    case BATTLEGROUND_AA:
+        bg = new Battleground;
+        break;
+    case BATTLEGROUND_RB:
+        bg = new Battleground;
+        break;
+    default:
+        return false;
+    }
 
     if (bg == nullptr)
         return false;
@@ -1081,7 +1138,7 @@ std::unordered_map<int, BattlegroundTypeId> BattlegroundMgr::queueToBg = {
     { BATTLEGROUND_QUEUE_3v3,   BATTLEGROUND_AA },
     { BATTLEGROUND_QUEUE_5v5,   BATTLEGROUND_AA },
 };
-
+/*
 std::unordered_map<int, Battleground*> BattlegroundMgr::bgtypeToBattleground = {
     { BATTLEGROUND_AV, new BattlegroundAV },
     { BATTLEGROUND_WS, new BattlegroundWS },
@@ -1097,6 +1154,7 @@ std::unordered_map<int, Battleground*> BattlegroundMgr::bgtypeToBattleground = {
     { BATTLEGROUND_AA, new Battleground },
     { BATTLEGROUND_RB, new Battleground },
 };
+*/
 
 std::unordered_map<int, bgRef> BattlegroundMgr::bgTypeToTemplate = {
     { BATTLEGROUND_AV, [](Battleground *bg_t) -> Battleground*{ return new BattlegroundAV(*(BattlegroundAV*)bg_t); } },

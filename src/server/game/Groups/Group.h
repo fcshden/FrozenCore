@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright (C) 2016+     AzerothCore <www.azerothcore.org>, released under GNU GPL v2 license: https://github.com/azerothcore/azerothcore-wotlk/blob/master/LICENSE-GPL2
  * Copyright (C) 2008-2016 TrinityCore <http://www.trinitycore.org/>
  * Copyright (C) 2005-2009 MaNGOS <http://getmangos.com/>
@@ -194,6 +194,7 @@ class Group
         void   SetLootThreshold(ItemQualities threshold);
         void   Disband(bool hideDestroy=false);
         void   SetLfgRoles(uint64 guid, const uint8 roles);
+        uint8  GetLfgRoles(uint64);
 
         // properties accessories
         bool IsFull() const;
@@ -307,10 +308,6 @@ class Group
             _difficultyChangePreventionType = type;
         }
 
-        // NPCBOT
-        uint64 const *GetTargetIcons() const { return m_targetIcons; }
-        // NPCBOT
-
     protected:
         void _homebindIfInstance(Player* player);
         void _cancelHomebindIfInstance(Player* player);
@@ -347,8 +344,5 @@ class Group
         // Xinef: change difficulty prevention
         uint32 _difficultyChangePreventionTime;
         DifficultyPreventionChangeType _difficultyChangePreventionType;
-
-        void UpdatePetFaction();
-        // NPCBOT
 };
 #endif
