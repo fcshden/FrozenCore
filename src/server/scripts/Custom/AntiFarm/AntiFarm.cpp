@@ -1,4 +1,4 @@
-#pragma execution_character_set("utf-8")
+ï»¿#pragma execution_character_set("utf-8")
 #include "AntiFarm.h"
 #include "../GCAddon/GCAddon.h"
 #include "../Reward/Reward.h"
@@ -76,24 +76,28 @@ void AntiFarm::Action(Player* player, AntiFarmActions action)
 	switch (action)
 	{
 	case AF_CHECK_SUCCESS:
-		player->GetSession()->SendAreaTriggerMessage("ÈË»úÑéÖ¤³É¹¦£¬¸ÐÐ»ÄúµÄÅäºÏ£¬×£ÓÎÏ·Óä¿ì£¡");
+		player->GetSession()->SendAreaTriggerMessage("äººæœºéªŒè¯æˆåŠŸï¼Œæ„Ÿè°¢æ‚¨çš„é…åˆï¼Œç¥æ¸¸æˆæ„‰å¿«ï¼");
 		UnBan(player);
 		sRew->Rew(player, _rewId);
 		break;
 	case AF_CHECK_REPEAT:
-		player->GetSession()->SendNotification("µÚ%u´ÎÈË»úÑéÖ¤Ê§°Ü£¬ÇëÖØÐÂÑéÖ¤£¡", player->AntiFarmCount);
+		player->GetSession()->SendNotification("ç¬¬%uæ¬¡äººæœºéªŒè¯å¤±è´¥ï¼Œè¯·é‡æ–°éªŒè¯ï¼", player->AntiFarmCount);
 		player->AntiFarmTimer = 0;
 		SendCheck(player);
 		break;
 	case AF_CHECK_FAIL:
-		player->GetSession()->SendNotification("µÚ%u´ÎÈË»úÑéÖ¤Ê§°Ü£¬ÎÞ·¨¼ÌÐøÓÎÏ·£¡ÇëÖØÐÂÉÏÏß£¡", player->AntiFarmCount);
+		player->GetSession()->SendNotification("ç¬¬%uæ¬¡äººæœºéªŒè¯å¤±è´¥ï¼Œæ— æ³•ç»§ç»­æ¸¸æˆï¼è¯·é‡æ–°ä¸Šçº¿ï¼", player->AntiFarmCount);
 		Ban(player);
 		break;
 	case AF_CHECK_TIME_OUT:
-		player->GetSession()->SendNotification("ÈË»úÑéÖ¤³¬Ê±£¬ÄãµÄÓÎÏ·ÒÑ±»ÔÝÍ££¡");
+		player->GetSession()->SendNotification("äººæœºéªŒè¯è¶…æ—¶ï¼Œä½ çš„æ¸¸æˆå·²è¢«æš‚åœï¼");
 		Ban(player);
 		SendCheck(player);
 		break;
+    case AF_CHECK_KILL:
+        player->GetSession()->SendNotification("éžæ³•éªŒè¯ï¼Œæ— æ³•ç»§ç»­æ¸¸æˆï¼è¯·é‡æ–°ä¸Šçº¿ï¼");
+        Ban(player);
+        break;
 	default:
 		break;
 	}
@@ -127,7 +131,7 @@ bool AntiFarm::DisableCombat(Player* player)
 	if (!player->AntiFarmBaned)
 		return false;
 
-	player->GetSession()->SendNotification("ÈË»úÑéÖ¤Î´Í¨¹ý£¬ÎÞ·¨¼ÌÐøÓÎÏ·£¡ÇëÖØÐÂµÇÂ¼ÓÎÏ·£¡");
+	player->GetSession()->SendNotification("äººæœºéªŒè¯æœªé€šè¿‡ï¼Œæ— æ³•ç»§ç»­æ¸¸æˆï¼è¯·é‡æ–°ç™»å½•æ¸¸æˆï¼");
 	player->SetMovement(MOVE_ROOT);
 	player->SetStandState(UNIT_STAND_STATE_SIT);
 	player->SetFlag(PLAYER_FLAGS, PLAYER_FLAGS_UNK24);

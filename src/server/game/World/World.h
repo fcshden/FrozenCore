@@ -660,6 +660,7 @@ class World
         inline uint32 GetPlayerCount() const { return m_PlayerCount; }
         inline uint32 GetMaxPlayerCount() const { return m_MaxPlayerCount; }
 
+        bool downs;
         /// Increase/Decrease number of players
         inline void IncreasePlayerCount()
         {

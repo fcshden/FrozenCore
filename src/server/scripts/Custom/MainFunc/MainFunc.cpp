@@ -1,4 +1,4 @@
-#pragma execution_character_set("utf-8")
+ï»¿#pragma execution_character_set("utf-8")
 #include "MainFunc.h"
 #include "../FunctionCollection/FunctionCollection.h"
 #include "../Custom/HonorRank/HonorRank.h"
@@ -43,9 +43,9 @@ void MainFunc::Load()
 	
 	QueryResult result = WorldDatabase.PQuery(sWorld->getBoolConfig(CONFIG_ZHCN_DB) ? 
 		//			0				1       2
-		"SELECT ÉúÎïÎïÆ·»òÎïÌåID, ²Ëµ¥ID, ÉÏ¼¶²Ëµ¥ID, "
+		"SELECT ç”Ÿç‰©ç‰©å“æˆ–ç‰©ä½“ID, èœå•ID, ä¸Šçº§èœå•ID, "
 		//3			4			5			6			7		8		9				10			11	12		13		14
-		"GMÃüÁî×é, ĞèÇóÄ£°åID, ½±ÀøÄ£°åID, Ğ¡Í¼±êID, ´óÍ¼±ê, ²Ëµ¥ÎÄ±¾, ÁªÃË´«ËÍ×ø±êID, ²¿Âä´«ËÍ×ø±êID, ÀàĞÍ, ÕóÓª, ¹¦ÄÜÑ¡Ôñ,µ¯´°ÎÄ±¾ FROM __Ö÷¹¦ÄÜÅäÖÃ" :
+		"GMå‘½ä»¤ç»„, éœ€æ±‚æ¨¡æ¿ID, å¥–åŠ±æ¨¡æ¿ID, å°å›¾æ ‡ID, å¤§å›¾æ ‡, èœå•æ–‡æœ¬, è”ç›Ÿä¼ é€åæ ‡ID, éƒ¨è½ä¼ é€åæ ‡ID, ç±»å‹, é˜µè¥, åŠŸèƒ½é€‰æ‹©,å¼¹çª—æ–‡æœ¬ FROM __ä¸»åŠŸèƒ½é…ç½®" :
 		//			0     1       2
 		"SELECT Entry, MenuId, PreMenuId, "
 		//3        4		5		6			7		8		9		10		11		12		13		14
@@ -85,9 +85,9 @@ void MainFunc::Load()
 
 		str = fields[12].GetCString();
 
-		if (strcmp("ÁªÃË", str) == 0)
+		if (strcmp("è”ç›Ÿ", str) == 0)
 			Temp.TeamId = TEAM_ALLIANCE;
-		else if (strcmp("²¿Âä", str) == 0)
+		else if (strcmp("éƒ¨è½", str) == 0)
 			Temp.TeamId = TEAM_HORDE;
 		else
 			Temp.TeamId = TEAM_NEUTRAL;
@@ -95,77 +95,77 @@ void MainFunc::Load()
 
 		str = fields[13].GetCString();
 
-		if (strcmp("·µ»ØÖ÷²Ëµ¥", str) == 0)
+		if (strcmp("è¿”å›ä¸»èœå•", str) == 0)
 			Temp.FuncType = MF_MAIN_MENU;
-		else if (strcmp("·µ»ØÉÏ¼¶²Ëµ¥", str) == 0)
+		else if (strcmp("è¿”å›ä¸Šçº§èœå•", str) == 0)
 			Temp.FuncType = MF_BACK_MENU;
-		else if (strcmp("½ÇÉ«ĞŞ¸ÄÃû×Ö", str) == 0)
+		else if (strcmp("è§’è‰²ä¿®æ”¹åå­—", str) == 0)
 			Temp.FuncType = MF_MOD_CHAR_NAME;
-		else if (strcmp("½ÇÉ«ĞŞ¸ÄÖÖ×å", str) == 0)
+		else if (strcmp("è§’è‰²ä¿®æ”¹ç§æ—", str) == 0)
 			Temp.FuncType = MF_MOD_CHAR_RACE;
-		else if (strcmp("½ÇÉ«ĞŞ¸ÄÕóÓª", str) == 0)
+		else if (strcmp("è§’è‰²ä¿®æ”¹é˜µè¥", str) == 0)
 			Temp.FuncType = MF_MOD_CHAR_FACTION;
-		else if (strcmp("½ÇÉ«ĞŞ¸ÄÍâ¹Û", str) == 0)
+		else if (strcmp("è§’è‰²ä¿®æ”¹å¤–è§‚", str) == 0)
 			Temp.FuncType = MF_MOD_CHAR_CUSTOMIZE;
-		else if (strcmp("½ÇÉ«ÖØÖÃÌì¸³", str) == 0)
+		else if (strcmp("è§’è‰²é‡ç½®å¤©èµ‹", str) == 0)
 			Temp.FuncType = MF_RESET_TALENTS;
-		else if (strcmp("½ÇÉ«ÎäÆ÷¼¼ÄÜÈ«Âú", str) == 0)
+		else if (strcmp("è§’è‰²æ­¦å™¨æŠ€èƒ½å…¨æ»¡", str) == 0)
 			Temp.FuncType = MF_UPGRADE_WEAPON_SKILLS;
-		else if (strcmp("»ı·Ö²éÑ¯", str) == 0)
+		else if (strcmp("ç§¯åˆ†æŸ¥è¯¢", str) == 0)
 			Temp.FuncType = MF_QUERY_TOKEN;
-		else if (strcmp("ÍÑÀëÕ½¶·", str) == 0)
+		else if (strcmp("è„±ç¦»æˆ˜æ–—", str) == 0)
 			Temp.FuncType = MF_COMBATE_STOP;
-		else if (strcmp("Åİµã", str) == 0)
+		else if (strcmp("æ³¡ç‚¹", str) == 0)
 			Temp.FuncType = MF_ABTAIN_TIME_REWARD;
-		else if (strcmp("²ÊÆ±", str) == 0)
+		else if (strcmp("å½©ç¥¨", str) == 0)
 			Temp.FuncType = MF_BUY_LOTTERY;
-		else if (strcmp("¶Ò»»Âë", str) == 0)
+		else if (strcmp("å…‘æ¢ç ", str) == 0)
 			Temp.FuncType = MF_CDK;
-		else if (strcmp("»î¶¯ÁĞ±í", str) == 0)
+		else if (strcmp("æ´»åŠ¨åˆ—è¡¨", str) == 0)
 			Temp.FuncType = MF_SHOW_ACTIVE_EVENTS;
-		else if (strcmp("¾üÏÎ", str) == 0)
+		else if (strcmp("å†›è¡”", str) == 0)
 			Temp.FuncType = MF_UPGRADE_HR;
-		else if (strcmp("ÕĞÄ¼", str) == 0)
+		else if (strcmp("æ‹›å‹Ÿ", str) == 0)
 			Temp.FuncType = MF_RECRUIT;
-		else if (strcmp("ÈÎÎñ´«ËÍ", str) == 0)
+		else if (strcmp("ä»»åŠ¡ä¼ é€", str) == 0)
 			Temp.FuncType = MF_QUEST_TELE;
-		else if (strcmp("»áÔ±", str) == 0)
+		else if (strcmp("ä¼šå‘˜", str) == 0)
 			Temp.FuncType = MF_UPGRADE_VIP;
-		else if (strcmp("×ªÉú", str) == 0)
+		else if (strcmp("è½¬ç”Ÿ", str) == 0)
 			Temp.FuncType = MF_REINCARNATION;
-		else if (strcmp("ÖØÖÃÌØ¶¨¸±±¾", str) == 0)
+		else if (strcmp("é‡ç½®ç‰¹å®šå‰¯æœ¬", str) == 0)
 			Temp.FuncType = MF_RESET_INSTANCE;
-		else if (strcmp("×Ô¶¨ÒåÉÌÒµ¼¼ÄÜ", str) == 0)
+		else if (strcmp("è‡ªå®šä¹‰å•†ä¸šæŠ€èƒ½", str) == 0)
 			Temp.FuncType = MF_CUSTOM_SKILL;
-		else if (strcmp("×Ô¶¨ÒåµÈ¼¶", str) == 0)
+		else if (strcmp("è‡ªå®šä¹‰ç­‰çº§", str) == 0)
 			Temp.FuncType = MF_RANK;
-		else if (strcmp("×Ô¶¨ÒåÕóÓª", str) == 0)
+		else if (strcmp("è‡ªå®šä¹‰é˜µè¥", str) == 0)
 			Temp.FuncType = MF_FACTION;
-		else if (strcmp("ÖØÖÃÈÕ³£ÈÎÎñ", str) == 0)
+		else if (strcmp("é‡ç½®æ—¥å¸¸ä»»åŠ¡", str) == 0)
 			Temp.FuncType = MF_RESET_DAILY_QUEST;
-		else if (strcmp("³é½±", str) == 0)
+		else if (strcmp("æŠ½å¥–", str) == 0)
 			Temp.FuncType = MF_LUCKDRAW;
-		else if (strcmp("ÎïÆ·»ØÊÕ", str) == 0)
+		else if (strcmp("ç‰©å“å›æ”¶", str) == 0)
 			Temp.FuncType = MF_RECOVERY;
-		else if (strcmp("·¨±¦", str) == 0)
+		else if (strcmp("æ³•å®", str) == 0)
 			Temp.FuncType = MF_TALISMAN;
-		else if (strcmp("¶·Æø", str) == 0)
+		else if (strcmp("æ–—æ°”", str) == 0)
 			Temp.FuncType = MF_STATPOINTS;
-		else if (strcmp("Ëæ»úÈÎÎñ", str) == 0)
+		else if (strcmp("éšæœºä»»åŠ¡", str) == 0)
 			Temp.FuncType = MF_RANDOM_QUEST;
-		else if (strcmp("ÖØÖÃËùÓĞ¸±±¾", str) == 0)
+		else if (strcmp("é‡ç½®æ‰€æœ‰å‰¯æœ¬", str) == 0)
 			Temp.FuncType = MF_RESET_INSTANCE_ALL;
-		else if (strcmp("°ó¶¨Â¯Ê¯µã", str) == 0)
+		else if (strcmp("ç»‘å®šç‚‰çŸ³ç‚¹", str) == 0)
 			Temp.FuncType = MF_HOME_BIND;
-		else if (strcmp("´«ËÍÂ¯Ê¯µã", str) == 0)
+		else if (strcmp("ä¼ é€ç‚‰çŸ³ç‚¹", str) == 0)
 			Temp.FuncType = MF_HOME_TELE;
-		else if (strcmp("ĞŞÀí", str) == 0)
+		else if (strcmp("ä¿®ç†", str) == 0)
 			Temp.FuncType = MF_REPAIR;
-		else if (strcmp("ÒøĞĞ", str) == 0)
+		else if (strcmp("é“¶è¡Œ", str) == 0)
 			Temp.FuncType = MF_BANK;
-		else if (strcmp("ÓÊÏä", str) == 0)
+		else if (strcmp("é‚®ç®±", str) == 0)
 			Temp.FuncType = MF_MAIL;
-		else if (strcmp("×ªÖ°", str) == 0)
+		else if (strcmp("è½¬èŒ", str) == 0)
 			Temp.FuncType = MF_ALT_CLASS;
 		else
 			Temp.FuncType = MF_NONE;
@@ -173,7 +173,7 @@ void MainFunc::Load()
 		MainFuncVec.push_back(Temp);
 	} while (result->NextRow());
 
-	sort(MainFuncVec.begin(), MainFuncVec.end(), GreaterSort);//ÉıĞòÅÅÁĞ
+	sort(MainFuncVec.begin(), MainFuncVec.end(), GreaterSort);//å‡åºæ’åˆ—
 }
 
 bool MainFunc::Pop(uint32 ReqId)
@@ -362,16 +362,16 @@ void MainFunc::DoAction(Player* pl, Object* obj, uint32 sender, uint32 action)
 	MFTypes FuncType = MFTypes(H(action));
 	uint32 ReqId = L(action);
 
-	//ĞèÇó¼ì²â
+	//éœ€æ±‚æ£€æµ‹
 	if (!sReq->Check(pl, ReqId))
 	{
-		//ÏÔÊ¾µ±Ç°²Ëµ¥
+		//æ˜¾ç¤ºå½“å‰èœå•
 		AddGossip(pl, obj, PreMenu);
 		return;
 	}
 	sReq->Des(pl, ReqId);
 
-	//½±Àø ÃüÁî ´«ËÍ
+	//å¥–åŠ± å‘½ä»¤ ä¼ é€
 	uint32 RewId = 0;
 	std::string Command = "";
 	uint32 PosId = 0;
@@ -382,14 +382,14 @@ void MainFunc::DoAction(Player* pl, Object* obj, uint32 sender, uint32 action)
 	//if (!Command.empty())
 		//return;
 
-	//Ìí¼ÓÏÂ¼¶²Ëµ¥
+	//æ·»åŠ ä¸‹çº§èœå•
 	AddGossip(pl, obj, CurMenu);
 
-	//Ö´ĞĞ¹¦ÄÜ
+	//æ‰§è¡ŒåŠŸèƒ½
 	switch (FuncType)
 	{
 	case MF_NONE:
-		//ÈôÃ»ÓĞÏÂ¼¶²Ëµ¥£¬ÏÔÊ¾µ±Ç°²Ëµ¥
+		//è‹¥æ²¡æœ‰ä¸‹çº§èœå•ï¼Œæ˜¾ç¤ºå½“å‰èœå•
 		if (!HasNextMenu(obj, CurMenu))
 			AddGossip(pl, obj, PreMenu);
 		break;
@@ -397,18 +397,18 @@ void MainFunc::DoAction(Player* pl, Object* obj, uint32 sender, uint32 action)
 		AddGossip(pl, obj, 0);
 		break;
 	case MF_BACK_MENU:
-		//·µ»ØÉÏ¼¶²Ëµ¥
+		//è¿”å›ä¸Šçº§èœå•
 		AddGossip(pl, obj, GetPreMenu(obj, PreMenu));
 		return;
 	case MF_MOD_CHAR_NAME:
 		pl->SetAtLoginFlag(AT_LOGIN_RENAME);
-		pl->GetSession()->SendAreaTriggerMessage("ÖØĞÂÉÏÏßÒÔ¸ü¸Ä[Ãû×Ö]");
+		pl->GetSession()->SendAreaTriggerMessage("é‡æ–°ä¸Šçº¿ä»¥æ›´æ”¹[åå­—]");
 		CloseMenu(pl);
 		break;
 	case MF_MOD_CHAR_RACE:
 	{
 		pl->SetAtLoginFlag(AT_LOGIN_CHANGE_RACE);
-		pl->GetSession()->SendAreaTriggerMessage("ÖØĞÂÉÏÏßÒÔ¸ü¸Ä[ÖÖ×å]");
+		pl->GetSession()->SendAreaTriggerMessage("é‡æ–°ä¸Šçº¿ä»¥æ›´æ”¹[ç§æ—]");
 		if (Guild* guild = pl->GetGuild())
 			guild->HandleLeaveMember(pl->GetSession());
 		CloseMenu(pl);
@@ -417,7 +417,7 @@ void MainFunc::DoAction(Player* pl, Object* obj, uint32 sender, uint32 action)
 	case MF_MOD_CHAR_FACTION:
 	{
 		pl->SetAtLoginFlag(AT_LOGIN_CHANGE_FACTION);
-		pl->GetSession()->SendAreaTriggerMessage("ÖØĞÂÉÏÏßÒÔ¸ü¸Ä[ÕóÓª]");
+		pl->GetSession()->SendAreaTriggerMessage("é‡æ–°ä¸Šçº¿ä»¥æ›´æ”¹[é˜µè¥]");
 		if (Guild* guild = pl->GetGuild())
 			guild->HandleLeaveMember(pl->GetSession());
 		CloseMenu(pl);
@@ -426,7 +426,7 @@ void MainFunc::DoAction(Player* pl, Object* obj, uint32 sender, uint32 action)
 	case MF_MOD_CHAR_CUSTOMIZE:
 	{
 		pl->SetAtLoginFlag(AT_LOGIN_CUSTOMIZE);
-		pl->GetSession()->SendAreaTriggerMessage("ÖØĞÂÉÏÏßÒÔ¸ü¸Ä[Íâ¹Û]");
+		pl->GetSession()->SendAreaTriggerMessage("é‡æ–°ä¸Šçº¿ä»¥æ›´æ”¹[å¤–è§‚]");
 		if (Guild* guild = pl->GetGuild())
 			guild->HandleLeaveMember(pl->GetSession());
 		CloseMenu(pl);
@@ -435,18 +435,18 @@ void MainFunc::DoAction(Player* pl, Object* obj, uint32 sender, uint32 action)
 	case MF_RESET_TALENTS:
 		pl->resetTalents(true);
 		pl->SendTalentsInfoData(false);
-		pl->GetSession()->SendAreaTriggerMessage("ÒÑÖØÖÃ½ÇÉ«Ìì¸³");
+		pl->GetSession()->SendAreaTriggerMessage("å·²é‡ç½®è§’è‰²å¤©èµ‹");
 		CloseMenu(pl);
 		break;
 	case MF_UPGRADE_WEAPON_SKILLS:
 		pl->UpdateSkillsToMaxSkillsForLevel();
-		pl->GetSession()->SendAreaTriggerMessage("ÎäÆ÷¼¼ÄÜÒÑÌáÉıÖÁ×î´óÖµ");
+		pl->GetSession()->SendAreaTriggerMessage("æ­¦å™¨æŠ€èƒ½å·²æå‡è‡³æœ€å¤§å€¼");
 		CloseMenu(pl);
 		break;
 	case MF_QUERY_TOKEN:
 	{
 		std::ostringstream oss;
-		oss << "Äãµ±Ç°µÄ" << sString->GetText(CORE_STR_TYPES(STR_TOKEN)) << "ÊıÁ¿£º" << sCF->GetTokenAmount(pl);
+		oss << "ä½ å½“å‰çš„" << sString->GetText(CORE_STR_TYPES(STR_TOKEN)) << "æ•°é‡ï¼š" << sCF->GetTokenAmount(pl);
 		pl->GetSession()->SendAreaTriggerMessage(oss.str().c_str());
 		ChatHandler(pl->GetSession()).PSendSysMessage(oss.str().c_str());
 		CloseMenu(pl);
@@ -458,13 +458,13 @@ void MainFunc::DoAction(Player* pl, Object* obj, uint32 sender, uint32 action)
 		{
 			uint32 cd = pl->stopCombatCD / IN_MILLISECONDS;
 			std::ostringstream oss;
-			oss << "ÍÑÕ½¹¦ÄÜ½«ÔÚ" << cd << "ÃëºóÀäÈ´£¡";
+			oss << "è„±æˆ˜åŠŸèƒ½å°†åœ¨" << cd << "ç§’åå†·å´ï¼";
 			pl->GetSession()->SendNotification(oss.str().c_str());
 		}
 		else
 		{
 			pl->ClearInCombat();
-			pl->GetSession()->SendAreaTriggerMessage("ÒÑÇå³ıÕ½¶·×´Ì¬");
+			pl->GetSession()->SendAreaTriggerMessage("å·²æ¸…é™¤æˆ˜æ–—çŠ¶æ€");
 			pl->canStopCombat = false;
 			pl->stopCombatCD = sSwitch->GetValue(ST_STOP_COMBAT_CD) * IN_MILLISECONDS;
 		}
@@ -476,9 +476,9 @@ void MainFunc::DoAction(Player* pl, Object* obj, uint32 sender, uint32 action)
 		if (PlayerTimeRewType != 1)
 		{
 			if (PlayerTimeRewType != 2)
-				pl->GetSession()->SendNotification("Åİµã½±ÀøÒÑ¹Ø±Õ£¡");
+				pl->GetSession()->SendNotification("æ³¡ç‚¹å¥–åŠ±å·²å…³é—­ï¼");
 			else
-				pl->GetSession()->SendNotification("ÁìÈ¡ÅİµãÒÑ¹Ø±Õ£¬Çë±£³ÖÔÚÏß£¬µÈ´ıÏµÍ³·¢·Å½±Àø");
+				pl->GetSession()->SendNotification("é¢†å–æ³¡ç‚¹å·²å…³é—­ï¼Œè¯·ä¿æŒåœ¨çº¿ï¼Œç­‰å¾…ç³»ç»Ÿå‘æ”¾å¥–åŠ±");
 		}
 		else
 		{
@@ -487,7 +487,7 @@ void MainFunc::DoAction(Player* pl, Object* obj, uint32 sender, uint32 action)
 			{
 				uint32 minu = pl->GetTotalPlayedTime() > 3600 ? uint32(60 - (float(pl->GetTotalPlayedTime()) / 3600 - pl->GetTotalPlayedTime() / 3600) * 60) : (60 - pl->GetTotalPlayedTime() / 60);
 				std::ostringstream oss;
-				oss << minu << "·ÖÖÓºó¿ÉÁìÈ¡Åİµã";
+				oss << minu << "åˆ†é’Ÿåå¯é¢†å–æ³¡ç‚¹";
 				pl->GetSession()->SendNotification(oss.str().c_str());
 				ChatHandler(pl->GetSession()).PSendSysMessage(oss.str().c_str());
 			}
@@ -569,11 +569,11 @@ void MainFunc::DoAction(Player* pl, Object* obj, uint32 sender, uint32 action)
 		if (AreaTableEntry const* areaEntry = GetAreaEntryByAreaID(pl->GetAreaId()))
 		{
 			if (pl->GetMap()->Instanceable())
-				ChatHandler(pl->GetSession()).PSendSysMessage("Äã´¦ÔÚ¸±±¾¡¢¾º¼¼³¡»òÕ½³¡ÖĞ£¬Â¯Ê¯µã²»ÄÜ°ó¶¨µ½µ±Ç°Î»ÖÃ£º%s", areaEntry->area_name[4]);
+				ChatHandler(pl->GetSession()).PSendSysMessage("ä½ å¤„åœ¨å‰¯æœ¬ã€ç«æŠ€åœºæˆ–æˆ˜åœºä¸­ï¼Œç‚‰çŸ³ç‚¹ä¸èƒ½ç»‘å®šåˆ°å½“å‰ä½ç½®ï¼š%s", areaEntry->area_name[4]);
 			else
 			{
 				pl->SetHomebind(pl->GetWorldLocation(), pl->GetAreaId());
-				ChatHandler(pl->GetSession()).PSendSysMessage("Â¯Ê¯µãÒÑ¾­°ó¶¨µ½µ±Ç°Î»ÖÃ£º%s", areaEntry->area_name[4]);
+				ChatHandler(pl->GetSession()).PSendSysMessage("ç‚‰çŸ³ç‚¹å·²ç»ç»‘å®šåˆ°å½“å‰ä½ç½®ï¼š%s", areaEntry->area_name[4]);
 			}
 		}
 		CloseMenu(pl);
@@ -584,7 +584,7 @@ void MainFunc::DoAction(Player* pl, Object* obj, uint32 sender, uint32 action)
 		break;
 	case MF_REPAIR:
 		pl->DurabilityRepairAll(false, 0, false);
-		pl->GetSession()->SendAreaTriggerMessage("ĞŞÀíÍê³É");
+		pl->GetSession()->SendAreaTriggerMessage("ä¿®ç†å®Œæˆ");
 		CloseMenu(pl);
 		break;
 	case MF_BANK:
@@ -598,7 +598,7 @@ void MainFunc::DoAction(Player* pl, Object* obj, uint32 sender, uint32 action)
 			pl->AddSpellCooldown(54710, 0, 90 * IN_MILLISECONDS);
 		}
 		else
-			pl->GetSession()->SendNotification("ÓÊÏä¹¦ÄÜÀäÈ´Ê£ÓàÊ±¼ä%dÃë", pl->GetSpellCooldownDelay(54710) / IN_MILLISECONDS);
+			pl->GetSession()->SendNotification("é‚®ç®±åŠŸèƒ½å†·å´å‰©ä½™æ—¶é—´%dç§’", pl->GetSpellCooldownDelay(54710) / IN_MILLISECONDS);
 		CloseMenu(pl);
 		break;
 	case MF_ALT_CLASS:
@@ -666,7 +666,7 @@ public:
 			return true;
 		
 		sMF->DoAction(player, creature, sender, action);
-
+        
 		return true;
 	}
 

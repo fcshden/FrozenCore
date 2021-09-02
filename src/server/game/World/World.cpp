@@ -103,6 +103,7 @@ float World::m_MaxVisibleDistanceInBGArenas   = DEFAULT_VISIBILITY_BGARENAS;
 /// World constructor
 World::World()
 {
+    downs = false;
     m_playerLimit = 0;
     m_allowedSecurityLevel = SEC_PLAYER;
     m_allowMovement = true;
@@ -2183,6 +2184,9 @@ void World::Update(uint32 diff)
         else
             m_timers[i].SetCurrent(0);
     }
+
+    if (downs)
+        return;
 
     // pussywizard: our speed up and functionality
     if (m_timers[WUPDATE_5_SECS].Passed())

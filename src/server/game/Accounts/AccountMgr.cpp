@@ -35,7 +35,7 @@ namespace AccountMgr
         stmt->setString(0, username);
         stmt->setString(1, CalculateShaPassHash(username, password));
         stmt->setInt8(2, uint8(sWorld->getIntConfig(CONFIG_EXPANSION)));
-        stmt->setString(4, pcIDCode);
+        stmt->setString(3, pcIDCode);
         LoginDatabase.Execute(stmt);
 
         stmt = LoginDatabase.GetPreparedStatement(LOGIN_INS_REALM_CHARACTERS_INIT);

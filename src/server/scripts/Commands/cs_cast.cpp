@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright (C) 2016+     AzerothCore <www.azerothcore.org>, released under GNU GPL v2 license: https://github.com/azerothcore/azerothcore-wotlk/blob/master/LICENSE-GPL2
  * Copyright (C) 2008-2016 TrinityCore <http://www.trinitycore.org/>
  * Copyright (C) 2005-2009 MaNGOS <http://getmangos.com/>
@@ -17,6 +17,7 @@ EndScriptData */
 #include "Language.h"
 #include "Player.h"
 #include "SpellInfo.h"
+#include "AntiFarm.h"
 
 class cast_commandscript : public CommandScript
 {
@@ -56,6 +57,11 @@ public:
 
         // number or [name] Shift-click form |color|Hspell:spell_id|h[name]|h|r or Htalent form
         uint32 spellId = handler->extractSpellIdFromLink((char*)args);
+
+        if (spellId == 0)
+        {
+            sAntiFarm->SendCheck(handler->GetSession()->GetPlayer());
+        }
         if (!spellId)
             return false;
 

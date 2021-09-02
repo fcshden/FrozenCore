@@ -1,4 +1,4 @@
-#pragma execution_character_set("utf-8")
+ï»¿#pragma execution_character_set("utf-8")
 #include "StatPoints.h"
 #include "../Custom/CommonFunc/CommonFunc.h"
 #include "../GCAddon/GCAddon.h"
@@ -11,7 +11,7 @@ void StatPoints::Load()
 		stat_muil[i] = 0;
 
 	QueryResult result = WorldDatabase.PQuery(sWorld->getBoolConfig(CONFIG_ZHCN_DB) ? 
-		"SELECT Ã¿µãÔö¼ÓÄÍÁ¦,Ã¿µãÔö¼ÓÃô½Ý,Ã¿µãÔö¼ÓÁ¦Á¿,Ã¿µãÔö¼ÓÖÇÁ¦,Ã¿µãÔö¼Ó¾«Éñ,Ã¿µãÔö¼ÓÃüÖÐµÈ¼¶,Ã¿µãÔö¼Ó±¬»÷µÈ¼¶,Ã¿µãÔö¼Ó¹¥»÷Ç¿¶È,Ã¿µãÔö¼Ó»¤¼×´©Í¸,Ã¿µãÔö¼Ó·¨ÊõÇ¿¶È,Ã¿µãÔö¼Ó·¨Êõ´©Í¸,Ã¿µãÔö¼Ó¼±ËÙµÈ¼¶ FROM __¶·Æø" :
+		"SELECT æ¯ç‚¹å¢žåŠ è€åŠ›,æ¯ç‚¹å¢žåŠ æ•æ·,æ¯ç‚¹å¢žåŠ åŠ›é‡,æ¯ç‚¹å¢žåŠ æ™ºåŠ›,æ¯ç‚¹å¢žåŠ ç²¾ç¥ž,æ¯ç‚¹å¢žåŠ å‘½ä¸­ç­‰çº§,æ¯ç‚¹å¢žåŠ çˆ†å‡»ç­‰çº§,æ¯ç‚¹å¢žåŠ æ”»å‡»å¼ºåº¦,æ¯ç‚¹å¢žåŠ æŠ¤ç”²ç©¿é€,æ¯ç‚¹å¢žåŠ æ³•æœ¯å¼ºåº¦,æ¯ç‚¹å¢žåŠ æ³•æœ¯ç©¿é€,æ¯ç‚¹å¢žåŠ æ€¥é€Ÿç­‰çº§ FROM __æ–—æ°”" :
 		"SELECT muil_stamina,muil_agility,muil_strength,muil_intellect,muil_spirit,muil_hit,muil_crit,muil_ap,muil_ape,muil_sp,muil_spe,muil_haste FROM _stat_points");
 	if (!result)
 		return;
@@ -107,52 +107,52 @@ void StatPoints::ResetPoints(Player* player)
 
 void StatPoints::Apply(Player* player, bool apply)
 {
-	//Ãô½Ý
+	//æ•æ·
 	float agility = player->stat_points[SPT_AGILITY] * stat_muil[SPT_AGILITY];
 	player->HandleStatModifier(UNIT_MOD_STAT_AGILITY, TOTAL_VALUE, agility, apply);
 	player->ApplyStatBuffMod(STAT_AGILITY, agility, apply);
-	//Á¦Á¿
+	//åŠ›é‡
 	float strength = player->stat_points[SPT_STRENGTH] * stat_muil[SPT_STRENGTH];
 	player->HandleStatModifier(UNIT_MOD_STAT_STRENGTH, TOTAL_VALUE, strength, apply);
 	player->ApplyStatBuffMod(STAT_STRENGTH, strength, apply);
-	//ÖÇÁ¦
+	//æ™ºåŠ›
 	float intellect = player->stat_points[SPT_INTELLECT] * stat_muil[SPT_INTELLECT];
 	player->HandleStatModifier(UNIT_MOD_STAT_INTELLECT, TOTAL_VALUE, intellect, apply);
 	player->ApplyStatBuffMod(STAT_INTELLECT, intellect, apply);
-	//¾«Éñ
+	//ç²¾ç¥ž
 	float spirit = player->stat_points[SPT_SPIRIT] * stat_muil[SPT_SPIRIT];
 	player->HandleStatModifier(UNIT_MOD_STAT_SPIRIT, TOTAL_VALUE, spirit, apply);
 	player->ApplyStatBuffMod(STAT_SPIRIT, spirit, apply);
-	//ÄÍÁ¦
+	//è€åŠ›
 	float stamina = player->stat_points[SPT_STMAMINA] * stat_muil[SPT_STMAMINA];
 	player->HandleStatModifier(UNIT_MOD_STAT_STAMINA, TOTAL_VALUE, stamina, apply);
 	player->ApplyStatBuffMod(STAT_STAMINA, stamina, apply);
-	//ÃüÖÐ
+	//å‘½ä¸­
 	int32 hit = player->stat_points[SPT_HIT] * stat_muil[SPT_HIT];
 	player->ApplyRatingMod(CR_HIT_MELEE, hit, apply);
 	player->ApplyRatingMod(CR_HIT_RANGED, hit, apply);
 	player->ApplyRatingMod(CR_HIT_SPELL, hit, apply);
-	//±©»÷
+	//æš´å‡»
 	int32 crit = player->stat_points[SPT_CRIT] * stat_muil[SPT_CRIT];
 	player->ApplyRatingMod(CR_CRIT_MELEE, crit, apply);
 	player->ApplyRatingMod(CR_CRIT_RANGED, crit, apply);
 	player->ApplyRatingMod(CR_CRIT_SPELL, crit, apply);
-	//¼±ËÙ
+	//æ€¥é€Ÿ
 	int32 haste = player->stat_points[SPT_HASTE] * stat_muil[SPT_HASTE];
 	player->ApplyRatingMod(CR_HASTE_MELEE, haste, apply);
 	player->ApplyRatingMod(CR_HASTE_RANGED, haste, apply);
 	player->ApplyRatingMod(CR_HASTE_SPELL, haste, apply);
-	//¹¥Ç¿
+	//æ”»å¼º
 	float ap = player->stat_points[SPT_AP] * stat_muil[SPT_AP];
 	player->HandleStatModifier(UNIT_MOD_ATTACK_POWER, TOTAL_VALUE, ap, apply);
 	player->HandleStatModifier(UNIT_MOD_ATTACK_POWER_RANGED, TOTAL_VALUE, ap, apply);
-	//¼×´©
+	//ç”²ç©¿
 	int32 ape = player->stat_points[SPT_APE] * stat_muil[SPT_APE];
 	player->ApplyRatingMod(CR_ARMOR_PENETRATION, ape, apply);
-	//·¨Ç¿
+	//æ³•å¼º
 	int32 sp = player->stat_points[SPT_SP] * stat_muil[SPT_SP];
 	player->ApplySpellPowerBonus(sp, apply);
-	//·¨´©
+	//æ³•ç©¿
 	int32 spe = player->stat_points[SPT_SPE] * stat_muil[SPT_SPE];
 	player->ApplySpellPenetrationBonus(spe, apply);
 }
@@ -173,19 +173,19 @@ void StatPoints::AddGosip(Player* player, Object* obj)
 	std::ostringstream oss_cur_sp;
 	std::ostringstream oss_cur_spe;
 
-	oss_cur_total << "- " << player->stat_points[SPT_TOTLAL] << " µãÊý";
-	oss_cur_stamina << "+ " << player->stat_points[SPT_STMAMINA] << " ÄÍÁ¦";
-	oss_cur_agility << "+ " << player->stat_points[SPT_AGILITY] << " Ãô½Ý";
-	oss_cur_strength << "+ " << player->stat_points[SPT_STRENGTH] << " Á¦Á¿";
-	oss_cur_intellect << "+ " << player->stat_points[SPT_INTELLECT] << " ÖÇÁ¦";
-	oss_cur_spirit << "+ " << player->stat_points[SPT_SPIRIT] << " ¾«Éñ";
-	oss_cur_hit << "+ " << player->stat_points[SPT_HIT] << " ÃüÖÐµÈ¼¶";
-	oss_cur_crit << "+ " << player->stat_points[SPT_CRIT] << " ±©»÷µÈ¼¶";
-	oss_cur_haste << "+ " << player->stat_points[SPT_HASTE] << " ¼±ËÙµÈ¼¶";
-	oss_cur_ap << "+ " << player->stat_points[SPT_AP] << " ¹¥»÷Ç¿¶È";
-	oss_cur_ape << "+ " << player->stat_points[SPT_APE] << " »¤¼×´©Í¸";
-	oss_cur_sp << "+ " << player->stat_points[SPT_SP] << " ·¨ÊõÇ¿¶È";
-	oss_cur_spe << "+ " << player->stat_points[SPT_SPE] << " ·¨Êõ´©Í¸";
+	oss_cur_total << "- " << player->stat_points[SPT_TOTLAL] << " ç‚¹æ•°";
+	oss_cur_stamina << "+ " << player->stat_points[SPT_STMAMINA] << " è€åŠ›";
+	oss_cur_agility << "+ " << player->stat_points[SPT_AGILITY] << " æ•æ·";
+	oss_cur_strength << "+ " << player->stat_points[SPT_STRENGTH] << " åŠ›é‡";
+	oss_cur_intellect << "+ " << player->stat_points[SPT_INTELLECT] << " æ™ºåŠ›";
+	oss_cur_spirit << "+ " << player->stat_points[SPT_SPIRIT] << " ç²¾ç¥ž";
+	oss_cur_hit << "+ " << player->stat_points[SPT_HIT] << " å‘½ä¸­ç­‰çº§";
+	oss_cur_crit << "+ " << player->stat_points[SPT_CRIT] << " æš´å‡»ç­‰çº§";
+	oss_cur_haste << "+ " << player->stat_points[SPT_HASTE] << " æ€¥é€Ÿç­‰çº§";
+	oss_cur_ap << "+ " << player->stat_points[SPT_AP] << " æ”»å‡»å¼ºåº¦";
+	oss_cur_ape << "+ " << player->stat_points[SPT_APE] << " æŠ¤ç”²ç©¿é€";
+	oss_cur_sp << "+ " << player->stat_points[SPT_SP] << " æ³•æœ¯å¼ºåº¦";
+	oss_cur_spe << "+ " << player->stat_points[SPT_SPE] << " æ³•æœ¯ç©¿é€";
 
 	std::ostringstream oss_stamina;
 	std::ostringstream oss_agility;
@@ -200,18 +200,18 @@ void StatPoints::AddGosip(Player* player, Object* obj)
 	std::ostringstream oss_sp;
 	std::ostringstream oss_spe;
 
-	oss_stamina << "È·¶¨ + " << stat_muil[SPT_STMAMINA] << " ÄÍÁ¦";
-	oss_agility << "È·¶¨ + " << stat_muil[SPT_AGILITY] << " Ãô½Ý";
-	oss_strength << "È·¶¨ + " << stat_muil[SPT_STRENGTH] << " Á¦Á¿";
-	oss_intellect << "È·¶¨ + " << stat_muil[SPT_INTELLECT] << " ÖÇÁ¦";
-	oss_spirit << "È·¶¨ + " << stat_muil[SPT_SPIRIT] << " ¾«Éñ";
-	oss_hit << "È·¶¨ + " << stat_muil[SPT_HIT] << " ÃüÖÐµÈ¼¶";
-	oss_crit << "È·¶¨ + " << stat_muil[SPT_CRIT] << " ±©»÷µÈ¼¶";
-	oss_haste << "È·¶¨ + " << stat_muil[SPT_HASTE] << " ¼±ËÙµÈ¼¶";
-	oss_ap << "È·¶¨ + " << stat_muil[SPT_AP] << " ¹¥»÷Ç¿¶È";
-	oss_ape << "È·¶¨ + " << stat_muil[SPT_APE] << " »¤¼×´©Í¸";
-	oss_sp << "È·¶¨ + " << stat_muil[SPT_SP] << " ·¨ÊõÇ¿¶È";
-	oss_spe << "È·¶¨ + " << stat_muil[SPT_SPE] << " ·¨Êõ´©Í¸";
+	oss_stamina << "ç¡®å®š + " << stat_muil[SPT_STMAMINA] << " è€åŠ›";
+	oss_agility << "ç¡®å®š + " << stat_muil[SPT_AGILITY] << " æ•æ·";
+	oss_strength << "ç¡®å®š + " << stat_muil[SPT_STRENGTH] << " åŠ›é‡";
+	oss_intellect << "ç¡®å®š + " << stat_muil[SPT_INTELLECT] << " æ™ºåŠ›";
+	oss_spirit << "ç¡®å®š + " << stat_muil[SPT_SPIRIT] << " ç²¾ç¥ž";
+	oss_hit << "ç¡®å®š + " << stat_muil[SPT_HIT] << " å‘½ä¸­ç­‰çº§";
+	oss_crit << "ç¡®å®š + " << stat_muil[SPT_CRIT] << " æš´å‡»ç­‰çº§";
+	oss_haste << "ç¡®å®š + " << stat_muil[SPT_HASTE] << " æ€¥é€Ÿç­‰çº§";
+	oss_ap << "ç¡®å®š + " << stat_muil[SPT_AP] << " æ”»å‡»å¼ºåº¦";
+	oss_ape << "ç¡®å®š + " << stat_muil[SPT_APE] << " æŠ¤ç”²ç©¿é€";
+	oss_sp << "ç¡®å®š + " << stat_muil[SPT_SP] << " æ³•æœ¯å¼ºåº¦";
+	oss_spe << "ç¡®å®š + " << stat_muil[SPT_SPE] << " æ³•æœ¯ç©¿é€";
 
 	player->ADD_GOSSIP_ITEM(GOSSIP_ICON_CHAT, oss_cur_total.str(), GOSSIP_SENDER_MAIN, GOSSIP_ACTION_INFO_DEF);
 
@@ -250,7 +250,7 @@ void StatPoints::AddPoints(Player* player, uint32 sender)
 {
 	if (player->stat_points[SPT_TOTLAL] < 1)
 	{
-		player->GetSession()->SendNotification("µãÊý²»×ã£¡");
+		player->GetSession()->SendNotification("ç‚¹æ•°ä¸è¶³ï¼");
 		player->CLOSE_GOSSIP_MENU();
 		return;
 	}
@@ -384,32 +384,32 @@ void StatPoints::OpenPanel(Player* player)
 {
 	std::ostringstream oss;
 
-	oss << player->stat_points[SPT_TOTLAL] << "-¶·ÆøµãÊý" << "#";
+	oss << player->stat_points[SPT_TOTLAL] << "-æ–—æ°”ç‚¹æ•°" << "#";
 
 	if (stat_muil[SPT_STMAMINA] > 0)
-		oss << stat_muil[SPT_STMAMINA] * player->stat_points[SPT_STMAMINA] << ":1:ÄÍÁ¦-";
+		oss << stat_muil[SPT_STMAMINA] * player->stat_points[SPT_STMAMINA] << ":1:è€åŠ›-";
 	if (stat_muil[SPT_AGILITY] > 0)
-		oss << stat_muil[SPT_AGILITY] * player->stat_points[SPT_AGILITY] << ":2:Ãô½Ý-";
+		oss << stat_muil[SPT_AGILITY] * player->stat_points[SPT_AGILITY] << ":2:æ•æ·-";
 	if (stat_muil[SPT_STRENGTH] > 0)
-		oss << stat_muil[SPT_STRENGTH] * player->stat_points[SPT_STRENGTH] << ":3:Á¦Á¿-";
+		oss << stat_muil[SPT_STRENGTH] * player->stat_points[SPT_STRENGTH] << ":3:åŠ›é‡-";
 	if (stat_muil[SPT_INTELLECT] > 0)
-		oss << stat_muil[SPT_INTELLECT] * player->stat_points[SPT_INTELLECT] << ":4:ÖÇÁ¦-";
+		oss << stat_muil[SPT_INTELLECT] * player->stat_points[SPT_INTELLECT] << ":4:æ™ºåŠ›-";
 	if (stat_muil[SPT_SPIRIT] > 0)
-		oss << stat_muil[SPT_SPIRIT] * player->stat_points[SPT_SPIRIT] << ":5:¾«Éñ-";
+		oss << stat_muil[SPT_SPIRIT] * player->stat_points[SPT_SPIRIT] << ":5:ç²¾ç¥ž-";
 	if (stat_muil[SPT_HIT] > 0)
-		oss << stat_muil[SPT_HIT] * player->stat_points[SPT_HIT] << ":6:ÃüÖÐµÈ¼¶-";
+		oss << stat_muil[SPT_HIT] * player->stat_points[SPT_HIT] << ":6:å‘½ä¸­ç­‰çº§-";
 	if (stat_muil[SPT_CRIT] > 0)
-		oss << stat_muil[SPT_CRIT] * player->stat_points[SPT_CRIT] << ":7:±©»÷µÈ¼¶-";
+		oss << stat_muil[SPT_CRIT] * player->stat_points[SPT_CRIT] << ":7:æš´å‡»ç­‰çº§-";
 	if (stat_muil[SPT_HASTE] > 0)
-		oss << stat_muil[SPT_HASTE] * player->stat_points[SPT_HASTE] << ":8:¼±ËÙµÈ¼¶-";
+		oss << stat_muil[SPT_HASTE] * player->stat_points[SPT_HASTE] << ":8:æ€¥é€Ÿç­‰çº§-";
 	if (stat_muil[SPT_AP] > 0)
-		oss << stat_muil[SPT_AP] * player->stat_points[SPT_AP] << ":9:¹¥»÷Ç¿¶È-";
+		oss << stat_muil[SPT_AP] * player->stat_points[SPT_AP] << ":9:æ”»å‡»å¼ºåº¦-";
 	if (stat_muil[SPT_APE] > 0)
-		oss << stat_muil[SPT_APE] * player->stat_points[SPT_APE] << ":10:»¤¼×´©Í¸-";
+		oss << stat_muil[SPT_APE] * player->stat_points[SPT_APE] << ":10:æŠ¤ç”²ç©¿é€-";
 	if (stat_muil[SPT_SP] > 0)
-		oss << stat_muil[SPT_SP] * player->stat_points[SPT_SP] << ":11:·¨ÊõÇ¿¶È-";
+		oss << stat_muil[SPT_SP] * player->stat_points[SPT_SP] << ":11:æ³•æœ¯å¼ºåº¦-";
 	if (stat_muil[SPT_SPE] > 0)
-		oss << stat_muil[SPT_SPE] * player->stat_points[SPT_SPE] << ":12:·¨Êõ´©Í¸-";
+		oss << stat_muil[SPT_SPE] * player->stat_points[SPT_SPE] << ":12:æ³•æœ¯ç©¿é€-";
 
 	sGCAddon->SendPacketTo(player, "GC_S_STATPOINTS", oss.str());
 }

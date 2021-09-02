@@ -1,4 +1,4 @@
-#define AntiFarmCheckInterval	60000
+﻿#define AntiFarmCheckInterval	60000
 #define AntiFarmTimeOut			30000
 
 enum AntiFarmActions
@@ -7,6 +7,7 @@ enum AntiFarmActions
 	AF_CHECK_REPEAT,
 	AF_CHECK_FAIL,
 	AF_CHECK_TIME_OUT,
+    AF_CHECK_KILL,
 };
 
 class AntiFarm
