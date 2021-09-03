@@ -382,6 +382,20 @@ bool Group::AddMember(Player* player)
 
     SubGroupCounterIncrease(subGroup);
 
+    player->SetGroupInvite(nullptr);
+    if (player->GetGroup())
+    {
+        if (isBGGroup() || isBFGroup()) // if player is in group and he is being added to BG raid group, then call SetBattlegroundRaid()
+            player->SetBattlegroundOrBattlefieldRaid(this, subGroup);
+        else //if player is in bg raid and we are adding him to normal group, then call SetOriginalGroup()
+            player->SetOriginalGroup(this, subGroup);
+
+    }
+    else //if player is not in group, then call set group
+        player->SetGroup(this, subGroup);
+    // if the same group invites the player back, cancel the homebind timer
+    _cancelHomebindIfInstance(player);
+
     if (!isRaidGroup())                                      // reset targetIcons for non-raid-groups
     {
         for (uint8 i = 0; i < TARGETICONCOUNT; ++i)
