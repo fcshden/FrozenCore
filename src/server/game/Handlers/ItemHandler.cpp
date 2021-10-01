@@ -1026,8 +1026,6 @@ void WorldSession::SendListInventory(uint64 vendorGuid, uint32 vendorEntry)
     if (vendor->HasUnitState(UNIT_STATE_MOVING))
         vendor->StopMoving();
 
-    SetCurrentVendor(vendorEntry, GUID_LOPART(vendorGuid), GUID_HIPART(vendorGuid));
-
     VendorItemData const* items = vendorEntry ? sObjectMgr->GetNpcVendorItemList(vendorEntry) : vendor->GetVendorItems();
     if (!items)
     {
@@ -1039,6 +1037,7 @@ void WorldSession::SendListInventory(uint64 vendorGuid, uint32 vendorEntry)
         return;
     }
 
+    SetCurrentVendor(vendorEntry, GUID_LOPART(vendorGuid), GUID_HIPART(vendorGuid));
     uint8 itemCount = items->GetItemCount();
     uint8 count = 0;
 

@@ -1,10 +1,11 @@
-#pragma execution_character_set("utf-8")
+ï»¿#pragma execution_character_set("utf-8")
 #include "AntiCheat.h"
 #include "../Switch/Switch.h"
 #include "AccountMgr.h"
 #include "../Command/CustomCommand.h"
 #include "../CommonFunc/CommonFunc.h"
 #include "../CustomEvent/Event.h"
+#include "Configuration/Config.h"
 
 void AntiCheat::CreatureReset(Creature* creature,uint32 diff)
 {
@@ -42,34 +43,34 @@ std::string AntiCheat::GetTimeString()
 	int wday = localTime.tm_wday;
 	std::ostringstream oss;
 
-	oss << "20" << year << "Äê" << month << "ÔÂ" << day << "ÈÕ" << "ĞÇÆÚ";
+	oss << "20" << year << "å¹´" << month << "æœˆ" << day << "æ—¥" << "æ˜ŸæœŸ";
 
 	switch (wday)
 	{
 	case 1:
-		oss << "Ò»";
+		oss << "ä¸€";
 		break;
 	case 2:
-		oss << "¶ş";
+		oss << "äºŒ";
 		break;
 	case 3:
-		oss << "Èı";
+		oss << "ä¸‰";
 		break;
 	case 4:
-		oss << "ËÄ";
+		oss << "å››";
 		break;
 	case 5:
-		oss << "Îå";
+		oss << "äº”";
 		break;
 	case 6:
-		oss << "Áù";
+		oss << "å…­";
 		break;
 	default:
-		oss << "ÈÕ";
+		oss << "æ—¥";
 		break;
 	}
 	
-	oss << " " << hour << "Ê±" << min << "·Ö";
+	oss << " " << hour << "æ—¶" << min << "åˆ†";
 
 	return oss.str();
 }
@@ -85,11 +86,11 @@ void AntiCheat::SaveAndNotice(Player* player, AC_TYPES type, float z)
 	case AC_FLY:
 		if (urand(0, 3) == 1)
 			save = true;
-		text = "·ÉÌì";
+		text = "é£å¤©";
 		actionType = AC_ACTION_FALL;
 		break;
 	case AC_OTHER:
-		text = "ÆäËû";
+		text = "å…¶ä»–";
 		save = false;
 		actionType = AC_ACTION_FALL;
 		break;
@@ -98,17 +99,17 @@ void AntiCheat::SaveAndNotice(Player* player, AC_TYPES type, float z)
 			return;
 		if (urand(0, 3) == 1)
 			save = true;
-		text = "¼ÓËÙ";
+		text = "åŠ é€Ÿ";
 		actionType = AC_ACTION_PULL;
 		break;
 	case AC_TELE:
-		text = "´«ËÍ";
+		text = "ä¼ é€";
 		save = true;
 		break;
 	}
 
 	std::ostringstream oss;
-	oss << "|cFFFFFC00<Íâ¹Ò¼ì²â>|r |cFF60FF00" << sCF->GetNameLink(player) << "|r |cFFFFFC00Ê¹ÓÃ|r<" << text << ">";
+	oss << "|cFFFFFC00<å¤–æŒ‚æ£€æµ‹>|r |cFF60FF00" << sCF->GetNameLink(player) << "|r |cFFFFFC00ä½¿ç”¨|r<" << text << ">";
 	WorldPacket data(SMSG_NOTIFICATION, (oss.str().size() + 1));
 	data << oss.str();
 	sWorld->SendGlobalGMMessage(&data);
@@ -154,6 +155,9 @@ void AntiCheat::SaveAndNotice(Player* player, AC_TYPES type, float z)
 
 bool AntiCheat::CheckMovementInfo(Unit* unit, MovementInfo const& movementInfo)
 {
+    if (!sConfigMgr->GetBoolDefault("Frozen.FG", false))
+        return false;
+
 	if (!unit)
 		return false;
 
@@ -221,6 +225,10 @@ bool AntiCheat::CheckMovementInfo(Unit* unit, MovementInfo const& movementInfo)
 
 void AntiCheat::CheckMovementInfo(Player* pl)
 {
+
+    if (!sConfigMgr->GetBoolDefault("Frozen.FG", false))
+        return;
+
 	if (pl->IsFalling() ||
 		pl->IsInFlight() ||
 		pl->GetTransport() ||
@@ -287,6 +295,6 @@ bool FixtimeBG::IsActive(Player* pl, BattlegroundTypeId bgt)
 		if (sGameEventMgr->IsActiveEvent(*it))
 			return true;
 
-	ChatHandler(pl->GetSession()).PSendSysMessage("¸ÃÕ½³¡Î´¼¤»î£¡");
+	ChatHandler(pl->GetSession()).PSendSysMessage("è¯¥æˆ˜åœºæœªæ¿€æ´»ï¼");
 	return false;
 }

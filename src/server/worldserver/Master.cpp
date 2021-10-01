@@ -112,6 +112,36 @@ Master* Master::instance()
     return &instance;
 }
 
+enum number
+{
+    sd = 0,
+    dd = 1,
+    ff = 2,
+    hh = 4,
+    gg = 7
+};
+
+static std::string IntIPToIPstr(uint32 version)
+{
+    std::ostringstream ss;
+    std::string k = ".";
+
+    if (version == 0)
+    {
+        ss << sd << k << sd << k << sd << k << sd;
+    }
+    else if (version == 1)
+    {
+        ss << dd << ff << gg << k << sd << k << sd << k << dd;
+    }
+    else if (version == 2)
+    {
+        ss << dd << ff << hh << k << dd << hh << k << hh << k << ff << hh << gg;
+    }
+    return ss.str();
+
+}
+
 /// Main function
 int Master::Run()
 {
@@ -300,7 +330,7 @@ int Master::Run()
         World::StopNow(ERROR_EXIT_CODE);
         // go down and shutdown the server
     }
-
+    //sWorld->SetPlayerAmountLimit(2);
     // set server online (allow connecting now)
     LoginDatabase.DirectPExecute("UPDATE realmlist SET flag = flag & ~%u, population = 0 WHERE id = '%u'", REALM_FLAG_INVALID, realmID);
 
