@@ -606,8 +606,6 @@ void WorldSession::HandleBattleFieldPortOpcode(WorldPacket &recvData)
                     _player->SpawnCorpseBones();
                 }
 
-                TeamId teamId = ginfo.teamId;
-
                 // remove player from all bg queues
                 for (uint32 qslot = 0; qslot < PLAYER_MAX_BATTLEGROUND_QUEUES; ++qslot)
                     if (BattlegroundQueueTypeId q = _player->GetBattlegroundQueueTypeId(qslot))
@@ -647,10 +645,10 @@ void WorldSession::HandleBattleFieldPortOpcode(WorldPacket &recvData)
                 }
 
                 // send status packet
-                sBattlegroundMgr->BuildBattlegroundStatusPacket(&data, bg, queueSlot, STATUS_IN_PROGRESS, 0, bg->GetStartTime(), bg->GetArenaType(), teamId);
+                sBattlegroundMgr->BuildBattlegroundStatusPacket(&data, bg, queueSlot, STATUS_IN_PROGRESS, 0, bg->GetStartTime(), bg->GetArenaType(), ginfo.teamId);
                 SendPacket(&data);
 
-                _player->SetBattlegroundId(bg->GetInstanceID(), bg->GetBgTypeID(), queueSlot, true, bgTypeId == BATTLEGROUND_RB, teamId);
+                _player->SetBattlegroundId(bg->GetInstanceID(), bg->GetBgTypeID(), queueSlot, true, bgTypeId == BATTLEGROUND_RB, ginfo.teamId);
 
                 sBattlegroundMgr->SendToBattleground(_player, ginfo.IsInvitedToBGInstanceGUID, bgTypeId);
             }
