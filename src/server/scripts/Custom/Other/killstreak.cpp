@@ -1,4 +1,4 @@
-#pragma execution_character_set("utf-8")
+ï»¿#pragma execution_character_set("utf-8")
 #include "../PrecompiledHeaders/ScriptPCH.h"
 #include "../DataLoader/DataLoader.h"
 #include "../CommonFunc/CommonFunc.h"
@@ -9,9 +9,9 @@
 #include "../PvP/PvP.h"
 
 
-//announceFlag		//0 - ²»ÌáÊ¾   1 - Á¬É±ÌáÊ¾		2 - ÖÕ½áÁ¬É±ÌáÊ¾		3 - ¶¼ÌáÊ¾
-//rewFlag			//0 - Ò°Íâ     1 - Õ½³¡			2 - Ò°ÍâºÍÕ½³¡
-//endRewFlag		//0 - Ò°Íâ     1 - Õ½³¡			2 - Ò°ÍâºÍÕ½³¡
+//announceFlag		//0 - ä¸æç¤º   1 - è¿æ€æç¤º		2 - ç»ˆç»“è¿æ€æç¤º		3 - éƒ½æç¤º
+//rewFlag			//0 - é‡å¤–     1 - æˆ˜åœº			2 - é‡å¤–å’Œæˆ˜åœº
+//endRewFlag		//0 - é‡å¤–     1 - æˆ˜åœº			2 - é‡å¤–å’Œæˆ˜åœº
 
 const int32 KillerStreak1 = 1;
 const int32 KillerStreak2 = 2;
@@ -146,11 +146,11 @@ public:
 		if (pVictim->HasAura(2479) || pVictim->HasAura(46705))
 			return;
 
-		//ĞéÈõ¸´»î
+		//è™šå¼±å¤æ´»
 		if (pVictim->HasAura(15007))
 			return;
 
-		//Í¬IP
+		//åŒIP
 		std::string kIP = pKiller->GetSession()->GetRemoteAddress();
 		std::string vIP = pVictim->GetSession()->GetRemoteAddress();
 		if (strcmp(kIP.c_str(), vIP.c_str()) == 0)
@@ -159,15 +159,15 @@ public:
 		uint32 kGUID = pKiller->GetGUID();
 		uint32 vGUID = pVictim->GetGUID();
 
-		//×ÔÉ±
+		//è‡ªæ€
 		if (kGUID == vGUID)
 			return;
 
-		//Á¬Ğø»÷É±Í¬Ò»Íæ¼Ò
+		//è¿ç»­å‡»æ€åŒä¸€ç©å®¶
 		if (KillingStreak[kGUID].LastGUIDKill == vGUID)
 			return;
 
-		//Á¬Ğø»÷É±Í¬Ò»IPÏÂµÄÍæ¼Ò
+		//è¿ç»­å‡»æ€åŒä¸€IPä¸‹çš„ç©å®¶
 		if (Player* lastVictim = ObjectAccessor::FindPlayerInOrOutOfWorld(MAKE_NEW_GUID(KillingStreak[kGUID].LastGUIDKill, 0, HIGHGUID_PLAYER)))
 		{
 			if (WorldSession* session = lastVictim->GetSession())
@@ -184,7 +184,7 @@ public:
 		//sTalisman->OnKillStreak(pKiller);
 
 		KilledAnnounceAndRew(pKiller, pVictim, KillingStreak[vGUID].KillStreak);
-		//Á¬É±
+		//è¿æ€
 
 		KillingStreak[kGUID].KillStreak++;
 		KillingStreak[vGUID].KillStreak = 0;
