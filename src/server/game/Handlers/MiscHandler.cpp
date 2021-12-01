@@ -107,9 +107,6 @@ void WorldSession::HandleGossipSelectOptionOpcode(WorldPacket & recv_data)
 
     recv_data >> guid >> menuId >> gossipListId;
 
-    if (_player->PlayerTalkClass->IsGossipOptionCoded(gossipListId))
-        recv_data >> code;
-
     //处理弹窗钩子
 
     if (sRecruit->RecruitAcceptOrCancel(GetPlayer(), menuId))

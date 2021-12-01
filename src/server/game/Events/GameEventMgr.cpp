@@ -24,7 +24,7 @@
 #include "../../scripts/Custom/CharPvpTop/CharPvpTop.h"
 #include "../../scripts/Custom/Switch/Switch.h"
 #include "../../scripts/Custom/GvgSys/GvgSys.h"
-
+#include "ArenaTeam.h"
 #ifdef ELUNA
 #include "LuaEngine.h"
 #endif

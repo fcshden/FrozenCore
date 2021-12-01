@@ -1,4 +1,4 @@
-/*
+ï»¿/*
  *
  * Copyright (C) 2013 Emu-Devstore <http://emu-devstore.com/>
  * Written by Teiby <http://www.teiby.de/>
@@ -13,8 +13,28 @@
 #include "Battleground.h"
 #include "ArenaTeam.h"
 #include "Language.h"
-#include "npc_arena1v1.h"
+#include "Config.h"
 
+ //Config
+std::vector<uint32> forbiddenTalents;
+
+class configloader_1v1arena : public WorldScript
+{
+public:
+    configloader_1v1arena() : WorldScript("configloader_1v1arena") {}
+
+
+    virtual void OnAfterConfigLoad(bool Reload) override
+    {
+        std::string blockedTalentsStr = sConfigMgr->GetStringDefault("Arena.1v1.ForbiddenTalentsIDs", "");
+        Tokenizer toks(blockedTalentsStr, ',');
+        for (auto&& token : toks)
+        {
+            forbiddenTalents.push_back(std::stoi(token));
+        }
+    }
+
+};
 
 class npc_1v1arena : public CreatureScript
 {
@@ -33,8 +53,8 @@ public:
             return false;
 
 		uint64 guid = player->GetGUID();
-        uint8 arenaslot = ArenaTeam::GetSlotByType(ARENA_TEAM_5v5);
-        uint8 arenatype = ARENA_TYPE_5v5;
+        uint8 arenaslot = ArenaTeam::GetSlotByType(ARENA_TEAM_1v1);
+        uint8 arenatype = ARENA_TYPE_1v1;
         uint32 arenaRating = 0;
         uint32 matchmakerRating = 0;
 
@@ -111,13 +131,13 @@ public:
     }
 
 
-    bool CreateArenateam(Player* player, Creature* me)
+    bool CreateArenateam(Player* player, Creature* me, std::string teamName)
     {
         if(!player || !me)
             return false;
 
-        uint8 slot = ArenaTeam::GetSlotByType(ARENA_TEAM_5v5);
-        if (slot >= MAX_ARENA_SLOT)
+        uint8 slot = ArenaTeam::GetSlotByType(ARENA_TEAM_1v1);
+        if (slot == 0)
             return false;
 
         // Check if player is already in an arena team
@@ -127,27 +147,10 @@ public:
             return false;
         }
 
-
-        // Teamname = playername
-        // if teamname exist, we have to choose another name (playername + number)
-        int i = 1;
-        std::stringstream teamName;
-        teamName << player->GetName();
-        do
-        {
-            if(sArenaTeamMgr->GetArenaTeamByName(teamName.str()) != NULL) // teamname exist, so choose another name
-            {
-                teamName.str(std::string());
-                teamName << player->GetName() << (i++);
-            }
-            else
-                break;
-        } while (i < 100); // should never happen
-
         // Create arena team
         ArenaTeam* arenaTeam = new ArenaTeam();
 
-        if (!arenaTeam->Create(player->GetGUID(), ARENA_TEAM_5v5, teamName.str(), 4283124816, 45, 4294242303, 5, 4294705149))
+        if (!arenaTeam->Create(player->GetGUID(), ARENA_TEAM_1v1, teamName, 4283124816, 45, 4294242303, 5, 4294705149))
         {
             delete arenaTeam;
             return false;
@@ -157,46 +160,115 @@ public:
         sArenaTeamMgr->AddArenaTeam(arenaTeam);
         arenaTeam->AddMember(player->GetGUID());
 
-        ChatHandler(player->GetSession()).SendSysMessage("ÒÑ¾­½¨Á¢µµ°¸");
+        ChatHandler(player->GetSession()).SendSysMessage("ç«žæŠ€åœºé˜Ÿä¼åˆ›å»ºå®Œæˆ!");
 
         return true;
     }
 
+    bool Arena1v1CheckTalents(Player* player)
+    {
+        if (!player)
+            return false;
+
+        if (sWorld->getBoolConfig(CONFIG_ARENA_1V1_BLOCK_FORBIDDEN_TALENTS) == false)
+            return true;
+
+        uint32 count = 0;
+
+        for (uint32 talentId = 0; talentId < sTalentStore.GetNumRows(); ++talentId)
+        {
+            TalentEntry const* talentInfo = sTalentStore.LookupEntry(talentId);
+
+            if (!talentInfo)
+                continue;
+
+            if (std::find(forbiddenTalents.begin(), forbiddenTalents.end(), talentInfo->TalentID) != forbiddenTalents.end())
+            {
+                ChatHandler(player->GetSession()).SendSysMessage("ä½ æœ‰1v1ç«žæŠ€åœºè¢«ç¦æ­¢çš„å¤©èµ‹,ä¸èƒ½åŠ å…¥1V1ç«žæŠ€åœº.");
+                return false;
+            }
+
+            for (int8 rank = MAX_TALENT_RANK - 1; rank >= 0; --rank)
+                if (talentInfo->RankID[rank] == 0)
+                    continue;
+        }
+
+        uint32 talentsss = sConfigMgr->GetIntDefault("Arena.1v1.ForbiddenTalentpoints", 35);
+        if (count >= talentsss)
+        {
+            ChatHandler(player->GetSession()).PSendSysMessage("ä½ åœ¨æ²»ç–—æˆ–è€…å¦å…‹å¤©èµ‹ä¸­æŠ•å…¥è¶…è¿‡%uç‚¹å¤©èµ‹,è¢«ç¦æ­¢è¿›å…¥1V1ç«žæŠ€åœº", talentsss);
+            return false;
+        }
+
+        return true;
+    }
 
     bool OnGossipHello(Player* player, Creature* me)
     {
         if(!player || !me)
             return true;
 
-		if (sWorld->getBoolConfig(CONFIG_ARENA_1V1_ENABLE) == false)//Èç¹û¶ÁÈ¡²»ÁËconfÖµ,ÄÇ¾ÍÔÝÊ±¸ÄÎªtrue
+		if (sWorld->getBoolConfig(CONFIG_ARENA_1V1_ENABLE) == false)//å¦‚æžœè¯»å–ä¸äº†confå€¼,é‚£å°±æš‚æ—¶æ”¹ä¸ºtrue
         {
-            ChatHandler(player->GetSession()).SendSysMessage("1VS1ÒÑ±»½ûÖ¹");
+            ChatHandler(player->GetSession()).SendSysMessage("1VS1å·²è¢«ç¦æ­¢");
             return true;
         }
-		
-		if (sWorld->getIntConfig(CONFIG_ARENA_1V1_MIN_LEVEL) > player->getLevel())//Ôö¼ÓµÈ¼¶¹ýÂË
+
+        uint32 eventid = sConfigMgr->GetIntDefault("Arena.1v1.Event", 130);
+        if (!sGameEventMgr->IsActiveEvent(eventid))
+        {
+            if (!eventid)
+            {
+                ChatHandler(player->GetSession()).SendSysMessage("é”™è¯¯çš„äº‹ä»¶ID");
+                return true;
+            }
+            else
+            {
+                GameEventMgr::GameEventDataMap const& events = sGameEventMgr->GetEventMap();
+
+                if (eventid >= events.size())
+                {
+                    ChatHandler(player->GetSession()).SendSysMessage("é”™è¯¯çš„äº‹ä»¶ID");
+                    return true;
+                }
+
+                GameEventData const& eventData = events[eventid];
+                if (!eventData.isValid())
+                {
+                    ChatHandler(player->GetSession()).SendSysMessage("é”™è¯¯çš„äº‹ä»¶ID");
+                    return true;
+                }
+
+                uint32 diff = sGameEventMgr->NextCheck(eventid);  //80
+                std::string timestd = secsToTimeString(diff, true);
+                ChatHandler(player->GetSession()).PSendSysMessage("1V1æ´»åŠ¨å°†åœ¨%såŽå¼€å§‹", timestd.c_str());
+                return true;
+            }
+        }
+
+		if (sWorld->getIntConfig(CONFIG_ARENA_1V1_MIN_LEVEL) > player->getLevel())//å¢žåŠ ç­‰çº§è¿‡æ»¤
 		{
-			ChatHandler(player->GetSession()).PSendSysMessage("ÄãµÄµÈ¼¶²»¹»£¬¿ìÈ¥Á·¼¶£¡", sWorld->getIntConfig(CONFIG_ARENA_1V1_MIN_LEVEL));
+			ChatHandler(player->GetSession()).PSendSysMessage("ä½ çš„ç­‰çº§éœ€è¦è¾¾åˆ°%uï¼Œå¿«åŽ»ç»ƒçº§ï¼", sWorld->getIntConfig(CONFIG_ARENA_1V1_MIN_LEVEL));
 			player->CLOSE_GOSSIP_MENU();
 			return true;
 		}
 		
-        if(player->InBattlegroundQueueForBattlegroundQueueType(BATTLEGROUND_QUEUE_5v5))
-                player->ADD_GOSSIP_ITEM_EXTENDED(GOSSIP_ICON_CHAT, "ËãÁË ÎÒ²»ÅÅÁË", GOSSIP_SENDER_MAIN, 3, "ÄãÈ·¶¨Âð?", 0, false);
+        if(player->InBattlegroundQueueForBattlegroundQueueType(BATTLEGROUND_QUEUE_1v1))
+                player->ADD_GOSSIP_ITEM_EXTENDED(GOSSIP_ICON_CHAT, "ç¦»å¼€1V1ç«žæŠ€åœºé˜Ÿåˆ—", GOSSIP_SENDER_MAIN, 3, "ä½ ç¡®å®šå—?", 0, false);
         else
-            player->ADD_GOSSIP_ITEM(GOSSIP_ICON_CHAT, "È¥Á·Ï°ÈüÇÐ´è", GOSSIP_SENDER_MAIN, 20);
+            player->ADD_GOSSIP_ITEM(GOSSIP_ICON_CHAT, "åŠ å…¥1V1ç«žæŠ€åœº(ç»ƒä¹ èµ›)", GOSSIP_SENDER_MAIN, 20);
 
-        if(player->GetArenaTeamId(ArenaTeam::GetSlotByType(ARENA_TEAM_5v5)) == 0)
-            player->ADD_GOSSIP_ITEM_EXTENDED(GOSSIP_ICON_CHAT, "½¨Á¢µµ°¸", GOSSIP_SENDER_MAIN, 1, "Äã»á±»Å°ËÀµÄ ÏÈ½»Ç®°É", sWorld->getIntConfig(CONFIG_ARENA_1V1_COSTS), false);
+        if(player->GetArenaTeamId(ArenaTeam::GetSlotByType(ARENA_TEAM_1v1)) == 0)
+            player->ADD_GOSSIP_ITEM_EXTENDED(GOSSIP_ICON_CHAT, "åˆ›å»º1V1ç«žæŠ€åœºé˜Ÿä¼", GOSSIP_SENDER_MAIN, 1, "è¯·åœ¨å…‘æ¢éªŒè¯ç ä¸­è¾“å…¥ä½ æƒ³åˆ›å»ºçš„æˆ˜é˜Ÿå\n\næ˜¯å¦èŠ±è´¹ä»¥ä¸‹è´§å¸åˆ›å»ºæˆ˜é˜Ÿ\n\nä½ ç¡®å®šå—?", sWorld->getIntConfig(CONFIG_ARENA_1V1_COSTS), true);
         else
         {
-            if(player->InBattlegroundQueueForBattlegroundQueueType(BATTLEGROUND_QUEUE_5v5) == false)
+            if(player->InBattlegroundQueueForBattlegroundQueueType(BATTLEGROUND_QUEUE_1v1) == false)
             {
-                player->ADD_GOSSIP_ITEM(GOSSIP_ICON_CHAT, "ÀÏ×ÓÒªÈ¥±ÈÈü", GOSSIP_SENDER_MAIN, 2);
-                player->ADD_GOSSIP_ITEM_EXTENDED(GOSSIP_ICON_CHAT, "É¾³ýµµ°¸", GOSSIP_SENDER_MAIN, 5, "ÄãÈ·¶¨Âð?", 0, false);
+                player->ADD_GOSSIP_ITEM(GOSSIP_ICON_CHAT, "åŠ å…¥1V1ç«žæŠ€åœº(ç«žæŠ€èµ›)", GOSSIP_SENDER_MAIN, 2);
+                player->ADD_GOSSIP_ITEM_EXTENDED(GOSSIP_ICON_CHAT, "åˆ é™¤ä½ çš„ç«žæŠ€åœºé˜Ÿä¼", GOSSIP_SENDER_MAIN, 5, "ä½ ç¡®å®šå—?\n\nåˆ é™¤åŽæ‰€æœ‰1v1æ•°æ®å…¨éƒ¨æ¸…ç†!!!", 0, false);
             }
 
-            player->ADD_GOSSIP_ITEM(GOSSIP_ICON_CHAT, "²éÔÄÎÒµÄÕ½¼¨", GOSSIP_SENDER_MAIN, 4);
+            player->ADD_GOSSIP_ITEM(GOSSIP_ICON_CHAT, "æŸ¥é˜…1V1ç«žæŠ€åœºç»Ÿè®¡æ•°æ®", GOSSIP_SENDER_MAIN, 4);
         }
 
         //player->ADD_GOSSIP_ITEM(GOSSIP_ICON_CHAT, "Script Info", GOSSIP_SENDER_MAIN, 8);
@@ -204,7 +276,34 @@ public:
         return true;
     }
 
+    bool OnGossipSelectCode(Player* player, Creature* creature, uint32 sender, uint32 action, const char* code) override
+    {
+        if (!player || !creature)
+            return true;
 
+        ClearGossipMenuFor(player);
+
+        ChatHandler handler(player->GetSession());
+
+        if (action == 1)
+        {
+            if (sWorld->getIntConfig(CONFIG_ARENA_1V1_MIN_LEVEL) <= player->getLevel())
+            {
+                if (player->GetMoney() >= sWorld->getIntConfig(CONFIG_ARENA_1V1_COSTS) && CreateArenateam(player, creature, code))
+                {
+                    player->ModifyMoney(sWorld->getIntConfig(CONFIG_ARENA_1V1_COSTS) * -1);
+                    OnGossipHello(player, creature);
+                    return true;
+                } 
+            }
+            else
+            {
+                ChatHandler(player->GetSession()).PSendSysMessage("ä½ å¿…é¡»è¾¾åˆ°%u+çº§åˆ«æ‰èƒ½åˆ›å»º1v1ç«žæŠ€åœºå›¢é˜Ÿ .", sWorld->getIntConfig(CONFIG_ARENA_1V1_MIN_LEVEL));
+            }
+        }
+        CloseGossipMenuFor(player);
+        return true;
+    }
 
     bool OnGossipSelect(Player* player, Creature* me, uint32 /*uiSender*/, uint32 uiAction)
     {
@@ -215,28 +314,10 @@ public:
 
         switch (uiAction)
         {
-        case 1: // Create new Arenateam
-            {
-                if(sWorld->getIntConfig(CONFIG_ARENA_1V1_MIN_LEVEL) <= player->getLevel())
-                {
-                    if(player->GetMoney() >= sWorld->getIntConfig(CONFIG_ARENA_1V1_COSTS) && CreateArenateam(player, me))
-                        player->ModifyMoney(sWorld->getIntConfig(CONFIG_ARENA_1V1_COSTS) * -1);
-                }
-                else
-                {
-                    ChatHandler(player->GetSession()).PSendSysMessage("You need level %u .", sWorld->getIntConfig(CONFIG_ARENA_1V1_MIN_LEVEL));
-                    //player->CLOSE_GOSSIP_MENU();
-                    //return true;
-                }
-				player->CLOSE_GOSSIP_MENU();
-				return true;
-            }
-            break;
-
         case 2: // Join Queue Arena (rated)
             {
                 if(Arena1v1CheckTalents(player) && JoinQueueArena(player, me, true) == false)
-                    ChatHandler(player->GetSession()).SendSysMessage("°¥Ñ½£¬³ö´íÀ²£¬ÄãÒªÔÙÅÅ¹ý");
+                    ChatHandler(player->GetSession()).SendSysMessage("åŠ å…¥é˜Ÿåˆ—å‘ç”Ÿäº†éƒ¨åˆ†é”™è¯¯.");
 
                 player->CLOSE_GOSSIP_MENU();
                 return true;
@@ -246,7 +327,7 @@ public:
         case 20: // Join Queue Arena (unrated)
             {
                 if(Arena1v1CheckTalents(player) && JoinQueueArena(player, me, false) == false)
-                    ChatHandler(player->GetSession()).SendSysMessage("°¥Ñ½£¬³ö´íÀ²£¬ÄãÒªÔÙÅÅ¹ý");
+                    ChatHandler(player->GetSession()).SendSysMessage("åŠ å…¥é˜Ÿåˆ—å‘ç”Ÿäº†éƒ¨åˆ†é”™è¯¯.");
 
                 player->CLOSE_GOSSIP_MENU();
                 return true;
@@ -265,11 +346,12 @@ public:
 
         case 4: // get statistics
             {
-                ArenaTeam* at = sArenaTeamMgr->GetArenaTeamById(player->GetArenaTeamId(ArenaTeam::GetSlotByType(ARENA_TEAM_5v5)));
+                ArenaTeam* at = sArenaTeamMgr->GetArenaTeamById(player->GetArenaTeamId(ArenaTeam::GetSlotByType(ARENA_TEAM_1v1)));
                 if(at)
                 {
                     std::stringstream s;
-                    s << "Rating: " << at->GetStats().Rating;
+                    s << "\nTeam Name: " << at->GetName();
+                    s << "\nRating: " << at->GetStats().Rating;
                     s << "\nRank: " << at->GetStats().Rank;
                     s << "\nSeason Games: " << at->GetStats().SeasonGames;
                     s << "\nSeason Wins: " << at->GetStats().SeasonWins;
@@ -287,9 +369,9 @@ public:
         case 5: // Disband arenateam
             {
                 WorldPacket Data;
-                Data << (uint32)player->GetArenaTeamId(ArenaTeam::GetSlotByType(ARENA_TEAM_5v5));
+                Data << (uint32)player->GetArenaTeamId(ArenaTeam::GetSlotByType(ARENA_TEAM_1v1));
                 player->GetSession()->HandleArenaTeamLeaveOpcode(Data);
-                ChatHandler(player->GetSession()).SendSysMessage("ÒÑÉ¾³ýµµ°¸£¡");
+                ChatHandler(player->GetSession()).SendSysMessage("1V1ç«žæŠ€åœºé˜Ÿä¼è¢«åˆ é™¤!");
                 player->CLOSE_GOSSIP_MENU();
                 return true;
             }
@@ -313,8 +395,23 @@ public:
     }
 };
 
+class eventstop : public GameEventScript
+{
+public:
+    eventstop() : GameEventScript("1v1arena_eventstop") {}
+
+    virtual void OnStop(uint16 event_id) override
+    {
+        if (event_id == sConfigMgr->GetIntDefault("Arena.1v1.Event", 130))
+        {
+            sArenaTeamMgr->DistributeArenaPoints();
+        }
+    }
+};
 
 void AddSC_npc_1v1arena()
 {
     new npc_1v1arena();
+    new configloader_1v1arena();
+    new eventstop();
 }

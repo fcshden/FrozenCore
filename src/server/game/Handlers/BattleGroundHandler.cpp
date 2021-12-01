@@ -22,8 +22,8 @@
 #include "DisableMgr.h"
 #include "Group.h"
 #include "ScriptMgr.h"
+#include "Config.h"
 #pragma execution_character_set("utf-8")
-#include "../Custom/Other/npc_arena1v1.h"
 #include "../Custom/CommonFunc/CommonFunc.h"
 #include "../Custom/Other/CFBG.h"
 #include "../Custom/DataLoader/Dataloader.h"
@@ -123,7 +123,8 @@ void WorldSession::FixedBGJoin(uint32 bgTypeId_)
         err = ERR_IN_NON_RANDOM_BG;
     else if (_player->InBattlegroundQueueForBattlegroundQueueType(BATTLEGROUND_QUEUE_2v2) ||
         _player->InBattlegroundQueueForBattlegroundQueueType(BATTLEGROUND_QUEUE_3v3) ||
-        _player->InBattlegroundQueueForBattlegroundQueueType(BATTLEGROUND_QUEUE_5v5)) // can't be already queued for arenas
+        _player->InBattlegroundQueueForBattlegroundQueueType(BATTLEGROUND_QUEUE_5v5) ||
+        _player->InBattlegroundQueueForBattlegroundQueueType(BATTLEGROUND_QUEUE_1v1)) // can't be already queued for arenas
         err = ERR_BATTLEGROUND_QUEUED_FOR_RATED;
 
     if (err <= 0)
@@ -305,7 +306,8 @@ void WorldSession::HandleBattlemasterJoinOpcode(WorldPacket & recvData)
             err = ERR_IN_NON_RANDOM_BG;
         else if (_player->InBattlegroundQueueForBattlegroundQueueType(BATTLEGROUND_QUEUE_2v2) ||
                  _player->InBattlegroundQueueForBattlegroundQueueType(BATTLEGROUND_QUEUE_3v3) ||
-                 _player->InBattlegroundQueueForBattlegroundQueueType(BATTLEGROUND_QUEUE_5v5)) // can't be already queued for arenas
+                 _player->InBattlegroundQueueForBattlegroundQueueType(BATTLEGROUND_QUEUE_5v5) ||
+                 _player->InBattlegroundQueueForBattlegroundQueueType(BATTLEGROUND_QUEUE_1v1)) // can't be already queued for arenas
             err = ERR_BATTLEGROUND_QUEUED_FOR_RATED;
         // don't let Death Knights join BG queues when they are not allowed to be teleported yet
         else if (_player->getClass() == CLASS_DEATH_KNIGHT && _player->GetMapId() == 609 && !_player->IsGameMaster() && !_player->HasSpell(50977))
@@ -371,7 +373,8 @@ void WorldSession::HandleBattlemasterJoinOpcode(WorldPacket & recvData)
             err = ERR_IN_NON_RANDOM_BG;
         else if (_player->InBattlegroundQueueForBattlegroundQueueType(BATTLEGROUND_QUEUE_2v2) ||
                  _player->InBattlegroundQueueForBattlegroundQueueType(BATTLEGROUND_QUEUE_3v3) ||
-                 _player->InBattlegroundQueueForBattlegroundQueueType(BATTLEGROUND_QUEUE_5v5)) // can't be already queued for arenas
+                 _player->InBattlegroundQueueForBattlegroundQueueType(BATTLEGROUND_QUEUE_5v5) ||
+                 _player->InBattlegroundQueueForBattlegroundQueueType(BATTLEGROUND_QUEUE_1v1)) // can't be already queued for arenas
             err = ERR_BATTLEGROUND_QUEUED_FOR_RATED;
 
         if (err > 0)
@@ -515,6 +518,51 @@ void WorldSession::HandleBattlefieldListOpcode(WorldPacket &recvData)
     SendPacket(&data);
 }
 
+bool Arena1v1CheckTalents(Player* player)
+{
+    if (!player)
+        return false;
+
+    if (sWorld->getBoolConfig(CONFIG_ARENA_1V1_BLOCK_FORBIDDEN_TALENTS) == false)
+        return true;
+
+    std::vector<uint32> forbiddenTalents;
+    std::string blockedTalentsStr = sConfigMgr->GetStringDefault("Arena.1v1.ForbiddenTalentsIDs", "");
+    Tokenizer toks(blockedTalentsStr, ',');
+    for (auto&& token : toks)
+    {
+        forbiddenTalents.push_back(std::stoi(token));
+    }
+
+    uint32 count = 0;
+    for (uint32 talentId = 0; talentId < sTalentStore.GetNumRows(); ++talentId)
+    {
+        TalentEntry const* talentInfo = sTalentStore.LookupEntry(talentId);
+
+        if (!talentInfo)
+            continue;
+
+        if (std::find(forbiddenTalents.begin(), forbiddenTalents.end(), talentInfo->TalentID) != forbiddenTalents.end())
+        {
+            ChatHandler(player->GetSession()).SendSysMessage("你有1v1竞技场被禁止的天赋,不能加入1V1竞技场.");
+            return false;
+        }
+
+        for (int8 rank = MAX_TALENT_RANK - 1; rank >= 0; --rank)
+            if (talentInfo->RankID[rank] == 0)
+                continue;
+    }
+
+    uint32 talentsss = sConfigMgr->GetIntDefault("Arena.1v1.ForbiddenTalentpoints", 35);
+    if (count >= talentsss)
+    {
+        ChatHandler(player->GetSession()).PSendSysMessage("你在治疗或者坦克天赋中投入超过%u点天赋,被禁止进入1V1竞技场", talentsss);
+        return false;
+    }
+
+    return true;
+}
+
 void WorldSession::HandleBattleFieldPortOpcode(WorldPacket &recvData)
 {
     uint8 arenaType;                                        // arenatype if arena
@@ -530,7 +578,7 @@ void WorldSession::HandleBattleFieldPortOpcode(WorldPacket &recvData)
         return;
 
     // 1v1 Arena. Player can't join arena when forbidden talents are used.
-    if (bgTypeId_ == BATTLEGROUND_QUEUE_5v5 && Arena1v1CheckTalents(_player) == false)
+    if (bgTypeId_ == BATTLEGROUND_QUEUE_1v1 && Arena1v1CheckTalents(_player) == false)
         return;
 
     // player not in any queue, so can't really answer
@@ -785,6 +833,9 @@ void WorldSession::HandleBattlemasterJoinArena(WorldPacket & recvData)
         case 2:
             arenatype = ARENA_TYPE_5v5;
             break;
+        case 3:
+            arenatype = ARENA_TYPE_1v1;
+            break;
         default:
             return;
     }
@@ -1000,7 +1051,7 @@ void WorldSession::HandleBattleFieldPortOpcode(uint8 arenaType, uint8 unk2, uint
         return;
 
     // 1v1 Arena. Player can't join arena when forbidden talents are used.
-    if (bgTypeId_ == BATTLEGROUND_QUEUE_5v5 && Arena1v1CheckTalents(_player) == false)
+    if (bgTypeId_ == BATTLEGROUND_QUEUE_1v1 && Arena1v1CheckTalents(_player) == false)
         return;
 
     // player not in any queue, so can't really answer
