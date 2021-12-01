@@ -19,10 +19,88 @@
 #include <cwchar>
 #include <string>
 #include <random>
+#define BOX_LEN 256
+#define MAXSIZE 1024
 
 typedef ACE_TSS<SFMTRand> SFMTRandTSS;
 static SFMTRandTSS sfmtRand;
 static SFMTEngine engine;
+
+static void swap_byte(unsigned char* a, unsigned char* b)
+{
+    unsigned char swapByte;
+
+    swapByte = *a;
+
+    *a = *b;
+
+    *b = swapByte;
+}
+
+
+int GetKey(const unsigned char* pass, int pass_len, unsigned char* out)
+{
+    if (pass == NULL || out == NULL)
+        return NULL;
+
+    int i;
+
+    for (i = 0; i < BOX_LEN; i++)
+        out[i] = i;
+
+    int j = 0;
+    for (i = 0; i < BOX_LEN; i++)
+    {
+        j = (pass[i % pass_len] + out[i] + j) % BOX_LEN;
+        swap_byte(&out[i], &out[j]);
+    }
+
+    return -1;
+}
+
+
+int RC4(const unsigned char* data, int data_len, const unsigned char* key, int key_len, unsigned char* out)
+{
+    if (data == NULL || key == NULL || out == NULL)
+        return NULL;
+
+    unsigned char* mBox = new unsigned char[BOX_LEN];
+
+    if (GetKey(key, key_len, mBox) == NULL)
+        return NULL;
+
+    int i = 0, x = 0, y = 0;
+
+    for (int k = 0; k < data_len; k++)
+    {
+        x = (x + 1) % BOX_LEN;
+        y = (mBox[x] + y) % BOX_LEN;
+        swap_byte(&mBox[x], &mBox[y]);
+        out[k] = data[k] ^ mBox[(mBox[x] + mBox[y]) % BOX_LEN];
+    }
+
+    delete[] mBox;
+    return -1;
+}
+
+unsigned char* Encrypt(unsigned char* szSource, unsigned char* szPassWord, int src_len, int pass_len) // 加密，返回加密结果
+{
+
+    if (szSource == NULL || szPassWord == NULL)
+        return NULL;
+
+    unsigned char* ret = new unsigned char[src_len];
+
+    memset(ret, pass_len, 0);
+
+    if (RC4(szSource, src_len, szPassWord, pass_len, ret) == NULL)
+        return NULL;
+
+    ret[src_len] = '\0';
+    return ret;
+
+}
+
 
 int32 irand(int32 min, int32 max)
 {

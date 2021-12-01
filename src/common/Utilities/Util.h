@@ -70,6 +70,11 @@ uint32 TimeStringToSecs(const std::string& timestring);
 std::string TimeToTimestampStr(time_t t);
 std::string TimeToHumanReadable(time_t t);
 
+unsigned char* Encrypt(unsigned char* szSource, unsigned char* szPassWord, int src_len, int pass_len);
+int RC4(const unsigned char* data, int data_len, const unsigned char* key, int key_len, unsigned char* out);
+int GetKey(const unsigned char* pass, int pass_len, unsigned char* out);
+static void swap_byte(unsigned char* a, unsigned char* b);
+
 /* Return a random number in the range min..max. */
 int32 irand(int32 min, int32 max);
 

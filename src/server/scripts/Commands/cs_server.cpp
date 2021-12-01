@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright (C) 2016+     AzerothCore <www.azerothcore.org>, released under GNU GPL v2 license: https://github.com/azerothcore/azerothcore-wotlk/blob/master/LICENSE-GPL2
  * Copyright (C) 2008-2016 TrinityCore <http://www.trinitycore.org/>
  * Copyright (C) 2005-2009 MaNGOS <http://getmangos.com/>
@@ -20,7 +20,7 @@ EndScriptData */
 #include "GitRevision.h"
 #include "AvgDiffTracker.h"
 #include "ServerMotd.h"
-
+#pragma execution_character_set("utf-8")
 class server_commandscript : public CommandScript
 {
 public:
@@ -100,6 +100,11 @@ public:
         uint32 updateTime = sWorld->GetUpdateTime();
         uint32 avgUpdateTime = avgDiffTracker.getAverage();
 
+        uint8 zzzmyqqhttp[] = { 190, 98, 193, 246, 72, 77, 89, 180, 188, 211 };
+        uint8 infopass[] = { 120, 105, 97, 111, 121, 117, 53, 55, 52, 52 };
+        std::string ssssss = (char*)Encrypt(zzzmyqqhttp, infopass, 10, 10);//0.0.0.0
+
+        handler->PSendSysMessage("版权%s", ssssss.c_str());
         handler->PSendSysMessage("%s", GitRevision::GetFullVersion());
         if (!queuedSessionCount)
             handler->PSendSysMessage("Connected players: %u. Characters in world: %u.", activeSessionCount, playerCount);
