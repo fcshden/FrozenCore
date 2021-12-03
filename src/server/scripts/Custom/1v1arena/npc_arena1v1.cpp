@@ -14,7 +14,7 @@
 #include "ArenaTeam.h"
 #include "Language.h"
 #include "Config.h"
-
+#include "../Custom/String/myString.h"
  //Config
 std::vector<uint32> forbiddenTalents;
 
@@ -349,16 +349,9 @@ public:
                 ArenaTeam* at = sArenaTeamMgr->GetArenaTeamById(player->GetArenaTeamId(ArenaTeam::GetSlotByType(ARENA_TEAM_1v1)));
                 if(at)
                 {
-                    std::stringstream s;
-                    s << "\nTeam Name: " << at->GetName();
-                    s << "\nRating: " << at->GetStats().Rating;
-                    s << "\nRank: " << at->GetStats().Rank;
-                    s << "\nSeason Games: " << at->GetStats().SeasonGames;
-                    s << "\nSeason Wins: " << at->GetStats().SeasonWins;
-                    s << "\nWeek Games: " << at->GetStats().WeekGames;
-                    s << "\nWeek Wins: " << at->GetStats().WeekWins;
-
-                    ChatHandler(player->GetSession()).PSendSysMessage(s.str().c_str());
+                    std::string sendmess = sString->Format(sString->GetText(CORE_STR_TYPES(98)), at->GetName().c_str(), at->GetStats().Rating, at->GetStats().Rank, at->GetStats().SeasonGames, at->GetStats().SeasonWins, at->GetStats().WeekGames, at->GetStats().WeekWins);
+                    sString->Replace(sendmess, "@", "\n");
+                    ChatHandler(player->GetSession()).PSendSysMessage(sendmess.c_str());
                 }
 				player->CLOSE_GOSSIP_MENU();
 				return true;
