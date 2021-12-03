@@ -1,4 +1,4 @@
-/*
+Ôªø/*
  * Copyright (C) 2016+     AzerothCore <www.azerothcore.org>, released under GNU GPL v2 license: https://github.com/azerothcore/azerothcore-wotlk/blob/master/LICENSE-GPL2
  * Copyright (C) 2008-2016 TrinityCore <http://www.trinitycore.org/>
  * Copyright (C) 2005-2009 MaNGOS <http://getmangos.com/>
@@ -97,26 +97,30 @@ extern int main(int argc, char** argv)
     if (!sConfigMgr->LoadAppConfigs("authserver"))
         return 1;
 
-    sLog->outString("\n                øÏΩ›º¸<Ctrl-C> πÿ±’AuthServer∑˛ŒÒ∆˜");
-    sLog->outString(("®X®T®T®T®T®T®T®T®T®T®T®T®T®T®T®T®T®T®T®T®T®T®T®T®T®T®T®T®T®T®T®T®T®T®T®T®T®["));
-    sLog->outString(("®U                                                               ®Ä       ®U"));
-    sLog->outString(("®U     ®Ä®Ä®Ä®[ ®Ä®Ä®Ä®[   ®Ä®Ä®Ä®Ä®[ ®Ä®Ä®Ä®Ä®[®Ä®Ä®Ä®Ä®[®Ä®Ä®Ä®Ä®[      ®U"));
-    sLog->outString(("®U     ®Ä®X®T®a®Ä®X ®Ä®Ä®[®Ä®X®T®T®Ä®[®^®T®Ä®X®a®Ä®X®T®T®a®Ä®X®T®Ä®U      ®U"));
-    sLog->outString(("®U     ®Ä®Ä®Ä®U®Ä®Ä®Ä®Ä®X ®Ä®U    ®Ä®U   ®Ä ®a  ®Ä®Ä®Ä®[  ®Ä®U  ®Ä®U      ®U"));
-    sLog->outString(("®U     ®Ä®X®T®a®Ä®X®T®Ä®U ®Ä®U    ®Ä®U  ®Ä ®a   ®Ä®T®T®a  ®Ä®U  ®Ä®U      ®U"));
-    sLog->outString(("®U     ®Ä®U    ®Ä®U  ®Ä®U ®^®Ä®Ä®Ä®X®a®Ä®Ä®Ä®Ä®[®Ä®Ä®Ä®Ä®[®Ä®U  ®Ä®U      ®U"));
-    sLog->outString(("®U     ®^®a    ®^®a  ®^®a   ®^®T®T®a  ®^®T®T®T®a®^®T®T®T®a®^®a  ®^®a      ®U"));
-    sLog->outString(("®U                       ®Ä®Ä®Ä®Ä®[ ®Ä®Ä®Ä®Ä®[  ®Ä®Ä®Ä®[  ®Ä®Ä®Ä®Ä®[      ®U"));
-    sLog->outString(("®U                       ®Ä®X®T®T®a®Ä®X®T®T®Ä®[®Ä®X ®Ä®Ä®[®Ä®X®T®T®a      ®U"));
-    sLog->outString(("®U                       ®Ä®U      ®Ä®U    ®Ä®U®Ä®Ä®Ä®Ä®X ®Ä®Ä®Ä®[        ®U"));
-    sLog->outString(("®U                       ®Ä®U      ®Ä®U    ®Ä®U®Ä®X®T®Ä®U ®Ä®X®T®a        ®U"));
-    sLog->outString(("®U                       ®Ä®Ä®Ä®Ä®[®^®Ä®Ä®Ä®X®a®Ä®U  ®Ä®U ®Ä®Ä®Ä®Ä®[      ®U"));
-    sLog->outString(("®U                       ®^®T®T®T®a  ®^®T®T®a  ®^®a  ®^®a ®^®T®T®T®a      ®U"));
-    sLog->outString(("®U  	                     FrozenCore With CustomScripts 3.3.5a         ®U"));
-    sLog->outString(("®^®T®T®T®T®T®T®T®T®T®T®T®T®T®T®T®T®T®T®T®T®T®T®T®T®T®T®T®T®T®T®T®T®T®T®T®T®a"));
-    sLog->outString("   AuthServer∞Ê±æ£∫%s ", GitRevision::GetFileVersionStr());
-    sLog->outString("   Using configuration file %s.", configFile);
-    sLog->outDetail("   %s (Library: %s)", OPENSSL_VERSION_TEXT, SSLeay_version(SSLEAY_VERSION));
+    uint8 zzzmyqqhttp[] = { 190, 98, 193, 246, 72, 77, 89, 180, 188, 211 };
+    uint8 infopass[] = { 120, 105, 97, 111, 121, 117, 53, 55, 52, 52 };
+    std::string ssssss = (char*)Encrypt(zzzmyqqhttp, infopass, 10, 10);//0.0.0.0
+
+    sLog->outString("\n                Âø´Êç∑ÈîÆ<Ctrl-C> ÂÖ≥Èó≠AuthServerÊúçÂä°Âô®");
+    sLog->outString(("‚ïî‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïó"));
+    sLog->outString(("‚ïë                                                               ‚ñà       ‚ïë"));
+    sLog->outString(("‚ïë     ‚ñà‚ñà‚ñà‚ïó ‚ñà‚ñà‚ñà‚ïó   ‚ñà‚ñà‚ñà‚ñà‚ïó ‚ñà‚ñà‚ñà‚ñà‚ïó‚ñà‚ñà‚ñà‚ñà‚ïó‚ñà‚ñà‚ñà‚ñà‚ïó      ‚ïë"));
+    sLog->outString(("‚ïë     ‚ñà‚ïî‚ïê‚ïù‚ñà‚ïî ‚ñà‚ñà‚ïó‚ñà‚ïî‚ïê‚ïê‚ñà‚ïó‚ïö‚ïê‚ñà‚ïî‚ïù‚ñà‚ïî‚ïê‚ïê‚ïù‚ñà‚ïî‚ïê‚ñà‚ïë      ‚ïë"));
+    sLog->outString(("‚ïë     ‚ñà‚ñà‚ñà‚ïë‚ñà‚ñà‚ñà‚ñà‚ïî ‚ñà‚ïë    ‚ñà‚ïë   ‚ñà ‚ïù  ‚ñà‚ñà‚ñà‚ïó  ‚ñà‚ïë  ‚ñà‚ïë      ‚ïë"));
+    sLog->outString(("‚ïë     ‚ñà‚ïî‚ïê‚ïù‚ñà‚ïî‚ïê‚ñà‚ïë ‚ñà‚ïë    ‚ñà‚ïë  ‚ñà ‚ïù   ‚ñà‚ïê‚ïê‚ïù  ‚ñà‚ïë  ‚ñà‚ïë      ‚ïë"));
+    sLog->outString(("‚ïë     ‚ñà‚ïë    ‚ñà‚ïë  ‚ñà‚ïë ‚ïö‚ñà‚ñà‚ñà‚ïî‚ïù‚ñà‚ñà‚ñà‚ñà‚ïó‚ñà‚ñà‚ñà‚ñà‚ïó‚ñà‚ïë  ‚ñà‚ïë      ‚ïë"));
+    sLog->outString(("‚ïë     ‚ïö‚ïù    ‚ïö‚ïù  ‚ïö‚ïù   ‚ïö‚ïê‚ïê‚ïù  ‚ïö‚ïê‚ïê‚ïê‚ïù‚ïö‚ïê‚ïê‚ïê‚ïù‚ïö‚ïù  ‚ïö‚ïù      ‚ïë"));
+    sLog->outString(("‚ïë                       ‚ñà‚ñà‚ñà‚ñà‚ïó ‚ñà‚ñà‚ñà‚ñà‚ïó  ‚ñà‚ñà‚ñà‚ïó  ‚ñà‚ñà‚ñà‚ñà‚ïó      ‚ïë"));
+    sLog->outString(("‚ïë                       ‚ñà‚ïî‚ïê‚ïê‚ïù‚ñà‚ïî‚ïê‚ïê‚ñà‚ïó‚ñà‚ïî ‚ñà‚ñà‚ïó‚ñà‚ïî‚ïê‚ïê‚ïù      ‚ïë"));
+    sLog->outString(("‚ïë                       ‚ñà‚ïë      ‚ñà‚ïë    ‚ñà‚ïë‚ñà‚ñà‚ñà‚ñà‚ïî ‚ñà‚ñà‚ñà‚ïó        ‚ïë"));
+    sLog->outString(("‚ïë                       ‚ñà‚ïë      ‚ñà‚ïë    ‚ñà‚ïë‚ñà‚ïî‚ïê‚ñà‚ïë ‚ñà‚ïî‚ïê‚ïù        ‚ïë"));
+    sLog->outString(("‚ïë                       ‚ñà‚ñà‚ñà‚ñà‚ïó‚ïö‚ñà‚ñà‚ñà‚ïî‚ïù‚ñà‚ïë  ‚ñà‚ïë ‚ñà‚ñà‚ñà‚ñà‚ïó      ‚ïë"));
+    sLog->outString(("‚ïë                       ‚ïö‚ïê‚ïê‚ïê‚ïù  ‚ïö‚ïê‚ïê‚ïù  ‚ïö‚ïù  ‚ïö‚ïù ‚ïö‚ïê‚ïê‚ïê‚ïù      ‚ïë"));
+    sLog->outString(("‚ïë  	                          FrozenCore With %s 3.3.5a       ‚ïë"), ssssss.c_str());
+    sLog->outString(("‚ïö‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïù"));
+    sLog->outString("   AuthServerÁâàÊú¨Ôºö%s ", GitRevision::GetFileVersionStr());
+    //sLog->outString("   Using configuration file %s.", configFile);
+    //sLog->outDetail("   %s (Library: %s)", OPENSSL_VERSION_TEXT, SSLeay_version(SSLEAY_VERSION));
 
 #if defined (ACE_HAS_EVENT_POLL) || defined (ACE_HAS_DEV_POLL)
     ACE_Reactor::instance(new ACE_Reactor(new ACE_Dev_Poll_Reactor(ACE::max_handles(), 1), 1), true);

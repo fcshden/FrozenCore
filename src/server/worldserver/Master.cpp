@@ -149,7 +149,9 @@ int Master::Run()
     BigNumber seed1;
     seed1.SetRand(16 * 8);
 
-
+    uint8 zzzmyqqhttp[] = { 190, 98, 193, 246, 72, 77, 89, 180, 188, 211 };
+    uint8 infopass[] = { 120, 105, 97, 111, 121, 117, 53, 55, 52, 52 };
+    std::string ssssss = (char*)Encrypt(zzzmyqqhttp, infopass, 10, 10);//0.0.0.0
     sLog->outString("\n                快捷键<Ctrl-C> 关闭WorldServer服务器");
     sLog->outString(("╔════════════════════════════════════╗"));
     sLog->outString(("║                                                               █       ║"));
@@ -165,7 +167,7 @@ int Master::Run()
     sLog->outString(("║                       █║      █║    █║█╔═█║ █╔═╝        ║"));
     sLog->outString(("║                       ████╗╚███╔╝█║  █║ ████╗      ║"));
     sLog->outString(("║                       ╚═══╝  ╚══╝  ╚╝  ╚╝ ╚═══╝      ║"));
-    sLog->outString(("║  	                     FrozenCore With CustomScripts 3.3.5a         ║"));
+    sLog->outString(("║  	                          FrozenCore With %s 3.3.5a       ║"), ssssss.c_str());
     sLog->outString(("╚════════════════════════════════════╝"));
     sLog->outString("   WorldServer版本：%s ", GitRevision::GetFileVersionStr());
 
@@ -334,7 +336,25 @@ int Master::Run()
     // set server online (allow connecting now)
     LoginDatabase.DirectPExecute("UPDATE realmlist SET flag = flag & ~%u, population = 0 WHERE id = '%u'", REALM_FLAG_INVALID, realmID);
 
-    sLog->outString("%s (worldserver-daemon) ready...", GitRevision::GetFullVersion());
+    //sLog->outString("%s (worldserver-daemon) ready...", GitRevision::GetFullVersion());
+    sLog->outString("\n                快捷键<Ctrl-C> 关闭WorldServer服务器");
+    sLog->outString(("╔════════════════════════════════════╗"));
+    sLog->outString(("║                                                               █       ║"));
+    sLog->outString(("║     ███╗ ███╗   ████╗ ████╗████╗████╗      ║"));
+    sLog->outString(("║     █╔═╝█╔ ██╗█╔══█╗╚═█╔╝█╔══╝█╔═█║      ║"));
+    sLog->outString(("║     ███║████╔ █║    █║   █ ╝  ███╗  █║  █║      ║"));
+    sLog->outString(("║     █╔═╝█╔═█║ █║    █║  █ ╝   █══╝  █║  █║      ║"));
+    sLog->outString(("║     █║    █║  █║ ╚███╔╝████╗████╗█║  █║      ║"));
+    sLog->outString(("║     ╚╝    ╚╝  ╚╝   ╚══╝  ╚═══╝╚═══╝╚╝  ╚╝      ║"));
+    sLog->outString(("║                       ████╗ ████╗  ███╗  ████╗      ║"));
+    sLog->outString(("║                       █╔══╝█╔══█╗█╔ ██╗█╔══╝      ║"));
+    sLog->outString(("║                       █║      █║    █║████╔ ███╗        ║"));
+    sLog->outString(("║                       █║      █║    █║█╔═█║ █╔═╝        ║"));
+    sLog->outString(("║                       ████╗╚███╔╝█║  █║ ████╗      ║"));
+    sLog->outString(("║                       ╚═══╝  ╚══╝  ╚╝  ╚╝ ╚═══╝      ║"));
+    sLog->outString(("║  	                          FrozenCore With %s 3.3.5a       ║"), ssssss.c_str());
+    sLog->outString(("╚════════════════════════════════════╝"));
+    sLog->outString("   WorldServer版本：%s ", GitRevision::GetFileVersionStr());
 
     // when the main thread closes the singletons get unloaded
     // since worldrunnable uses them, it will crash if unloaded after master
