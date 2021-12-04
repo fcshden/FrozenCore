@@ -1,23 +1,23 @@
-#include "Transmogrification.h"
-
+ï»¿#include "Transmogrification.h"
+#pragma execution_character_set("utf-8")
 const char * Transmogrification::GetSlotName(uint8 slot, WorldSession* session) const
 {
     switch (slot)
     {
-	case EQUIPMENT_SLOT_HEAD: return  ("Í·²¿");// session->GetTrinityString(LANG_SLOT_NAME_HEAD);
-	case EQUIPMENT_SLOT_SHOULDERS: return  ("¼ç²¿");// session->GetTrinityString(LANG_SLOT_NAME_SHOULDERS);;
-	case EQUIPMENT_SLOT_BODY: return  ("³ÄÒÂ");// session->GetTrinityString(LANG_SLOT_NAME_BODY);
-	case EQUIPMENT_SLOT_CHEST: return  ("ÐØ²¿");// session->GetTrinityString(LANG_SLOT_NAME_CHEST);
-	case EQUIPMENT_SLOT_WAIST: return  ("Ñü²¿");// session->GetTrinityString(LANG_SLOT_NAME_WAIST);
-	case EQUIPMENT_SLOT_LEGS: return  ("ÍÈ²¿");// session->GetTrinityString(LANG_SLOT_NAME_LEGS);
-	case EQUIPMENT_SLOT_FEET: return  ("Ñ¥×Ó");// session->GetTrinityString(LANG_SLOT_NAME_FEET);
-	case EQUIPMENT_SLOT_WRISTS: return ("ÊÖÍó");// session->GetTrinityString(LANG_SLOT_NAME_WRISTS);
-	case EQUIPMENT_SLOT_HANDS: return  ("ÊÖÌ×");// session->GetTrinityString(LANG_SLOT_NAME_HANDS);
-	case EQUIPMENT_SLOT_BACK: return  ("±³²¿");// session->GetTrinityString(LANG_SLOT_NAME_BACK);
-	case EQUIPMENT_SLOT_MAINHAND: return  ("Ö÷ÊÖÎäÆ÷");// session->GetTrinityString(LANG_SLOT_NAME_MAINHAND);
-	case EQUIPMENT_SLOT_OFFHAND: return  ("¸±ÊÖÎäÆ÷");// session->GetTrinityString(LANG_SLOT_NAME_OFFHAND);
-	case EQUIPMENT_SLOT_RANGED: return  ("Ô¶³ÌÎäÆ÷");// session->GetTrinityString(LANG_SLOT_NAME_RANGED);
-	case EQUIPMENT_SLOT_TABARD: return ("Õ½ÅÛ");// session->GetTrinityString(LANG_SLOT_NAME_TABARD);
+	case EQUIPMENT_SLOT_HEAD: return  ("å¤´éƒ¨");// session->GetTrinityString(LANG_SLOT_NAME_HEAD);
+	case EQUIPMENT_SLOT_SHOULDERS: return  ("è‚©éƒ¨");// session->GetTrinityString(LANG_SLOT_NAME_SHOULDERS);;
+	case EQUIPMENT_SLOT_BODY: return  ("è¡¬è¡£");// session->GetTrinityString(LANG_SLOT_NAME_BODY);
+	case EQUIPMENT_SLOT_CHEST: return  ("èƒ¸éƒ¨");// session->GetTrinityString(LANG_SLOT_NAME_CHEST);
+	case EQUIPMENT_SLOT_WAIST: return  ("è…°éƒ¨");// session->GetTrinityString(LANG_SLOT_NAME_WAIST);
+	case EQUIPMENT_SLOT_LEGS: return  ("è…¿éƒ¨");// session->GetTrinityString(LANG_SLOT_NAME_LEGS);
+	case EQUIPMENT_SLOT_FEET: return  ("é´å­");// session->GetTrinityString(LANG_SLOT_NAME_FEET);
+	case EQUIPMENT_SLOT_WRISTS: return ("æ‰‹è…•");// session->GetTrinityString(LANG_SLOT_NAME_WRISTS);
+	case EQUIPMENT_SLOT_HANDS: return  ("æ‰‹å¥—");// session->GetTrinityString(LANG_SLOT_NAME_HANDS);
+	case EQUIPMENT_SLOT_BACK: return  ("èƒŒéƒ¨");// session->GetTrinityString(LANG_SLOT_NAME_BACK);
+	case EQUIPMENT_SLOT_MAINHAND: return  ("ä¸»æ‰‹æ­¦å™¨");// session->GetTrinityString(LANG_SLOT_NAME_MAINHAND);
+	case EQUIPMENT_SLOT_OFFHAND: return  ("å‰¯æ‰‹æ­¦å™¨");// session->GetTrinityString(LANG_SLOT_NAME_OFFHAND);
+	case EQUIPMENT_SLOT_RANGED: return  ("è¿œç¨‹æ­¦å™¨");// session->GetTrinityString(LANG_SLOT_NAME_RANGED);
+	case EQUIPMENT_SLOT_TABARD: return ("æˆ˜è¢");// session->GetTrinityString(LANG_SLOT_NAME_TABARD);
     default: return NULL;
     }
 }
